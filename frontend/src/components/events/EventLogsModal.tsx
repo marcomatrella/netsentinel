@@ -51,6 +51,135 @@ const kindIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   custom: Layers,
 };
 
+const localeMap: Record<string, string> = {
+  it: 'it-IT',
+  en: 'en-US',
+  fr: 'fr-FR',
+  de: 'de-DE',
+  es: 'es-ES',
+};
+
+function translateBackendMessage(rawMsg: string | undefined, lang: string): string {
+  if (!rawMsg) return '';
+  if (lang === 'it') return rawMsg;
+
+  // 1. Overall device status
+  const devStateMatch = rawMsg.match(/Lo stato complessivo di '(.+?)' è ora ([A-Z]+)\./i);
+  if (devStateMatch) {
+    const dev = devStateMatch[1];
+    const st = devStateMatch[2].toUpperCase();
+    if (lang === 'en') return `The overall status of '${dev}' is now ${st}.`;
+    if (lang === 'fr') return `L'état global de '${dev}' est maintenant ${st}.`;
+    if (lang === 'de') return `Der Gesamtstatus von '${dev}' ist jetzt ${st}.`;
+    if (lang === 'es') return `El estado general de '${dev}' es ahora ${st}.`;
+  }
+
+  // 2. Check state change
+  const chkStateMatch = rawMsg.match(/Il controllo '(.+?)' su '(.+?)' è passato allo stato ([A-Z]+)\./i);
+  if (chkStateMatch) {
+    const chk = chkStateMatch[1];
+    const dev = chkStateMatch[2];
+    const st = chkStateMatch[3].toUpperCase();
+    if (lang === 'en') return `Health check '${chk}' on '${dev}' transitioned to ${st}.`;
+    if (lang === 'fr') return `Le contrôle '${chk}' sur '${dev}' est passé à l'état ${st}.`;
+    if (lang === 'de') return `Prüfung '${chk}' auf '${dev}' wechselte zum Status ${st}.`;
+    if (lang === 'es') return `El control '${chk}' en '${dev}' pasó al estado ${st}.`;
+  }
+
+  // 3. Monitor daemon start
+  const startMatch = rawMsg.match(/NetSentinel (v.+?) è stato avviato correttamente\./i);
+  if (startMatch) {
+    const ver = startMatch[1];
+    if (lang === 'en') return `NetSentinel ${ver} started successfully.`;
+    if (lang === 'fr') return `NetSentinel ${ver} a démarré avec succès.`;
+    if (lang === 'de') return `NetSentinel ${ver} wurde erfolgreich gestartet.`;
+    if (lang === 'es') return `NetSentinel ${ver} se inició correctamente.`;
+  }
+
+  // 4. Incident resolution
+  const resMatch = rawMsg.match(/Tutti gli apparati e servizi sono rientrati\. Durata totale incidente:\s*(\d+)\s*secondi\./i);
+  if (resMatch) {
+    const sec = resMatch[1];
+    if (lang === 'en') return `All devices and services have recovered. Total incident duration: ${sec}s.`;
+    if (lang === 'fr') return `Tous les appareils et services sont rétablis. Durée totale de l'incident: ${sec}s.`;
+    if (lang === 'de') return `Alle Geräte und Dienste wurden wiederhergestellt. Gesamtdauer des Vorfalls: ${sec}s.`;
+    if (lang === 'es') return `Todos los dispositivos y servicios se han recuperado. Duración total del incidente: ${sec}s.`;
+  }
+
+  // 5. Flapping
+  if (rawMsg.includes('Rilevati frequenti cambi di stato nella finestra temporale')) {
+    if (lang === 'en') return 'Frequent state transitions detected within the observation window.';
+    if (lang === 'fr') return 'Changements d\'état fréquents détectés dans la fenêtre temporelle.';
+    if (lang === 'de') return 'Häufige Statuswechsel im Zeitfenster erkannt.';
+    if (lang === 'es') return 'Se detectaron frecuentes cambios de estado en la ventana de observación.';
+  }
+
+  // 6. Root cause shift
+  const shiftMatch = rawMsg.match(/La causa radice dell'incidente è passata a '(.+?)'\./i);
+  if (shiftMatch) {
+    const dev = shiftMatch[1];
+    if (lang === 'en') return `The incident root cause shifted to '${dev}'.`;
+    if (lang === 'fr') return `La cause racine de l'incident est passée à '${dev}'.`;
+    if (lang === 'de') return `Die Grundursache des Vorfalls wurde auf '${dev}' verschoben.`;
+    if (lang === 'es') return `La causa raíz del incidente cambió a '${dev}'.`;
+  }
+
+  return rawMsg;
+}
+
+function translateBackendTitle(rawTitle: string | undefined, lang: string): string {
+  if (!rawTitle) return '';
+  if (lang === 'it') return rawTitle;
+
+  if (rawTitle.startsWith('Avvio servizio NetSentinel')) {
+    if (lang === 'en') return 'NetSentinel Service Startup';
+    if (lang === 'fr') return 'Démarrage du service NetSentinel';
+    if (lang === 'de') return 'NetSentinel Dienststart';
+    if (lang === 'es') return 'Inicio del servicio NetSentinel';
+  }
+  if (rawTitle.startsWith('Incidente Risolto')) {
+    if (lang === 'en') return 'Incident Resolved';
+    if (lang === 'fr') return 'Incident Résolu';
+    if (lang === 'de') return 'Vorfall behoben';
+    if (lang === 'es') return 'Incidente Resuelto';
+  }
+  const incApertoMatch = rawTitle.match(/Incidente Aperto:\s*(.+)/i);
+  if (incApertoMatch) {
+    const dev = incApertoMatch[1];
+    if (lang === 'en') return `Incident Opened: ${dev}`;
+    if (lang === 'fr') return `Incident Ouvert: ${dev}`;
+    if (lang === 'de') return `Vorfall eröffnet: ${dev}`;
+    if (lang === 'es') return `Incidente Abierto: ${dev}`;
+  }
+  const riavvioMatch = rawTitle.match(/Riavvio rilevato:\s*(.+)/i);
+  if (riavvioMatch) {
+    const dev = riavvioMatch[1];
+    if (lang === 'en') return `Reboot detected: ${dev}`;
+    if (lang === 'fr') return `Redémarrage détecté: ${dev}`;
+    if (lang === 'de') return `Neustart erkannt: ${dev}`;
+    if (lang === 'es') return `Reinicio detectado: ${dev}`;
+  }
+  const flapMatch = rawTitle.match(/Flapping instabile rilevato:\s*(.+)/i);
+  if (flapMatch) {
+    const dev = flapMatch[1];
+    if (lang === 'en') return `Unstable flapping detected: ${dev}`;
+    if (lang === 'fr') return `Flapping instable détecté: ${dev}`;
+    if (lang === 'de') return `Instabiles Flapping erkannt: ${dev}`;
+    if (lang === 'es') return `Flapping inestable detectado: ${dev}`;
+  }
+  const appStateMatch = rawTitle.match(/Apparato (.+?):\s*([A-Z]+)\s*->\s*([A-Z]+)/i);
+  if (appStateMatch) {
+    const dev = appStateMatch[1];
+    const from = appStateMatch[2];
+    const to = appStateMatch[3];
+    if (lang === 'en') return `Device ${dev}: ${from} -> ${to}`;
+    if (lang === 'fr') return `Équipement ${dev}: ${from} -> ${to}`;
+    if (lang === 'de') return `Gerät ${dev}: ${from} -> ${to}`;
+    if (lang === 'es') return `Dispositivo ${dev}: ${from} -> ${to}`;
+  }
+  return rawTitle;
+}
+
 export const EventLogsModal: React.FC<EventLogsModalProps> = ({
   isOpen,
   onClose,
@@ -58,10 +187,12 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
   onTimeTravelToEvent,
   currentHistoricalTime,
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const activeLocale = localeMap[language] || 'en-US';
 
   // Filters
   const [severityFilter, setSeverityFilter] = useState<'all' | 'crit' | 'warn' | 'info'>('all');
@@ -107,7 +238,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
   // Narrative generator for human-friendly explanation ("in maniera parlante")
   const getNarrative = (ev: EventItem) => {
     const dev = ev.device_id ? devicesMap.get(ev.device_id) : undefined;
-    const devName = ev.device_name || dev?.name || ev.device_id || 'Rete';
+    const devName = ev.device_name || dev?.name || ev.device_id || t('events.network');
     const devIp = ev.device_ip || dev?.addresses?.ip;
     const ipStr = devIp ? ` (${devIp})` : '';
 
@@ -117,111 +248,137 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
         const newSt = (ev.details?.new_status || '').toUpperCase();
         if (newSt === 'DOWN') {
           return {
-            headline: `Dispositivo ${devName}${ipStr} è andato OFFLINE`,
-            explanation: `L'apparato ha interrotto le risposte ai controlli di integrità ed è stato contrassegnato come irraggiungibile. Se ha apparati a valle dipendenti, questi risulteranno isolati.`,
-            actionable: `Controllare alimentazione, cavo ethernet o la porta di connessione sullo switch.`,
+            headline: t('events.narratives.device_down_headline', { name: devName, ip: ipStr }),
+            explanation: t('events.narratives.device_down_explanation'),
+            actionable: t('events.narratives.device_down_actionable'),
           };
         }
         if (newSt === 'DEGRADED') {
           return {
-            headline: `Dispositivo ${devName}${ipStr} è in stato DEGRADATO`,
-            explanation: `Uno o più controlli specifici hanno fallito o mostrano anomalie (es. latenza elevata, timeout DNS o pacchetti persi), mentre il ping di base risponde.`,
-            actionable: `Verificare i log del servizio specifico (es. server DNS, container AdGuard o porta HTTP).`,
+            headline: t('events.narratives.device_degraded_headline', { name: devName, ip: ipStr }),
+            explanation: t('events.narratives.device_degraded_explanation'),
+            actionable: t('events.narratives.device_degraded_actionable'),
           };
         }
         if (newSt === 'FLAPPING') {
           return {
-            headline: `Dispositivo ${devName}${ipStr} è INSTABILE (Flapping)`,
-            explanation: `L'apparato alterna ripetutamente stati di disponibilità e disconnessione in una breve finestra temporale.`,
-            actionable: `Possibile cavo deteriorato, interferenza radio WiFi, loop di rete o alimentatore difettoso.`,
+            headline: t('events.narratives.device_flapping_headline', { name: devName, ip: ipStr }),
+            explanation: t('events.narratives.device_flapping_explanation'),
+            actionable: t('events.narratives.device_flapping_actionable'),
           };
         }
         if (newSt === 'OK') {
           return {
-            headline: `Dispositivo ${devName}${ipStr} tornato ONLINE`,
-            explanation: `Tutti i controlli configurati sono tornati a dare esito positivo. La continuità di servizio è stata ripristinata.`,
+            headline: t('events.narratives.device_ok_headline', { name: devName, ip: ipStr }),
+            explanation: t('events.narratives.device_ok_explanation'),
             actionable: null,
           };
         }
         return {
-          headline: `Cambiamento di stato: ${devName}${ipStr} da ${oldSt} a ${newSt}`,
-          explanation: ev.message,
+          headline: t('events.narratives.device_state_change_headline', { name: devName, ip: ipStr, from: oldSt, to: newSt }),
+          explanation: translateBackendMessage(ev.message, language),
           actionable: null,
         };
       }
       case 'check_state_change': {
         const target = ev.details?.target || ev.details?.server || devIp || '';
-        const targetStr = target ? ` verso ${target}` : '';
+        const targetStr = target ? t('events.narratives.check_target_to', { target }) : '';
         const rtt = ev.details?.avg_rtt_ms || ev.details?.rtt_ms;
         const rttStr = rtt !== undefined ? ` (RTT: ${rtt}ms)` : '';
         const loss = ev.details?.packet_loss_percent;
-        const lossStr = loss !== undefined && loss > 0 ? ` (Perdita pacchetti: ${loss}%)` : '';
+        const lossStr = loss !== undefined && loss > 0 ? ` (${t('events.narratives.packet_loss')}: ${loss}%)` : '';
         const errMsg = ev.details?.error;
+        const translatedTitle = translateBackendTitle(ev.title, language);
+        const translatedMsg = translateBackendMessage(ev.message, language);
 
         return {
-          headline: `${ev.title}${targetStr}`,
+          headline: `${translatedTitle}${targetStr}`,
           explanation: errMsg
-            ? `Errore rilevato: ${errMsg}. ${ev.message}`
-            : `${ev.message}${rttStr}${lossStr}.`,
-          actionable: `Ispezionare i parametri di soglia o la configurazione del servizio target.`,
+            ? t('events.narratives.check_error_explanation', { error: errMsg, msg: translatedMsg })
+            : `${translatedMsg}${rttStr}${lossStr}.`,
+          actionable: t('events.narratives.check_actionable'),
         };
       }
       case 'incident_opened': {
         const conf = ev.details?.confidence ? `${Math.round(ev.details.confidence * 100)}%` : '';
         const impacted = ev.details?.impacted || [];
+        const impactedStr = impacted.length > 0 ? t('events.narratives.impacted_devices', { count: impacted.length }) : '';
         return {
-          headline: `🚨 INCIDENTE APERTO: Causa radice ${devName}`,
-          explanation: `${ev.message}. L'algoritmo di correlazione topologica ha stimato una confidenza del ${conf}. ${
-            impacted.length > 0 ? `Apparati a valle impattati: ${impacted.length}.` : ''
-          }`,
-          actionable: `Intervenire prioritariamente su '${devName}' per ripristinare a cascata tutti i dispositivi collegati.`,
+          headline: t('events.narratives.incident_opened_headline', { name: devName }),
+          explanation: t('events.narratives.incident_opened_explanation', {
+            msg: translateBackendMessage(ev.message, language),
+            conf,
+            impacted: impactedStr,
+          }),
+          actionable: t('events.narratives.incident_opened_actionable', { name: devName }),
         };
       }
       case 'root_cause_shift': {
         return {
-          headline: `Aggiornamento Incidente: Nuova causa radice su ${devName}`,
-          explanation: ev.message,
-          actionable: `L'origine del guasto è stata ricollocata su un nodo strutturalmente a monte.`,
+          headline: t('events.narratives.root_cause_shift_headline', { name: devName }),
+          explanation: t('events.narratives.root_cause_shift_explanation', { msg: translateBackendMessage(ev.message, language) }),
+          actionable: t('events.narratives.root_cause_shift_actionable', { name: devName }),
         };
       }
       case 'incident_resolved': {
         return {
-          headline: `🎉 Incidente Risolto`,
-          explanation: ev.message,
-          actionable: `Tutti i nodi sono rientrati nei parametri ottimali. Nessuna azione richiesta.`,
+          headline: t('events.narratives.incident_resolved_headline'),
+          explanation: t('events.narratives.incident_resolved_explanation'),
+          actionable: null,
         };
       }
       case 'reboot_detected': {
         return {
-          headline: `Riavvio rilevato su ${devName}${ipStr}`,
-          explanation: `${ev.message}. Il contatore di uptime o il boot ID del dispositivo è stato azzerato.`,
-          actionable: `Se il riavvio non era programmato, controllare sbalzi di tensione o log di sistema del dispositivo.`,
+          headline: t('events.narratives.reboot_headline', { name: devName, ip: ipStr }),
+          explanation: t('events.narratives.reboot_explanation', { msg: translateBackendMessage(ev.message, language) }),
+          actionable: t('events.narratives.reboot_actionable'),
         };
       }
       case 'link_flap': {
         return {
-          headline: `Instabilità collegamento rilevata su ${devName}`,
-          explanation: ev.message,
-          actionable: `Verificare la negoziazione della porta e l'integrità del cavo di rete.`,
+          headline: t('events.narratives.link_flap_headline', { name: devName }),
+          explanation: t('events.narratives.link_flap_explanation', { msg: translateBackendMessage(ev.message, language) }),
+          actionable: t('events.narratives.link_flap_actionable'),
         };
       }
       case 'monitor_restart': {
         return {
-          headline: `Avvio o riavvio del demone NetSentinel`,
-          explanation: ev.message,
+          headline: t('events.narratives.monitor_restart_headline'),
+          explanation: t('events.narratives.monitor_restart_explanation'),
+          actionable: null,
+        };
+      }
+      case 'ups_on_battery': {
+        return {
+          headline: t('events.narratives.ups_on_battery_headline', { name: devName }),
+          explanation: t('events.narratives.ups_on_battery_explanation'),
+          actionable: t('events.narratives.ups_on_battery_actionable'),
+        };
+      }
+      case 'storage_degraded': {
+        return {
+          headline: t('events.narratives.storage_degraded_headline', { name: devName }),
+          explanation: t('events.narratives.storage_degraded_explanation'),
+          actionable: t('events.narratives.storage_degraded_actionable'),
+        };
+      }
+      case 'firmware_update_detected': {
+        return {
+          headline: t('events.narratives.firmware_update_headline', { name: devName }),
+          explanation: t('events.narratives.firmware_update_explanation'),
           actionable: null,
         };
       }
       default:
         return {
-          headline: ev.title || 'Evento di sistema',
-          explanation: ev.message,
+          headline: translateBackendTitle(ev.title, language) || t('events.narratives.system_event'),
+          explanation: translateBackendMessage(ev.message, language),
           actionable: null,
         };
     }
   };
 
-  // Format relative time in Italian/local
+  // Format relative time in current language/locale
   const formatTime = (ts: string) => {
     try {
       const d = new Date(ts);
@@ -232,13 +389,13 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
       const diffHours = Math.floor(diffMin / 60);
 
       let relative = '';
-      if (diffSec < 60) relative = 'pochi secondi fa';
-      else if (diffMin < 60) relative = `${diffMin} min fa`;
-      else if (diffHours < 24) relative = `${diffHours} ore fa`;
-      else relative = `${Math.floor(diffHours / 24)} gg fa`;
+      if (diffSec < 60) relative = t('events.time_just_now');
+      else if (diffMin < 60) relative = t('events.time_min_ago', { count: diffMin });
+      else if (diffHours < 24) relative = t('events.time_hours_ago', { count: diffHours });
+      else relative = t('events.time_days_ago', { count: Math.floor(diffHours / 24) });
 
-      const exact = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const dateStr = d.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const exact = d.toLocaleTimeString(activeLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = d.toLocaleDateString(activeLocale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
       return { relative, exact: `${dateStr} ${exact}`, iso: ts, dateObj: d };
     } catch {
@@ -280,7 +437,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                 {currentHistoricalTime && (
                   <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
                     <History className="w-3 h-3" />
-                    Storico attivo: {currentHistoricalTime.toLocaleTimeString()}
+                    {t('events.historical_active')}: {currentHistoricalTime.toLocaleTimeString(activeLocale)}
                   </span>
                 )}
               </div>
@@ -294,7 +451,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
             <button
               onClick={handleExportLogs}
               className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition"
-              title="Esporta registro eventi in JSON"
+              title={t('events.export_tooltip')}
             >
               <Download className="w-4 h-4" />
             </button>
@@ -302,7 +459,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               onClick={loadEvents}
               disabled={loading}
               className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition disabled:opacity-50"
-              title="Aggiorna registro eventi"
+              title={t('events.refresh_tooltip')}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-sky-500' : ''}`} />
             </button>
@@ -327,7 +484,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Tutti
+              {t('events.filter_all')}
             </button>
             <button
               onClick={() => setSeverityFilter('crit')}
@@ -338,7 +495,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               }`}
             >
               <AlertOctagon className="w-3.5 h-3.5" />
-              Critici & Offline
+              {t('events.filter_crit')}
             </button>
             <button
               onClick={() => setSeverityFilter('warn')}
@@ -349,7 +506,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               }`}
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              Avvisi & Flap
+              {t('events.filter_warn')}
             </button>
             <button
               onClick={() => setSeverityFilter('info')}
@@ -360,7 +517,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Ripristini & Info
+              {t('events.filter_info')}
             </button>
           </div>
 
@@ -371,7 +528,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               onChange={(e) => setSelectedDeviceId(e.target.value)}
               className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none"
             >
-              <option value="all">Tutti gli apparati</option>
+              <option value="all">{t('events.all_devices')}</option>
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name} {d.addresses?.ip ? `(${d.addresses.ip})` : ''}
@@ -386,7 +543,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cerca per testo, IP, codice errore..."
+                placeholder={t('events.search_placeholder')}
                 className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none placeholder:text-slate-400"
               />
               {searchQuery && (
@@ -406,7 +563,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
           {loading && events.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-2">
               <RefreshCw className="w-6 h-6 animate-spin text-sky-500" />
-              <p className="text-xs">Caricamento registro eventi in corso...</p>
+              <p className="text-xs">{t('events.loading')}</p>
             </div>
           ) : error ? (
             <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs text-center">
@@ -418,9 +575,9 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                 <CheckCircle2 className="w-8 h-8 text-emerald-500" />
               </div>
               <div>
-                <h4 className="font-semibold text-slate-700 dark:text-slate-300 text-sm">Nessun evento corrispondente</h4>
+                <h4 className="font-semibold text-slate-700 dark:text-slate-300 text-sm">{t('events.no_events')}</h4>
                 <p className="text-xs text-slate-400 max-w-sm mt-1">
-                  Non sono stati trovati eventi per i filtri selezionati. Tutti i controlli sono operativi o non ci sono anomalie registrate.
+                  {t('events.no_events_desc')}
                 </p>
               </div>
             </div>
@@ -509,7 +666,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                         {/* Actionable advice if present */}
                         {narrative.actionable && (
                           <div className="mt-1.5 text-[11px] text-amber-900 dark:text-amber-200 bg-amber-100/70 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded-lg px-2.5 py-1 inline-flex items-center gap-1.5">
-                            <span className="font-semibold">💡 Azione consigliata:</span>
+                            <span className="font-semibold">💡 {t('events.actionable_prefix')}</span>
                             <span>{narrative.actionable}</span>
                           </div>
                         )}
@@ -536,10 +693,10 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                             onClose();
                           }}
                           className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-sky-500/20 transition flex items-center gap-1.5"
-                          title="Torna indietro nel tempo a questo esatto momento e visualizza la rete sulla plancia"
+                          title={t('events.jump_to_canvas_tooltip')}
                         >
                           <History className="w-3.5 h-3.5" />
-                          <span>Esamina sulla plancia</span>
+                          <span>{t('events.jump_to_canvas')}</span>
                         </button>
                       )}
                     </div>
@@ -552,7 +709,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                         onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
                         className="text-[11px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium flex items-center gap-1"
                       >
-                        <span>{isExpanded ? 'Nascondi telemetria tecnica' : 'Mostra telemetria tecnica'}</span>
+                        <span>{isExpanded ? t('events.hide_tech_details') : t('events.show_tech_details')}</span>
                         <ArrowRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                       </button>
 
@@ -573,9 +730,9 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
         <div className="px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Monitoraggio continuo attivo</span>
+            <span>{t('events.footer_monitoring')}</span>
             <span>·</span>
-            <span>Tracciamento automatico cambi di stato ed evidenze</span>
+            <span>{t('events.footer_tracking')}</span>
           </div>
 
           <button

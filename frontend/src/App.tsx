@@ -538,10 +538,10 @@ export const App: React.FC = () => {
           <button
             onClick={() => setIsKioskMode(false)}
             className="px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium shadow-xl backdrop-blur-md flex items-center gap-1.5"
-            title="Esci dalla modalità Kiosk"
+            title={t('header.kiosk_exit')}
           >
             <Minimize2 className="w-3.5 h-3.5" />
-            <span>Esci da Kiosk</span>
+            <span>{t('header.kiosk_exit')}</span>
           </button>
           {renderStatusIcon()}
         </div>
@@ -578,7 +578,7 @@ export const App: React.FC = () => {
           {loading && !topology ? (
             <div className="flex items-center justify-center h-full text-slate-400 gap-2">
               <RefreshCw className="w-5 h-5 animate-spin text-sky-400" />
-              <span>Caricamento topologia di rete...</span>
+              <span>{t('canvas.loading')}</span>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-full text-rose-400 gap-2 p-6 text-center">
@@ -588,7 +588,7 @@ export const App: React.FC = () => {
                 onClick={loadData}
                 className="mt-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs"
               >
-                Riprova
+                {t('canvas.retry')}
               </button>
             </div>
           ) : topology && topology.devices.length === 0 ? (
@@ -597,9 +597,9 @@ export const App: React.FC = () => {
                 <Shield className="w-12 h-12 text-sky-400" />
               </div>
               <div className="max-w-md space-y-1">
-                <h3 className="font-bold text-slate-200 text-lg">Nessun apparato configurato</h3>
+                <h3 className="font-bold text-slate-200 text-lg">{t('canvas.empty_title')}</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Per iniziare a monitorare e visualizzare le progressioni di interconnessione, aggiungi i tuoi apparati o carica un modello di rete preconfigurato.
+                  {t('canvas.empty_desc')}
                 </p>
               </div>
               <button
@@ -607,7 +607,7 @@ export const App: React.FC = () => {
                 className="px-5 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-sky-500/25 transition flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Avvia Configurazione Rete</span>
+                <span>{t('canvas.start_setup')}</span>
               </button>
             </div>
           ) : topology ? (
