@@ -113,9 +113,16 @@ Start the container:
 docker compose up -d
 ```
 
+> [!TIP]
+> **Deployment on Remote Linux / NAS (Synology DSM, TrueNAS, unRAID, Proxmox)**:
+> Always use `network_mode: host` and keep `cap_add: [NET_RAW]`. Do not publish `ports:`, as the container binds directly to the host's port `8080`. This provides zero-overhead latency and enables physical L2 broadcast discovery.
+>
+> **Development on macOS / Windows (Docker Desktop)**:
+> Docker Desktop runs in a virtual machine and cannot attach directly to the host's physical network stack. In that case, comment out `network_mode: host` and publish ports with `ports: ["8080:8080"]` instead.
+
 Open your browser at:
 ```
-http://localhost:8080/
+http://localhost:8080/  (or http://<your-nas-ip>:8080/)
 ```
 
 ### Option 2: Docker Run

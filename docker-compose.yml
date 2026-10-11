@@ -7,14 +7,25 @@ services:
     container_name: netsentinel
     restart: unless-stopped
 
-    # Per macOS / Docker Desktop locale: usa mapping porte e cap_add
-    # Per Linux / NAS (Synology, TrueNAS, unRAID): decommenta network_mode: host per discovery L2
+    # --------------------------------------------------------------------------
+    # Networking Mode Configuration:
+    # --------------------------------------------------------------------------
+    # Option 1: Remote Production (Linux Server, Synology DSM, TrueNAS, unRAID)
+    # [RECOMMENDED]: Attaches directly to the host's physical network stack.
+    # Enables full L2/ARP discovery, zero-NAT latency, and raw ICMP ping.
+    # Note: When 'network_mode: host' is active, DO NOT publish 'ports' (it binds to host:8080).
+    #
+    # network_mode: host
+    # --------------------------------------------------------------------------
+    # Option 2: Local Development (macOS / Windows via Docker Desktop)
+    # Required on Mac/Windows because Docker runs in a VM without native host LAN access.
+    # Comment out 'ports' if deploying on Linux/NAS with 'network_mode: host'.
     ports:
       - "8080:8080"
-    cap_add:
-      - NET_RAW  # Per ping ICMP diretti senza root
 
-    # network_mode: host  # Consigliato su Linux / NAS per discovery broadcast
+    # Required in BOTH modes: grants non-root container user permission for raw ICMP ping
+    cap_add:
+      - NET_RAW
 
     volumes:
       - ./data:/data
