@@ -130,12 +130,19 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
     if (onLiveMode) onLiveMode();
   };
 
+  // Real-time date display: when scrubbing or in historical mode, compute instantly from sliderPosition
+  const computedDate = useMemo(() => {
+    return new Date(Date.now() - offsetHours * 3600 * 1000);
+  }, [offsetHours]);
+
   const currentDateDisplay =
     !isHistoricalActive && isLive
       ? t('timemachine.live_mode')
-      : externalTargetTime
+      : isScrubbingRef.current
+      ? formatDateTime(computedDate, activeLocale)
+      : externalTargetTime && Math.abs((Date.now() - externalTargetTime.getTime()) / 3600000 - offsetHours) < stepValue
       ? formatDateTime(externalTargetTime, activeLocale)
-      : formatDateTime(new Date(Date.now() - offsetHours * 3600 * 1000), activeLocale);
+      : formatDateTime(computedDate, activeLocale);
 
   const rangeLabelKey = `timemachine.range_${retentionPeriod}`;
   const rangeLabel = t(rangeLabelKey) || `-${retentionPeriod}`;
@@ -147,7 +154,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
         <History className="w-4 h-4 text-sky-500 dark:text-sky-400" />
         <span className="font-semibold text-slate-700 dark:text-slate-200">{t('timemachine.title')}:</span>
         <span
-          className={`font-mono px-2 py-0.5 rounded text-[11px] whitespace-nowrap ${
+          className={`font-mono px-2 py-0.5 rounded text-[11px] whitespace-nowrap tabular-nums ${
             !isHistoricalActive && isLive
               ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold'
               : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold animate-pulse'
