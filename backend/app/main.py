@@ -92,7 +92,10 @@ if static_path.exists() and (static_path / "index.html").exists():
         file_to_serve = static_path / full_path
         if file_to_serve.is_file():
             return FileResponse(file_to_serve)
-        return FileResponse(static_path / "index.html")
+        return FileResponse(
+            static_path / "index.html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
 else:
     @app.get("/", response_class=HTMLResponse)
     async def serve_fallback():
