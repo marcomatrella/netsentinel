@@ -41,6 +41,13 @@
     "kiosk_mode": "Vollbildmodus",
     "refresh": "Daten aktualisieren",
     "event_logs": "Protokoll",
+    "status_ok": "System betriebsbereit OK",
+    "status_ok_desc": "Alle Knoten und Dienste arbeiten normal",
+    "status_incident": "Aktiver Vorfall",
+    "status_incident_desc": "Störung oder unerreichbares Gerät erkannt",
+    "status_maintenance": "Wartungsmodus aktiv",
+    "status_maintenance_desc": "Benachrichtigungen vorübergehend stummgeschaltet",
+    "status_click_logs": "Klicken, um das Ereignisprotokoll zu öffnen",
     "vantage_point": "Beobachtungspunkt: {{name}}",
     "no_vantage_point": "Kein Beobachtungspunkt konfiguriert",
     "lang_name": "Deutsch"

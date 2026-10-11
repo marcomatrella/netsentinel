@@ -41,6 +41,13 @@
     "kiosk_mode": "Plein écran",
     "refresh": "Actualiser les données",
     "event_logs": "Journaux",
+    "status_ok": "Système opérationnel OK",
+    "status_ok_desc": "Tous les nœuds et services fonctionnent normalement",
+    "status_incident": "Incident en cours",
+    "status_incident_desc": "Anomalie ou équipement inaccessible détecté",
+    "status_maintenance": "Maintenance active",
+    "status_maintenance_desc": "Notifications temporairement désactivées",
+    "status_click_logs": "Cliquer pour ouvrir le Journal des événements",
     "vantage_point": "Point d'observation : {{name}}",
     "no_vantage_point": "Aucun point d'observation configuré",
     "lang_name": "Français"

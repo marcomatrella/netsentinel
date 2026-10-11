@@ -41,6 +41,13 @@
     "kiosk_mode": "Fullscreen Kiosk",
     "refresh": "Refresh Data",
     "event_logs": "Logs",
+    "status_ok": "Operating System OK",
+    "status_ok_desc": "All nodes and services are operating normally",
+    "status_incident": "Incident in progress",
+    "status_incident_desc": "Fault or unreachable device detected",
+    "status_maintenance": "Maintenance active",
+    "status_maintenance_desc": "Notifications temporarily silenced",
+    "status_click_logs": "Click to open Event Logs",
     "vantage_point": "Vantage Point: {{name}}",
     "no_vantage_point": "No Vantage Point configured",
     "lang_name": "English"

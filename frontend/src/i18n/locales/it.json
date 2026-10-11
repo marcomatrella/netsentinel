@@ -41,6 +41,13 @@
     "kiosk_mode": "Schermo Intero",
     "refresh": "Aggiorna Dati",
     "event_logs": "Log",
+    "status_ok": "Sistema operativo OK",
+    "status_ok_desc": "Tutti i nodi e i servizi rispondono regolarmente",
+    "status_incident": "Incidente in corso",
+    "status_incident_desc": "Rilevata anomalia o apparato non raggiungibile",
+    "status_maintenance": "Manutenzione attiva",
+    "status_maintenance_desc": "Notifiche temporaneamente silenziate",
+    "status_click_logs": "Clicca per aprire il Registro Eventi",
     "vantage_point": "Vantage Point: {{name}}",
     "no_vantage_point": "Nessun Vantage Point configurato",
     "lang_name": "Italiano"

@@ -41,6 +41,13 @@
     "kiosk_mode": "Pantalla completa",
     "refresh": "Actualizar datos",
     "event_logs": "Registros",
+    "status_ok": "Sistema operativo OK",
+    "status_ok_desc": "Todos los nodos y servicios funcionan normalmente",
+    "status_incident": "Incidente en curso",
+    "status_incident_desc": "Anomalía o dispositivo no alcanzable detectado",
+    "status_maintenance": "Mantenimiento activo",
+    "status_maintenance_desc": "Notificaciones silenciadas temporalmente",
+    "status_click_logs": "Haz clic para abrir el Registro de Eventos",
     "vantage_point": "Punto de observación: {{name}}",
     "no_vantage_point": "Ningún punto de observación configurado",
     "lang_name": "Español"

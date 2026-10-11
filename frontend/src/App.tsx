@@ -342,28 +342,73 @@ export const App: React.FC = () => {
     setSelectedDevice(null);
   };
 
-  const statusBadge = () => {
+  const renderStatusIcon = () => {
+    let statusClass = 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/80 hover:bg-emerald-100 dark:hover:bg-emerald-900/50';
+    let Icon = ShieldCheck;
+    let label = t('header.status_ok');
+    let sublabel = t('header.status_ok_desc');
+    let isPulse = false;
+
     if (activeIncident) {
-      return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full text-xs font-semibold animate-pulse">
-          <ShieldAlert className="w-3.5 h-3.5" />
-          Incidente in corso
-        </span>
-      );
+      statusClass = 'bg-rose-50 text-rose-600 border-rose-300 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800 ring-2 ring-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-900/50';
+      Icon = ShieldAlert;
+      label = t('header.status_incident');
+      sublabel = activeIncident.summary || t('header.status_incident_desc');
+      isPulse = true;
+    } else if (isMaintenanceMode) {
+      statusClass = 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50';
+      Icon = PauseCircle;
+      label = t('header.status_maintenance');
+      sublabel = t('header.status_maintenance_desc');
     }
-    if (isMaintenanceMode) {
-      return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-semibold">
-          <PauseCircle className="w-3.5 h-3.5" />
-          Manutenzione attiva
-        </span>
-      );
-    }
+
     return (
-      <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold">
-        <ShieldCheck className="w-3.5 h-3.5" />
-        Sistema Operativo OK
-      </span>
+      <div className="relative group">
+        <button
+          type="button"
+          onClick={() => {
+            if (activeIncident) {
+              setIsEventLogsOpen(true);
+            }
+          }}
+          className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all shadow-sm ${statusClass} ${
+            isPulse ? 'animate-pulse' : ''
+          }`}
+          title={`${label}${sublabel ? ` - ${sublabel}` : ''}`}
+          aria-label={label}
+        >
+          <Icon className="w-4 h-4" />
+        </button>
+
+        {/* Hover Tooltip Description */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden group-hover:flex flex-col items-center z-50 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95">
+          <div className="w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 border-l border-t border-slate-700/60 -mb-1" />
+          <div className="bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-100 border border-slate-700 shadow-xl rounded-xl px-3 py-2 text-xs min-w-[210px] max-w-xs text-center backdrop-blur-md">
+            <div className="font-bold flex items-center justify-center gap-1.5 text-xs">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  activeIncident
+                    ? 'bg-rose-500 animate-ping'
+                    : isMaintenanceMode
+                    ? 'bg-amber-400'
+                    : 'bg-emerald-400'
+                }`}
+              />
+              <span>{label}</span>
+            </div>
+            {sublabel && (
+              <div className="text-[11px] text-slate-300 dark:text-slate-300 mt-0.5 leading-snug">
+                {sublabel}
+              </div>
+            )}
+            {activeIncident && (
+              <div className="text-[10px] text-sky-400 mt-1 font-medium">
+                {t('header.status_click_logs')}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -388,7 +433,7 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {statusBadge()}
+            {renderStatusIcon()}
 
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
 
@@ -498,7 +543,7 @@ export const App: React.FC = () => {
             <Minimize2 className="w-3.5 h-3.5" />
             <span>Esci da Kiosk</span>
           </button>
-          {statusBadge()}
+          {renderStatusIcon()}
         </div>
       )}
 
