@@ -191,3 +191,41 @@ rules:
     summary: "Disconnessione temporanea con ritorno alla normalità e incremento della versione firmware registrata."
     recommendations:
       - "Nessuna azione richiesta se tutti i servizi sono rientrati nei parametri nominali."
+
+  # Caso D: Disconnessione solo dal controller UniFi
+  - id: "rule_ap_controller_desync"
+    category: "controller_desync"
+    name: "Access Point disconnesso solo dal controller UniFi (AP operativo su LAN)"
+    target_kind: ["access_point"]
+    confidence_base: 0.90
+    title: "Access Point attivo in rete ma disconnesso dal controller UniFi"
+    summary: "L'AP risponde al ping diretto e i client continuano a navigare, ma il controller UniFi lo segnala come disconnesso o isolato. Si tratta di un'interruzione della comunicazione inform (porta 8080/tcp)."
+    recommendations:
+      - "Verifica la risoluzione DNS o l'IP dell'inform URL (es. set-inform http://unifi:8080/inform)."
+      - "Controlla il firewall tra l'Access Point e il controller."
+      - "Riavvia il servizio del controller o invia un comando di inform forzato via SSH."
+    alternative_hypotheses:
+      - category: "hardware"
+        description: "L'AP potrebbe essersi bloccato parzialmente mantenendo attiva solo la risposta ICMP."
+        confidence: 0.10
+        missing_evidence: ["Verifica traffico wireless reale sui client"]
+        suggested_checks: ["unifi_inform_port_check", "client_gateway_ping"]
+
+  # Caso C: Perdita Lease IP / DHCP
+  - id: "rule_ap_ip_lease_loss"
+    category: "dhcp"
+    name: "Access Point privo di indirizzo IP valido o lease DHCP fallito"
+    target_kind: ["access_point"]
+    confidence_base: 0.88
+    title: "Access Point alimentato (PoE attivo) ma privo di indirizzo IP / irraggiungibile"
+    summary: "Lo switch eroga regolarmente alimentazione PoE e il link fisico Ethernet è attivo, ma l'AP non risponde a livello IP. Possibile mancato rinnovo del lease DHCP o pool esaurito."
+    recommendations:
+      - "Verifica lo stato del server DHCP (AdGuard / Pi-hole / Router)."
+      - "Controlla la disponibilità di indirizzi IP liberi nella subnet."
+      - "Verifica l'eventuale assegnazione di un IP statico / fallback 192.168.1.20."
+    alternative_hypotheses:
+      - category: "hardware"
+        description: "Blocco della CPU dell'AP con interfaccia fisica negoziata dallo switch."
+        confidence: 0.12
+        missing_evidence: ["Tabella MAC address sullo switch"]
+        suggested_checks: ["switch_mac_table_check", "dhcp_server_logs"]

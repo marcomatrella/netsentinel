@@ -7,6 +7,23 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 ## [Unreleased]
 
 ### Aggiunto
+- **Milestone M4**:
+  - Implementazione dei collector avanzati a plugin per apparati specifici e protocolli standard:
+    - `unifi`: interroga controller UniFi (UDM/CloudKey) per stato apparati, consumo PoE porte switch, client connessi e stato di aggiornamento firmware.
+    - `synology_dsm`: interroga API REST di Synology DSM per salute volumi RAID, pool di archiviazione, diagnostica S.M.A.R.T. dischi e temperatura.
+    - `nut`: client asincrono TCP 3493 per Network UPS Tools con parsing variabili, rilevamento blackout di rete (stato `OB`), batteria scarica (`LB`) ed emissione eventi di sistema.
+    - `adguard_home`: interroga statistiche DNS, query totali, query filtrate e latenza media di risoluzione upstream.
+    - `snmp`: client UDP nativo asincrono con codifica/decodifica pacchetti ASN.1 BER SNMP v2c per interrogazione di sysUpTime, descrizioni e stato operativo interfacce.
+    - `home_assistant`: interroga entità e prese intelligenti / sensori di consumo elettrico con token Bearer.
+    - `generic_http_json`: client HTTP generico con estrazione JSONPath e asserzioni su status code, latenza e campi estratti.
+  - Completamento ed estensione della libreria regole di diagnosi (`default_rules.yaml`) per le 14 casistiche della Sezione 6.4.
+  - Implementazione del test di accettazione per lo scenario *"AP offline 20 minuti"*, con discriminazione precisa dei 4 casi:
+    - **Caso A**: Riavvio AP / reboot watchdog / aggiornamento firmware (`rule_03_ap_reboot`).
+    - **Caso B**: Perdita alimentazione PoE o cavo scollegato (`rule_04_ap_poe_loss`).
+    - **Caso C**: Mancato rinnovo lease IP / DHCP con PoE attivo (`rule_ap_ip_lease_loss`).
+    - **Caso D**: Disconnessione isolata da controller UniFi con AP e client operativi (`rule_ap_controller_desync`).
+  - Generazione di evidenze mancanti suggerite e controlli proposti nelle ipotesi alternative.
+  - Suite di test M4 con 9 nuovi test (37 test totali nel repository, 100% verdi).
 - **Milestone M3**:
   - Frontend completo in React 18 + TypeScript + TailwindCSS + `@xyflow/react` + `elkjs` servito come Single-Page App dal backend FastAPI.
   - Tela di rete interattiva (`NetworkCanvas`) con nodi personalizzati (`CustomNode`) e collegamenti tipizzati (`CustomEdge`).

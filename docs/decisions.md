@@ -20,3 +20,5 @@ Convenzione: una riga riassuntiva per decisione, seguita da eventuale contesto c
 - **ADR-015**: Esportazione e importazione della configurazione in YAML formattato e validato tramite Pydantic con redazione automatica dei segreti se non cifrati.
 - **ADR-016**: Deduzione automatica delle dipendenze architetturali (Sezione 4.6 della specifica) direttamente dalla tela grafica, basata sui ruoli dei nodi, medium dei link (PoE, ethernet, wan) e distanza L2 dal vantage point.
 - **ADR-017**: Motore di simulazione del guasto (dry-run) che riutilizza in memoria il motore di correlazione topologica senza alterare lo stato del database né emettere notifiche esterne.
+- **ADR-018**: Plugin collector per integrazioni apparati avanzati (UniFi, Synology DSM, NUT, AdGuard Home, SNMP UDP, Home Assistant, Generic HTTP JSON) con discovery automatica e raccolta asincrona non bloccante.
+- **ADR-019**: Discriminazione fine-grained dei guasti agli Access Point con identificazione probabilistica dei 4 scenari della Sezione 6.4 (Reboot/firmware, guasto cavo/PoE, DHCP lease loss, disconnessione isolata dal controller UniFi) ed evidenze mancanti suggerite.

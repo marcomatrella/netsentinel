@@ -58,27 +58,81 @@ class RuleEvaluator:
             if rule_01:
                 return self._build_result(rule_01, 0.95)
 
-        # Match by device kind and impact
+        # Match by device kind, evidence details, and impact
         matched_rule = None
-        for rule in self.rules:
-            target_kinds = rule.get("target_kind", [])
-            if "any" in target_kinds or candidate_device.kind in target_kinds:
-                # Check specific conditions
-                if candidate_device.kind == "router" and rule["id"] == "rule_02_gateway_down":
-                    matched_rule = rule
-                    break
-                elif candidate_device.kind == "switch" and rule["id"] == "rule_06_switch_down":
-                    matched_rule = rule
-                    break
-                elif candidate_device.kind in ["nas", "server"] and rule["id"] == "rule_07_nas_dhcp_dns_down":
-                    matched_rule = rule
-                    break
-                elif candidate_device.kind == "access_point" and rule["id"] == "rule_04_ap_poe_loss":
-                    matched_rule = rule
-                    break
-                elif candidate_device.kind == "ups" and rule["id"] == "rule_10_ups_on_battery":
-                    matched_rule = rule
-                    break
+        matched_confidence = None
+
+        if candidate_device.kind == "access_point":
+            # Discriminate the 4 AP offline scenarios (Section 6.4)
+            has_reboot = any(
+                "reboot" in str(e.get("message", "")).lower()
+                or "riavvio" in str(e.get("message", "")).lower()
+                or (e.get("details", {}).get("uptime_seconds", 99999) < 300)
+                for e in evidences
+            )
+            has_controller_desync = any(
+                e.get("check_type") == "unifi" and not e.get("positive")
+                for e in evidences
+            ) and any(
+                e.get("check_type") in ["ping", "tcp_port"] and e.get("positive")
+                for e in evidences
+            )
+            poe_down = any(
+                ("poe" in str(e.get("message", "")).lower() and not e.get("positive"))
+                or (e.get("details", {}).get("poe_power", 1.0) == 0.0 and not e.get("positive"))
+                for e in evidences
+            )
+            poe_active = any(
+                e.get("details", {}).get("poe_power", 0.0) > 0.0
+                or ("poe attiva" in str(e.get("message", "")).lower() and e.get("positive"))
+                for e in evidences
+            )
+            ip_down = any(
+                e.get("check_type") in ["ping", "tcp_port"] and not e.get("positive")
+                for e in evidences
+            )
+
+            if has_controller_desync:
+                # Case D: Only controller disconnected, AP alive on network
+                matched_rule = self._find_rule("rule_ap_controller_desync")
+                matched_confidence = 0.92
+            elif has_reboot:
+                # Case A: AP reboot / watchdog / firmware upgrade
+                matched_rule = self._find_rule("rule_03_ap_reboot")
+                matched_confidence = 0.88
+            elif poe_active and ip_down:
+                # Case C: PoE power is ON, but IP/DHCP lease lost
+                matched_rule = self._find_rule("rule_ap_ip_lease_loss")
+                matched_confidence = 0.89
+            elif poe_down:
+                # Case B: PoE power loss / cable disconnected
+                matched_rule = self._find_rule("rule_04_ap_poe_loss")
+                matched_confidence = 0.95
+            else:
+                # Default AP failure with missing evidence recommendations
+                matched_rule = self._find_rule("rule_04_ap_poe_loss")
+                matched_confidence = 0.75
+
+        elif candidate_device.kind == "router":
+            matched_rule = self._find_rule("rule_02_gateway_down")
+        elif candidate_device.kind == "switch":
+            matched_rule = self._find_rule("rule_06_switch_down")
+        elif candidate_device.kind in ["nas", "server"]:
+            # Check if volume or service degraded
+            has_storage_degraded = any(
+                "storage" in str(e.get("message", "")).lower()
+                or "disco" in str(e.get("message", "")).lower()
+                or "smart" in str(e.get("message", "")).lower()
+                for e in evidences
+            )
+            if has_storage_degraded:
+                matched_rule = self._find_rule("rule_12_storage_degraded")
+            else:
+                matched_rule = self._find_rule("rule_07_nas_dhcp_dns_down")
+        elif candidate_device.kind == "ups":
+            matched_rule = self._find_rule("rule_10_ups_on_battery")
+        elif candidate_device.kind == "smart_hub":
+            matched_rule = self._find_rule("rule_13_service_hang")
 
         if not matched_rule:
             # Fallback generic rule
@@ -96,7 +150,9 @@ class RuleEvaluator:
             )
 
         # Calculate confidence boost based on downstream evidence
-        confidence = float(matched_rule.get("confidence_base", 0.90))
+        confidence = float(
+            matched_confidence if matched_confidence is not None else matched_rule.get("confidence_base", 0.90)
+        )
         if downstream_impacted_count > 1:
             confidence = min(1.0, confidence + 0.05)
 
