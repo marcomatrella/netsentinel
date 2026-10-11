@@ -99,3 +99,4 @@ async def send_my_service(config: dict[str, Any], subject: str, message: str) ->
     # Invia notifica HTTP o webhook
     return True
 ```
+

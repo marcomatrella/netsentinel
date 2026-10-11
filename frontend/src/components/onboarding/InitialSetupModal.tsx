@@ -1,0 +1,1038 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Shield,
+  Layers,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Check,
+  Globe,
+  Router as RouterIcon,
+  Network,
+  Wifi,
+  HardDrive,
+  Server,
+  Zap,
+  Cpu,
+  Smartphone,
+  Radio,
+  FileCheck,
+  Edit3,
+} from 'lucide-react';
+import { Device, DeviceKind, Link, LinkMedium, FullTopology } from '../../types';
+import { fetchTopologyTemplates, applyTopology, deduceDependencies } from '../../api/client';
+import { getLayoutedElements } from '../../utils/elkLayout';
+
+interface InitialSetupModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onTopologyApplied: (newTopology: FullTopology) => void;
+  onStartManualDrawing: () => void;
+}
+
+const DEVICE_CATEGORIES: Array<{
+  kind: DeviceKind;
+  label: string;
+  defaultName: string;
+  icon: React.ComponentType<{ className?: string }>;
+  defaultRoles: string[];
+  defaultIp: string;
+}> = [
+  { kind: 'router', label: 'Router / Gateway', defaultName: 'Router Gateway', icon: RouterIcon, defaultRoles: ['dhcp_server', 'dns_resolver'], defaultIp: '192.168.1.1' },
+  { kind: 'switch', label: 'Switch di Rete', defaultName: 'Switch Core PoE', icon: Network, defaultRoles: [], defaultIp: '192.168.1.2' },
+  { kind: 'access_point', label: 'Access Point Wi-Fi', defaultName: 'AP Wi-Fi Salotto', icon: Wifi, defaultRoles: [], defaultIp: '192.168.1.20' },
+  { kind: 'nas', label: 'NAS / Storage Server', defaultName: 'NAS Storage Casa', icon: HardDrive, defaultRoles: ['vantage_point'], defaultIp: '192.168.1.50' },
+  { kind: 'ups', label: 'UPS Gruppo Continuità', defaultName: 'UPS APC 1500VA', icon: Zap, defaultRoles: ['power_provider'], defaultIp: '192.168.1.10' },
+  { kind: 'server', label: 'Server / Hypervisor', defaultName: 'Server Proxmox VE', icon: Server, defaultRoles: [], defaultIp: '192.168.1.60' },
+  { kind: 'smart_hub', label: 'Server Domotico', defaultName: 'Home Assistant Hub', icon: Cpu, defaultRoles: [], defaultIp: '192.168.1.70' },
+  { kind: 'wan_gateway', label: 'Internet / WAN', defaultName: 'Linea Fibra Ottica', icon: Globe, defaultRoles: ['wan_provider'], defaultIp: '192.168.1.254' },
+  { kind: 'client', label: 'Client / TV / Workstation', defaultName: 'PC Workstation', icon: Smartphone, defaultRoles: [], defaultIp: '192.168.1.100' },
+];
+
+export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
+  isOpen,
+  onClose,
+  onTopologyApplied,
+  onStartManualDrawing,
+}) => {
+  const [activeTab, setActiveTab] = useState<'guided' | 'templates' | 'canvas'>('guided');
+  const [guidedStep, setGuidedStep] = useState<number>(1);
+
+  // Guided state
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [links, setLinks] = useState<Link[]>([]);
+  const [vantagePointId, setVantagePointId] = useState<string>('');
+
+  // Add device form state
+  const [newKind, setNewKind] = useState<DeviceKind>('switch');
+  const [newName, setNewName] = useState<string>('');
+  const [newIp, setNewIp] = useState<string>('');
+  const [newLocation, setNewLocation] = useState<string>('Casa');
+
+  // Add link form state
+  const [linkFrom, setLinkFrom] = useState<string>('');
+  const [linkTo, setLinkTo] = useState<string>('');
+  const [linkMedium, setLinkMedium] = useState<LinkMedium>('ethernet');
+  const [linkFromPort, setLinkFromPort] = useState<string>('');
+  const [linkToPort, setLinkToPort] = useState<string>('');
+
+  // Templates state
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadTemplates();
+      // Initialize with typical base devices if empty
+      if (devices.length === 0) {
+        setDevices([
+          {
+            id: 'wan-provider',
+            name: 'Internet Fibra WAN',
+            kind: 'wan_gateway',
+            location: 'Ingresso',
+            criticality: 5,
+            addresses: { ip: '192.168.1.254' },
+            tags: [],
+            roles: ['wan_provider'],
+            status: 'ok',
+            status_since: new Date().toISOString(),
+            interfaces: [],
+          },
+          {
+            id: 'router-gw',
+            name: 'Router Gateway',
+            kind: 'router',
+            location: 'Rack Salotto',
+            criticality: 5,
+            addresses: { ip: '192.168.1.1' },
+            tags: [],
+            roles: ['dhcp_server', 'dns_resolver'],
+            status: 'ok',
+            status_since: new Date().toISOString(),
+            interfaces: [],
+          },
+          {
+            id: 'switch-core',
+            name: 'Switch Core PoE',
+            kind: 'switch',
+            location: 'Rack Salotto',
+            criticality: 4,
+            addresses: { ip: '192.168.1.2' },
+            tags: [],
+            roles: [],
+            status: 'ok',
+            status_since: new Date().toISOString(),
+            interfaces: [],
+          },
+          {
+            id: 'nas-storage',
+            name: 'NAS Storage (Host NetSentinel)',
+            kind: 'nas',
+            location: 'Rack Salotto',
+            criticality: 4,
+            addresses: { ip: '192.168.1.50' },
+            tags: [],
+            roles: ['vantage_point'],
+            status: 'ok',
+            status_since: new Date().toISOString(),
+            interfaces: [],
+          },
+        ]);
+        setVantagePointId('nas-storage');
+      }
+    }
+  }, [isOpen]);
+
+  const loadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const data = await fetchTopologyTemplates();
+      setTemplates(data);
+    } catch (err) {
+      console.error('Errore caricamento templates:', err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  // Add custom device to guided list
+  const handleAddDevice = () => {
+    const cat = DEVICE_CATEGORIES.find((c) => c.kind === newKind) || DEVICE_CATEGORIES[0];
+    const devName = newName.trim() || cat.defaultName;
+    const devId =
+      devName
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '-')
+        .replace(/-+/g, '-') +
+      '-' +
+      Math.floor(10 + Math.random() * 90);
+
+    const devIp = newIp.trim() || cat.defaultIp;
+
+    const newDev: Device = {
+      id: devId,
+      name: devName,
+      kind: newKind,
+      location: newLocation.trim() || 'Casa',
+      criticality: 3,
+      addresses: { ip: devIp },
+      tags: [],
+      roles: [...cat.defaultRoles],
+      status: 'ok',
+      status_since: new Date().toISOString(),
+      interfaces: [],
+    };
+
+    setDevices((prev) => [...prev, newDev]);
+    if (!vantagePointId && newDev.roles.includes('vantage_point')) {
+      setVantagePointId(newDev.id);
+    }
+
+    setNewName('');
+    setNewIp('');
+  };
+
+  const handleRemoveDevice = (id: string) => {
+    setDevices((prev) => prev.filter((d) => d.id !== id));
+    setLinks((prev) => prev.filter((l) => l.from_device_id !== id && l.to_device_id !== id));
+    if (vantagePointId === id) setVantagePointId('');
+  };
+
+  // Add custom link
+  const handleAddLink = () => {
+    if (!linkFrom || !linkTo || linkFrom === linkTo) return;
+    const linkId = `lnk-${linkFrom}-${linkTo}-${Math.floor(Math.random() * 1000)}`;
+    const newLnk: Link = {
+      id: linkId,
+      from_device_id: linkFrom,
+      to_device_id: linkTo,
+      medium: linkMedium,
+      poe: linkMedium === 'poe',
+      from_port: linkFromPort.trim() || undefined,
+      to_port: linkToPort.trim() || undefined,
+      status: 'ok',
+      updated_at: new Date().toISOString(),
+    };
+    setLinks((prev) => [...prev, newLnk]);
+    setLinkFrom('');
+    setLinkTo('');
+    setLinkFromPort('');
+    setLinkToPort('');
+  };
+
+  const handleRemoveLink = (id: string) => {
+    setLinks((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  // Auto-connect typical topology
+  const handleAutoSuggestLinks = () => {
+    const suggested: Link[] = [];
+    const findByKind = (k: DeviceKind) => devices.filter((d) => d.kind === k);
+
+    const wan = findByKind('wan_gateway')[0];
+    const routers = findByKind('router');
+    const switches = findByKind('switch');
+    const aps = findByKind('access_point');
+    const nases = findByKind('nas');
+    const upses = findByKind('ups');
+    const servers = findByKind('server');
+    const clients = findByKind('client');
+
+    const router = routers[0];
+    const switchCore = switches[0];
+
+    // WAN -> Router
+    if (wan && router) {
+      suggested.push({
+        id: `lnk-${wan.id}-${router.id}`,
+        from_device_id: wan.id,
+        to_device_id: router.id,
+        medium: 'wan',
+        poe: false,
+        status: 'ok',
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // Router -> Switch
+    if (router && switchCore) {
+      suggested.push({
+        id: `lnk-${router.id}-${switchCore.id}`,
+        from_device_id: router.id,
+        to_device_id: switchCore.id,
+        medium: 'ethernet',
+        poe: false,
+        from_port: 'LAN1',
+        to_port: 'Uplink',
+        status: 'ok',
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    const mainDistributor = switchCore || router;
+    if (mainDistributor) {
+      // Switch -> APs
+      aps.forEach((ap, idx) => {
+        suggested.push({
+          id: `lnk-${mainDistributor.id}-${ap.id}`,
+          from_device_id: mainDistributor.id,
+          to_device_id: ap.id,
+          medium: 'poe',
+          poe: true,
+          from_port: `P${idx + 1}`,
+          to_port: 'Eth0',
+          status: 'ok',
+          updated_at: new Date().toISOString(),
+        });
+      });
+
+      // Switch -> NAS
+      nases.forEach((nas, idx) => {
+        suggested.push({
+          id: `lnk-${mainDistributor.id}-${nas.id}`,
+          from_device_id: mainDistributor.id,
+          to_device_id: nas.id,
+          medium: 'ethernet',
+          poe: false,
+          from_port: `P${idx + 5}`,
+          to_port: 'LAN1',
+          status: 'ok',
+          updated_at: new Date().toISOString(),
+        });
+      });
+
+      // Switch -> Servers
+      servers.forEach((srv, idx) => {
+        suggested.push({
+          id: `lnk-${mainDistributor.id}-${srv.id}`,
+          from_device_id: mainDistributor.id,
+          to_device_id: srv.id,
+          medium: 'ethernet',
+          poe: false,
+          from_port: `P${idx + 10}`,
+          to_port: 'eno1',
+          status: 'ok',
+          updated_at: new Date().toISOString(),
+        });
+      });
+
+      // Switch -> Clients
+      clients.forEach((cli, idx) => {
+        suggested.push({
+          id: `lnk-${mainDistributor.id}-${cli.id}`,
+          from_device_id: mainDistributor.id,
+          to_device_id: cli.id,
+          medium: 'ethernet',
+          poe: false,
+          status: 'ok',
+          updated_at: new Date().toISOString(),
+        });
+      });
+    }
+
+    // UPS -> NAS & Servers (Power)
+    if (upses.length > 0) {
+      const ups = upses[0];
+      [...nases, ...servers].forEach((target) => {
+        suggested.push({
+          id: `lnk-${ups.id}-${target.id}`,
+          from_device_id: ups.id,
+          to_device_id: target.id,
+          medium: 'power',
+          poe: false,
+          status: 'ok',
+          updated_at: new Date().toISOString(),
+        });
+      });
+    }
+
+    setLinks(suggested);
+  };
+
+  // Build and apply guided topology
+  const handleApplyGuidedTopology = async () => {
+    if (devices.length === 0) {
+      alert('Aggiungi almeno un apparato di rete prima di proseguire.');
+      return;
+    }
+
+    const vp = vantagePointId || devices[0].id;
+    setSubmitting(true);
+    try {
+      // Deduce dependencies
+      const deducedDeps = await deduceDependencies({
+        vantage_point_id: vp,
+        devices: devices.map((d) => ({ id: d.id, name: d.name, kind: d.kind, roles: d.roles })),
+        links: links.map((l) => ({ id: l.id, from: l.from_device_id, to: l.to_device_id, medium: l.medium, poe: l.poe })),
+      });
+
+      // Generate ELK auto-layout nodes
+      const rfNodes = devices.map((d, idx) => ({
+        id: d.id,
+        type: 'customNode',
+        position: { x: 100 + (idx % 3) * 260, y: 100 + Math.floor(idx / 3) * 180 },
+        data: { id: d.id, name: d.name, kind: d.kind, ip: d.addresses?.ip, status: 'ok', roles: d.roles },
+      }));
+
+      const rfEdges = links.map((l) => ({
+        id: l.id,
+        source: l.from_device_id,
+        target: l.to_device_id,
+        type: 'customEdge',
+        data: { medium: l.medium, poe: l.poe, status: 'ok', fromPort: l.from_port, toPort: l.to_port },
+      }));
+
+      const layouted = await getLayoutedElements(rfNodes, rfEdges);
+
+      const savedLayout = {
+        id: 'default',
+        nodes: layouted.nodes.map((n) => ({ id: n.id, x: n.position.x, y: n.position.y })),
+        edges: rfEdges.map((e: any) => ({ id: e.id, source: e.source, target: e.target })),
+        groups: [],
+        updated_at: new Date().toISOString(),
+      };
+
+
+      await applyTopology({
+        vantage_point_id: vp,
+        description: 'Configurazione iniziale guidata NetSentinel',
+        devices,
+        links,
+        dependencies: deducedDeps,
+        layout: savedLayout,
+      });
+
+      onTopologyApplied({
+        vantage_point_id: vp,
+        devices,
+        links,
+        dependencies: deducedDeps,
+        layout: savedLayout,
+      });
+      onClose();
+    } catch (err: any) {
+      console.error('Errore salvataggio:', err);
+      alert('Errore salvataggio topologia: ' + (err.message || 'Verifica il backend.'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Load selected pre-built template
+  const handleApplyTemplate = async (template: any) => {
+    setSubmitting(true);
+    try {
+      const deducedDeps = await deduceDependencies({
+        vantage_point_id: template.vantage_point_id,
+        devices: template.devices,
+        links: template.links,
+      });
+
+      const rfNodes = template.devices.map((d: any, idx: number) => ({
+        id: d.id,
+        type: 'customNode',
+        position: { x: 100 + (idx % 3) * 260, y: 100 + Math.floor(idx / 3) * 180 },
+        data: { id: d.id, name: d.name, kind: d.kind, ip: d.addresses?.ip, status: 'ok', roles: d.roles },
+      }));
+
+      const rfEdges = template.links.map((l: any) => ({
+        id: l.id,
+        source: l.from_device_id,
+        target: l.to_device_id,
+        type: 'customEdge',
+        data: { medium: l.medium, poe: l.poe, status: 'ok', fromPort: l.from_port, toPort: l.to_port },
+      }));
+
+      const layouted = await getLayoutedElements(rfNodes, rfEdges);
+
+      const savedLayout = {
+        id: 'default',
+        nodes: layouted.nodes.map((n) => ({ id: n.id, x: n.position.x, y: n.position.y })),
+        edges: rfEdges.map((e: any) => ({ id: e.id, source: e.source, target: e.target })),
+        groups: [],
+        updated_at: new Date().toISOString(),
+      };
+
+
+      const finalDevices: Device[] = template.devices.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        kind: d.kind,
+        location: d.location || 'Casa',
+        criticality: 3,
+        addresses: d.addresses || {},
+        tags: [],
+        roles: d.roles || [],
+        status: 'ok',
+        status_since: new Date().toISOString(),
+        interfaces: [],
+      }));
+
+      const finalLinks: Link[] = template.links.map((l: any) => ({
+        id: l.id,
+        from_device_id: l.from_device_id,
+        to_device_id: l.to_device_id,
+        medium: l.medium,
+        poe: !!l.poe,
+        from_port: l.from_port,
+        to_port: l.to_port,
+        status: 'ok',
+        updated_at: new Date().toISOString(),
+      }));
+
+      await applyTopology({
+        vantage_point_id: template.vantage_point_id,
+        description: `Caricamento template: ${template.name}`,
+        devices: finalDevices,
+        links: finalLinks,
+        dependencies: deducedDeps,
+        layout: savedLayout,
+      });
+
+      onTopologyApplied({
+        vantage_point_id: template.vantage_point_id,
+        devices: finalDevices,
+        links: finalLinks,
+        dependencies: deducedDeps,
+        layout: savedLayout,
+      });
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      alert('Errore durante il caricamento del template: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl h-[88vh] shadow-2xl overflow-hidden flex flex-col">
+        {/* Modal Top Banner */}
+        <div className="p-6 border-b border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/30">
+              <Shield className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-white text-xl tracking-tight">Benvenuto in NetSentinel! 🛡️</h1>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Nessuna rete configurata. Inizia progettando i tuoi apparati e le loro interconnessioni.
+              </p>
+            </div>
+          </div>
+
+          {/* Tab Selector */}
+          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+            <button
+              onClick={() => setActiveTab('guided')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                activeTab === 'guided' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Configurazione Guidata</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                activeTab === 'templates' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Modelli Predefiniti</span>
+            </button>
+            <button
+              onClick={() => {
+                onStartManualDrawing();
+                onClose();
+              }}
+              className="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Disegna su Tela</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tab 1: Guided Configuration */}
+        {activeTab === 'guided' && (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Step Pills */}
+            <div className="px-6 py-2.5 bg-slate-950/40 border-b border-slate-800 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setGuidedStep(1)}
+                  className={`px-3 py-1 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                    guidedStep === 1 ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40' : 'text-slate-400'
+                  }`}
+                >
+                  <span className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px]">1</span>
+                  <span>1. Apparati di Rete ({devices.length})</span>
+                </button>
+                <ArrowRight className="w-3 h-3 text-slate-600" />
+                <button
+                  onClick={() => setGuidedStep(2)}
+                  className={`px-3 py-1 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                    guidedStep === 2 ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40' : 'text-slate-400'
+                  }`}
+                >
+                  <span className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px]">2</span>
+                  <span>2. Interconnessioni & Porte ({links.length})</span>
+                </button>
+                <ArrowRight className="w-3 h-3 text-slate-600" />
+                <button
+                  onClick={() => setGuidedStep(3)}
+                  className={`px-3 py-1 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                    guidedStep === 3 ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40' : 'text-slate-400'
+                  }`}
+                >
+                  <span className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px]">3</span>
+                  <span>3. Vantage Point & Salva</span>
+                </button>
+              </div>
+
+              {guidedStep === 2 && links.length === 0 && (
+                <button
+                  onClick={handleAutoSuggestLinks}
+                  className="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 rounded-lg font-medium transition flex items-center gap-1 text-[11px]"
+                >
+                  <Sparkles className="w-3 h-3" /> Suggerisci collegamenti tipici
+                </button>
+              )}
+            </div>
+
+            {/* Step 1: Manage Devices */}
+            {guidedStep === 1 && (
+              <div className="flex-1 overflow-hidden grid grid-cols-12 p-6 gap-6">
+                {/* Left: Device Adder Form */}
+                <div className="col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
+                  <div className="space-y-3.5 text-xs">
+                    <h3 className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
+                      <Plus className="w-4 h-4 text-sky-400" /> Aggiungi un apparato
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Scegli il tipo di apparato, assegna un nome e l'indirizzo IP locale:
+                    </p>
+
+                    {/* Kinds Grid */}
+                    <div className="grid grid-cols-3 gap-1.5 max-h-44 overflow-y-auto pr-1">
+                      {DEVICE_CATEGORIES.map((cat) => {
+                        const Icon = cat.icon;
+                        const isSel = newKind === cat.kind;
+                        return (
+                          <button
+                            key={cat.kind}
+                            type="button"
+                            onClick={() => {
+                              setNewKind(cat.kind);
+                              if (!newName) setNewName(cat.defaultName);
+                              if (!newIp) setNewIp(cat.defaultIp);
+                            }}
+                            className={`p-2 rounded-xl border text-left flex flex-col items-center justify-center gap-1 transition ${
+                              isSel
+                                ? 'bg-sky-600/20 border-sky-500 text-sky-200'
+                                : 'bg-slate-900 border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            <Icon className={`w-4 h-4 ${isSel ? 'text-sky-400' : 'text-slate-500'}`} />
+                            <span className="text-[10px] text-center font-medium leading-tight">{cat.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 font-medium mb-1">Nome Dispositivo:</label>
+                      <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder="es. Switch Salotto PoE"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-slate-400 font-medium mb-1">Indirizzo IP:</label>
+                        <input
+                          type="text"
+                          value={newIp}
+                          onChange={(e) => setNewIp(e.target.value)}
+                          placeholder="es. 192.168.1.10"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-medium mb-1">Posizione / Stanza:</label>
+                        <input
+                          type="text"
+                          value={newLocation}
+                          onChange={(e) => setNewLocation(e.target.value)}
+                          placeholder="es. Rack, Salotto"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddDevice}
+                    className="w-full mt-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-1.5 shadow"
+                  >
+                    <Plus className="w-4 h-4" /> Aggiungi alla Lista
+                  </button>
+                </div>
+
+                {/* Right: Configured Devices List */}
+                <div className="col-span-7 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-bold text-slate-200 text-sm">Apparati Configurati ({devices.length})</h3>
+                      <span className="text-[11px] text-slate-400">Tutti i nodi che verranno posizionati sul canvas</span>
+                    </div>
+
+                    <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+                      {devices.map((d) => {
+                        const cat = DEVICE_CATEGORIES.find((c) => c.kind === d.kind) || DEVICE_CATEGORIES[0];
+                        const Icon = cat.icon;
+                        const isVp = d.id === vantagePointId || d.roles.includes('vantage_point');
+                        return (
+                          <div
+                            key={d.id}
+                            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-xs hover:border-slate-700 transition"
+                          >
+                            <div className="flex items-center gap-2.5 overflow-hidden">
+                              <div className="p-2 rounded-lg bg-slate-800 text-sky-400">
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <div className="overflow-hidden">
+                                <div className="font-semibold text-slate-200 truncate flex items-center gap-1.5">
+                                  <span>{d.name}</span>
+                                  {isVp && (
+                                    <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-mono">
+                                      Vantage Point
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                  <span className="font-mono text-sky-400">{d.addresses?.ip || 'Nessun IP'}</span>
+                                  <span>•</span>
+                                  <span>{d.location}</span>
+                                  <span>•</span>
+                                  <span className="uppercase font-mono text-[9px] text-slate-500">{d.kind}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => handleRemoveDevice(d.id)}
+                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                              title="Rimuovi apparato"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800 flex justify-end">
+                    <button
+                      onClick={() => {
+                        if (links.length === 0) handleAutoSuggestLinks();
+                        setGuidedStep(2);
+                      }}
+                      className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition flex items-center gap-1.5 shadow"
+                    >
+                      <span>Prosegui ai Collegamenti</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Manage Links / Relationships */}
+            {guidedStep === 2 && (
+              <div className="flex-1 overflow-hidden grid grid-cols-12 p-6 gap-6">
+                {/* Left: Link Creator */}
+                <div className="col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
+                  <div className="space-y-3.5 text-xs">
+                    <h3 className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
+                      <Network className="w-4 h-4 text-sky-400" /> Crea Collegamento Fisico o Logico
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Indica come sono fisicamente o logicamente connessi gli apparati:
+                    </p>
+
+                    <div>
+                      <label className="block text-slate-400 font-medium mb-1">Da (Sorgente / Switch / Provider):</label>
+                      <select
+                        value={linkFrom}
+                        onChange={(e) => setLinkFrom(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
+                      >
+                        <option value="">-- Seleziona apparato sorgente --</option>
+                        {devices.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} ({d.kind})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 font-medium mb-1">A (Destinazione / Apparato collegato):</label>
+                      <select
+                        value={linkTo}
+                        onChange={(e) => setLinkTo(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
+                      >
+                        <option value="">-- Seleziona apparato destinazione --</option>
+                        {devices.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} ({d.kind})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 font-medium mb-1">Tipo Collegamento (Mezzo):</label>
+                      <select
+                        value={linkMedium}
+                        onChange={(e) => setLinkMedium(e.target.value as LinkMedium)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
+                      >
+                        <option value="ethernet">Ethernet (Cavo LAN Cat6/7)</option>
+                        <option value="poe">PoE (Cavo Ethernet con Alimentazione PoE)</option>
+                        <option value="wifi">Wi-Fi (Connessione Radio Wireless)</option>
+                        <option value="power">Alimentazione Protetta (da UPS)</option>
+                        <option value="wan">WAN (Collegamento verso Internet)</option>
+                        <option value="logical">Logico (Dipendenza di servizio DNS/DHCP)</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-slate-400 font-medium mb-1">Porta Sorgente (opz.):</label>
+                        <input
+                          type="text"
+                          value={linkFromPort}
+                          onChange={(e) => setLinkFromPort(e.target.value)}
+                          placeholder="es. Port 1 o LAN"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-medium mb-1">Porta Destinazione (opz.):</label>
+                        <input
+                          type="text"
+                          value={linkToPort}
+                          onChange={(e) => setLinkToPort(e.target.value)}
+                          placeholder="es. Uplink o Eth0"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddLink}
+                    disabled={!linkFrom || !linkTo || linkFrom === linkTo}
+                    className="w-full mt-3 py-2 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-1.5 shadow"
+                  >
+                    <Plus className="w-4 h-4" /> Aggiungi Collegamento
+                  </button>
+                </div>
+
+                {/* Right: Existing Links List */}
+                <div className="col-span-7 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-bold text-slate-200 text-sm">Collegamenti Stabiliti ({links.length})</h3>
+                      <button
+                        onClick={handleAutoSuggestLinks}
+                        className="text-[11px] text-sky-400 hover:text-sky-300 underline"
+                      >
+                        Ricrea collegamenti tipici
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-[46vh] overflow-y-auto pr-1">
+                      {links.map((lnk) => {
+                        const fromDev = devices.find((d) => d.id === lnk.from_device_id);
+                        const toDev = devices.find((d) => d.id === lnk.to_device_id);
+                        return (
+                          <div
+                            key={lnk.id}
+                            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-xs"
+                          >
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <span className="font-medium text-slate-200 truncate">{fromDev?.name || lnk.from_device_id}</span>
+                              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                              <span className="font-medium text-slate-200 truncate">{toDev?.name || lnk.to_device_id}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-sky-400 uppercase border border-slate-700 shrink-0">
+                                {lnk.medium}
+                              </span>
+                              {(lnk.from_port || lnk.to_port) && (
+                                <span className="text-slate-500 text-[10px] shrink-0 font-mono">
+                                  [{lnk.from_port || '*'}&rarr;{lnk.to_port || '*'}]
+                                </span>
+                              )}
+                            </div>
+
+                            <button
+                              onClick={() => handleRemoveLink(lnk.id)}
+                              className="p-1 text-slate-500 hover:text-rose-400 rounded transition"
+                              title="Rimuovi collegamento"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800 flex justify-between">
+                    <button
+                      onClick={() => setGuidedStep(1)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition flex items-center gap-1.5 text-xs"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" /> Indietro
+                    </button>
+                    <button
+                      onClick={() => setGuidedStep(3)}
+                      className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition flex items-center gap-1.5 shadow"
+                    >
+                      <span>Vantage Point & Conferma</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Vantage Point and Launch */}
+            {guidedStep === 3 && (
+              <div className="flex-1 p-6 flex flex-col justify-between max-w-2xl mx-auto w-full">
+                <div className="space-y-4">
+                  <h3 className="font-bold text-slate-100 text-base">3. Dove è in esecuzione NetSentinel? (Vantage Point)</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Il monitor ha una prospettiva precisa nella rete. Se il nodo che ospita NetSentinel resta isolato o perde l'alimentazione, il sistema riconosce immediatamente il proprio isolamento.
+                  </p>
+
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Seleziona l'apparato ospitante (es. NAS Synology, Server Proxmox, Raspberry Pi):
+                    </label>
+                    <select
+                      value={vantagePointId}
+                      onChange={(e) => setVantagePointId(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-sky-500 font-medium"
+                    >
+                      {devices.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} ({d.addresses?.ip || 'IP N/D'}) — [{d.kind}]
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+                    <h4 className="font-semibold text-sky-400">Riepilogo Configurazione Pronta:</h4>
+                    <div className="text-slate-300">• {devices.length} apparati di rete monitorati</div>
+                    <div className="text-slate-300">• {links.length} collegamenti fisici/logici stabiliti</div>
+                    <div className="text-slate-300">• Motore di deduzione automatica delle dipendenze: ATTIVO</div>
+                    <div className="text-slate-300">• Auto-layout gerarchico e progressioni live: ATTIVI</div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800 flex justify-between">
+                  <button
+                    onClick={() => setGuidedStep(2)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition flex items-center gap-1.5 text-xs"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" /> Indietro
+                  </button>
+                  <button
+                    onClick={handleApplyGuidedTopology}
+                    disabled={submitting}
+                    className="px-6 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-sky-500/25 transition flex items-center gap-2 text-xs"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>{submitting ? 'Generazione in corso...' : 'Genera Topologia e Avvia Live!'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 2: Preconfigured Templates */}
+        {activeTab === 'templates' && (
+          <div className="flex-1 p-6 overflow-y-auto space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-100">Modelli di Rete Preconfigurati</h2>
+              <p className="text-xs text-slate-400">
+                Seleziona uno schema tipico già pronto. Verrà caricato sulla tela e potrai personalizzare subito nomi, IP e collegamenti.
+              </p>
+            </div>
+
+            {loadingTemplates ? (
+              <div className="py-12 text-center text-slate-500 text-xs">Caricamento modelli in corso...</div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                {templates.map((tpl) => (
+                  <div
+                    key={tpl.id}
+                    className="bg-slate-950/70 border border-slate-800 hover:border-sky-500/60 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-extrabold text-slate-100 text-sm group-hover:text-sky-300 transition">
+                          {tpl.name}
+                        </span>
+                        <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded font-mono text-slate-400">
+                          {tpl.devices.length} nodi
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 leading-relaxed">{tpl.description}</p>
+
+                      <div className="mt-4 space-y-1 text-[11px] text-slate-500 font-mono">
+                        <div>• {tpl.devices.length} apparati tipizzati</div>
+                        <div>• {tpl.links.length} collegamenti fisici/logici</div>
+                        <div>• Vantage Point: {tpl.vantage_point_id}</div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleApplyTemplate(tpl)}
+                      disabled={submitting}
+                      className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow transition flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{submitting ? 'Applicazione...' : 'Carica Questo Template'}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

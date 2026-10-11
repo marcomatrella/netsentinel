@@ -243,3 +243,4 @@ netsentinel/
 - Endpoint `/metrics` Prometheus.
 - Documentazione esaustiva (`README.md`, `architecture.md`, `setup-nas.md`, `correlation.md`, ecc.).
 - Verifica finale dei requisiti di performance (<3% CPU, <200MB RAM) e test suite completa.
+

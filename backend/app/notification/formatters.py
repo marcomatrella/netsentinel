@@ -156,3 +156,4 @@ def render_incident_notification(
     html_content = Template(HTML_INCIDENT_TEMPLATE).render(ctx)
     text_content = Template(TEXT_INCIDENT_TEMPLATE).render(ctx)
     return subject, html_content, text_content
+

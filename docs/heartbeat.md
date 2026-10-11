@@ -66,3 +66,4 @@ Se anche uno solo di questi controlli fallisce, il watchdog **blocca l'invio del
    ```bash
    curl http://localhost:8080/api/v1/heartbeat/status
    ```
+

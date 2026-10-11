@@ -41,3 +41,4 @@ device_states:
 expected:
   incident_count: 2
   root_cause_device_ids: ["ap-livingroom", "home-server"]
+

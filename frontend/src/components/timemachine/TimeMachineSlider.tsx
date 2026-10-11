@@ -14,19 +14,37 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
 }) => {
   const [offsetHours, setOffsetHours] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setOffsetHours(val);
-    const targetDate = new Date(Date.now() - val * 3600 * 1000);
-    if (onTimeChange) onTimeChange(targetDate);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    if (val === 0) {
+      if (onLiveMode) onLiveMode();
+      return;
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      const targetDate = new Date(Date.now() - val * 3600 * 1000);
+      if (onTimeChange) onTimeChange(targetDate);
+    }, 200);
   };
 
   const resetToLive = () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     setOffsetHours(0);
     setIsPlaying(false);
     if (onLiveMode) onLiveMode();
   };
+
 
   const currentDateDisplay = offsetHours === 0
     ? 'Tempo Reale (LIVE)'
@@ -73,3 +91,4 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
     </div>
   );
 };
+

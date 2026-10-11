@@ -156,4 +156,12 @@ async def test_resource_and_performance_benchmark():
         await session.commit()
         elapsed = time.perf_counter() - t0
 
+        # Clean up benchmark entities to keep DB pristine
+        from sqlalchemy import delete
+        await session.execute(delete(Observation).where(Observation.device_id == bdev.id))
+        await session.execute(delete(Check).where(Check.device_id == bdev.id))
+        await session.execute(delete(Device).where(Device.id == bdev.id))
+        await session.commit()
+
     assert elapsed < 0.50, f"Tempo di inserimento batch troppo lento: {elapsed:.3f}s"
+

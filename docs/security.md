@@ -29,3 +29,4 @@ NetSentinel è progettato per operare all'interno del perimetro di una rete dome
 
 5. **Sanitizzazione Input & Pydantic v2**:
    - Qualsiasi configurazione importata via YAML o REST API è rigorosamente convalidata tramite modelli Pydantic v2 per prevenire attacchi di injection.
+

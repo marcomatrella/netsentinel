@@ -64,3 +64,4 @@ expected:
   confidence_min: 0.90
   key_phrase: "Switch principale non raggiungibile"
   symptoms: ["gateway-router", "ap-livingroom", "home-server"]
+

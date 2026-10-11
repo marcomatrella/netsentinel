@@ -43,3 +43,4 @@ async def send_home_assistant_notification(
     except Exception as exc:
         logger.error("Errore invio notifica a Home Assistant: %s", exc)
         raise exc
+

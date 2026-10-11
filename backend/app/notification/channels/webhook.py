@@ -36,3 +36,4 @@ async def send_webhook(
     except Exception as exc:
         logger.error("Errore invio notifica webhook a %s: %s", url, exc)
         raise exc
+

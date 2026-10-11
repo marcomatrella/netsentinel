@@ -21,6 +21,17 @@ const statusStrokeColors: Record<LinkStatus, string> = {
   unmonitored: '#475569',// slate-600
 };
 
+const pulseColors: Record<string, string> = {
+  ethernet: '#10b981', // emerald
+  poe: '#f59e0b',      // amber/gold
+  wifi: '#06b6d4',     // cyan
+  power: '#eab308',    // yellow
+  wan: '#38bdf8',      // sky
+  virtual: '#a855f7',  // purple
+  logical: '#a855f7',
+  usb: '#8b5cf6',
+};
+
 export const CustomEdge = memo(({
   id,
   sourceX,
@@ -52,9 +63,11 @@ export const CustomEdge = memo(({
 
   const isDashed = medium === 'logical' || status === 'unverified';
   const strokeWidth = selected ? 3.5 : (edgeData.isFaultPath ? 3 : 2);
+  const particleColor = pulseColors[medium] || strokeColor;
 
   return (
     <>
+      {/* Base Cable Path */}
       <BaseEdge
         id={id}
         path={edgePath}
@@ -62,9 +75,43 @@ export const CustomEdge = memo(({
           stroke: strokeColor,
           strokeWidth,
           strokeDasharray: isDashed ? '5 5' : undefined,
-          opacity: status === 'unmonitored' ? 0.4 : 0.9,
+          opacity: status === 'unmonitored' ? 0.35 : 0.6,
         }}
       />
+
+      {/* Live Interconnection Flow Progression */}
+      {status === 'ok' && !edgeData.isFaultPath && (
+        <>
+          <path
+            d={edgePath}
+            fill="none"
+            stroke={particleColor}
+            strokeWidth={Math.max(strokeWidth - 0.5, 1.5)}
+            className="flow-active"
+            style={{ opacity: 0.9 }}
+          />
+          <circle r="3" fill={particleColor}>
+            <animateMotion
+              dur={medium === 'wifi' ? '2.8s' : '1.8s'}
+              repeatCount="indefinite"
+              path={edgePath}
+            />
+          </circle>
+        </>
+      )}
+
+      {/* Broken Fault Path Indicator */}
+      {edgeData.isFaultPath && (
+        <path
+          d={edgePath}
+          fill="none"
+          stroke="#f43f5e"
+          strokeWidth={strokeWidth + 1}
+          strokeDasharray="4 4"
+          className="animate-pulse"
+        />
+      )}
+
       <EdgeLabelRenderer>
         <div
           style={{
@@ -72,7 +119,11 @@ export const CustomEdge = memo(({
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
-          className="flex items-center gap-1 bg-slate-900/90 border border-slate-700/80 px-1.5 py-0.5 rounded-full text-[10px] text-slate-300 shadow cursor-pointer hover:border-sky-400 hover:text-white transition"
+          className={`flex items-center gap-1 bg-slate-900/90 border px-1.5 py-0.5 rounded-full text-[10px] text-slate-300 shadow cursor-pointer transition ${
+            edgeData.isFaultPath
+              ? 'border-rose-500/80 text-rose-300'
+              : 'border-slate-700/80 hover:border-sky-400 hover:text-white'
+          }`}
           title={`Link ${medium.toUpperCase()} — Stato: ${status.toUpperCase()} (${edgeData.statusSource || 'dedotto'})`}
         >
           {medium === 'poe' && <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />}
@@ -92,3 +143,5 @@ export const CustomEdge = memo(({
     </>
   );
 });
+
+

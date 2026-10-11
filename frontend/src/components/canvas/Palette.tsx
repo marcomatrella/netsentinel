@@ -105,3 +105,4 @@ export const Palette: React.FC<PaletteProps> = ({ onAddNode }) => {
     </div>
   );
 };
+

@@ -58,3 +58,4 @@ expected:
   confidence_min: 0.85
   key_phrase: "Gateway di rete offline"
   symptoms: ["wan-internet"]
+

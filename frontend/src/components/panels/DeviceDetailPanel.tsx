@@ -9,6 +9,7 @@ interface DeviceDetailPanelProps {
   allDevices: Device[];
   onClose: () => void;
   onSelectDevice?: (deviceId: string) => void;
+  onDeleteDevice?: (deviceId: string) => void;
 }
 
 export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
@@ -17,7 +18,9 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   allDevices,
   onClose,
   onSelectDevice,
+  onDeleteDevice,
 }) => {
+
   const [activeTab, setActiveTab] = useState<'overview' | 'checks' | 'deps' | 'events'>('overview');
   const [checks, setChecks] = useState<Check[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -153,8 +156,23 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                 <p className="text-slate-300 text-xs">{device.notes}</p>
               </div>
             )}
+
+            {onDeleteDevice && (
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    onDeleteDevice(device.id);
+                    onClose();
+                  }}
+                  className="w-full py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl font-medium transition text-xs flex items-center justify-center gap-1.5"
+                >
+                  Elimina Questo Apparato
+                </button>
+              </div>
+            )}
           </div>
         )}
+
 
         {activeTab === 'checks' && (
           <div className="space-y-2">
@@ -274,3 +292,4 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
     </div>
   );
 };
+

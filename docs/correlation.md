@@ -103,3 +103,4 @@ Le regole sono definite in formato dichiarativo YAML in `backend/app/correlation
       description: "Temperatura ambiente insolitamente elevata nel locale rack."
       confidence: 0.08
 ```
+

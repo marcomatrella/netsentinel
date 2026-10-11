@@ -188,3 +188,26 @@ async def test_dry_run_simulation():
         assert data["symptoms"].get("ap") == "unreachable"
         # Fault path: from nas -> switch
         assert data["fault_path"] == ["nas", "switch"]
+
+
+@pytest.mark.asyncio
+async def test_topology_templates_endpoint():
+    """Verify GET /api/v1/topology/templates returns general-purpose network templates."""
+    await init_db()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get("/api/v1/topology/templates")
+        assert res.status_code == 200
+        templates = res.json()
+        assert len(templates) >= 3
+        template_ids = {t["id"] for t in templates}
+        assert "homelab" in template_ids
+        assert "simple_home" in template_ids
+        assert "office" in template_ids
+
+        # Verify homelab template structure
+        hl = next(t for t in templates if t["id"] == "homelab")
+        assert len(hl["devices"]) >= 8
+        assert len(hl["links"]) >= 8
+        assert hl["vantage_point_id"] == "nas-synology"
+

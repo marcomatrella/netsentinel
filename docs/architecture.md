@@ -86,3 +86,4 @@ Ogni ciclo di valutazione dello scheduler attraversa l'algoritmo in 7 fasi (docu
 
 - **Server-Sent Events (SSE)**: La rotta `/api/v1/stream` emette frame differenziali (`event: status_diff`) ogni 2 secondi, permettendo alla dashboard React di aggiornare lo stato di nodi e archi senza sovraccaricare il server di polling HTTP.
 - **Macchina del Tempo**: Tramite `/api/v1/timemachine/snapshot?target_time=...`, l'utente può scorrere lo slider temporale fino a 30 giorni nel passato per visualizzare esattamente come appariva la rete durante un guasto storico.
+

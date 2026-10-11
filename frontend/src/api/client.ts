@@ -10,6 +10,13 @@ export async function fetchTopology(): Promise<FullTopology> {
   return res.json();
 }
 
+export async function fetchTopologyTemplates(): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/topology/templates`);
+  if (!res.ok) throw new Error('Impossibile caricare i template di topologia.');
+  return res.json();
+}
+
+
 export async function deduceDependencies(payload: {
   vantage_point_id: string;
   devices: any[];

@@ -47,3 +47,4 @@ async def send_ntfy(
     except Exception as exc:
         logger.error("Errore invio notifica ntfy a %s: %s", url, exc)
         raise exc
+

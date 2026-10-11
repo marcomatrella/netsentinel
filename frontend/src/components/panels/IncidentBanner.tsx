@@ -108,3 +108,4 @@ export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefr
     </div>
   );
 };
+

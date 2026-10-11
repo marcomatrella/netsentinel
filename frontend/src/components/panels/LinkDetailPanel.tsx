@@ -6,9 +6,11 @@ interface LinkDetailPanelProps {
   link: Link | null;
   devices: Device[];
   onClose: () => void;
+  onDeleteLink?: (linkId: string) => void;
 }
 
-export const LinkDetailPanel: React.FC<LinkDetailPanelProps> = ({ link, devices, onClose }) => {
+export const LinkDetailPanel: React.FC<LinkDetailPanelProps> = ({ link, devices, onClose, onDeleteLink }) => {
+
   if (!link) return null;
 
   const devMap = new Map(devices.map((d) => [d.id, d]));
@@ -67,7 +69,23 @@ export const LinkDetailPanel: React.FC<LinkDetailPanelProps> = ({ link, devices,
             <p className="text-slate-300">{link.cable_notes}</p>
           </div>
         )}
+
+        {onDeleteLink && (
+          <div className="pt-2">
+            <button
+              onClick={() => {
+                onDeleteLink(link.id);
+                onClose();
+              }}
+              className="w-full py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl font-medium transition text-xs flex items-center justify-center gap-1.5"
+            >
+              Elimina Questo Collegamento
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+

@@ -61,3 +61,4 @@ expected:
   confidence_min: 0.90
   key_phrase: "NAS offline"
   symptoms: ["clients-lan"]
+

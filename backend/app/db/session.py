@@ -1,19 +1,27 @@
 """Database engine and session management with SQLite WAL configuration."""
 
+import os
 from collections.abc import AsyncGenerator
 
 from app.config import settings
 from app.db.base import Base
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
-# Create async engine with WAL mode optimization
+# Create async engine with WAL mode optimization and NullPool for SQLite
+db_url = os.getenv("NETSENTINEL_DATABASE_URL", settings.database_url or "sqlite+aiosqlite:///./data/netsentinel.db")
+is_sqlite = db_url.startswith("sqlite")
+engine_kwargs = {"echo": settings.debug, "future": True, "connect_args": {"check_same_thread": False}}
+if is_sqlite:
+    engine_kwargs["poolclass"] = NullPool
+
 engine = create_async_engine(
-    settings.database_url or "sqlite+aiosqlite:///./data/netsentinel.db",
-    echo=settings.debug,
-    future=True,
-    connect_args={"check_same_thread": False},
+    db_url,
+    **engine_kwargs,
 )
+
+
 
 
 @event.listens_for(engine.sync_engine, "connect")

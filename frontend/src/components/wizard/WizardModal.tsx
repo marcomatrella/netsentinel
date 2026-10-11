@@ -386,3 +386,4 @@ export const WizardModal: React.FC<WizardModalProps> = ({
     </div>
   );
 };
+

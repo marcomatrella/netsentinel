@@ -149,8 +149,14 @@ async def deduce_dependencies(payload: TopologyDeduceRequest) -> list[Dependency
 
 @router.post("/apply", summary="Applica e salva modifiche alla topologia con snapshot di versione")
 async def apply_topology(payload: TopologyApplyRequest, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
-    """Apply updated devices, links, dependencies and canvas layout, recording a rollback snapshot."""
-    # 1. Update devices
+    # 1. Update devices and delete removed devices
+    submitted_ids = {d["id"] for d in payload.devices}
+    existing_dev_records = (await db.execute(select(Device))).scalars().all()
+    for ed in existing_dev_records:
+        if ed.id not in submitted_ids:
+            await db.delete(ed)
+    await db.flush()
+
     for d_data in payload.devices:
         dev = await db.get(Device, d_data["id"])
         if not dev:
@@ -168,6 +174,7 @@ async def apply_topology(payload: TopologyApplyRequest, db: AsyncSession = Depen
             dev.tags_json = json.dumps(d_data["tags"])
 
     await db.flush()
+
 
     # 2. Recreate links
     curr_links = await db.execute(select(Link))
@@ -321,3 +328,89 @@ async def export_topology_yaml(db: AsyncSession = Depends(get_db)) -> Response:
         media_type="application/x-yaml",
         headers={"Content-Disposition": "attachment; filename=netsentinel.yaml"},
     )
+
+
+@router.get("/templates", summary="Restituisce modelli di topologia di rete preconfigurati")
+async def get_topology_templates() -> list[dict[str, Any]]:
+    """Return preconfigured general-purpose network topology templates."""
+    return [
+        {
+            "id": "homelab",
+            "name": "Home Lab Completo",
+            "description": "Topologia tipica per home lab avanzato: Internet WAN, Router Firewall, Switch Core PoE, AP Wi-Fi, NAS con UPS, Server Hypervisor e domotica.",
+            "vantage_point_id": "nas-synology",
+            "devices": [
+                {"id": "wan-fiber", "name": "Gateway WAN Fibra", "kind": "wan_gateway", "roles": ["wan_provider"], "addresses": {"ip": "192.168.1.1"}, "location": "Ingresso"},
+                {"id": "router-core", "name": "Router Firewall", "kind": "router", "roles": ["dhcp_server", "dns_resolver"], "addresses": {"ip": "192.168.1.254"}, "location": "Rack Salotto"},
+                {"id": "switch-poe-24p", "name": "Switch Core PoE 24P", "kind": "switch", "roles": [], "addresses": {"ip": "192.168.1.2"}, "location": "Rack Salotto"},
+                {"id": "ups-nut", "name": "UPS Gruppo Continuità", "kind": "ups", "roles": ["power_provider"], "addresses": {"ip": "192.168.1.10"}, "location": "Rack Salotto"},
+                {"id": "ap-livingroom", "name": "Access Point Salotto", "kind": "access_point", "roles": [], "addresses": {"ip": "192.168.1.20"}, "location": "Salotto"},
+                {"id": "ap-studio", "name": "Access Point Studio", "kind": "access_point", "roles": [], "addresses": {"ip": "192.168.1.21"}, "location": "Studio"},
+                {"id": "nas-synology", "name": "NAS Storage Synology", "kind": "nas", "roles": ["vantage_point"], "addresses": {"ip": "192.168.1.50"}, "location": "Rack Salotto"},
+                {"id": "srv-proxmox", "name": "Server Proxmox VE", "kind": "server", "roles": [], "addresses": {"ip": "192.168.1.60"}, "location": "Rack Salotto"},
+                {"id": "home-assistant", "name": "Home Assistant Hub", "kind": "smart_hub", "roles": [], "addresses": {"ip": "192.168.1.70"}, "location": "Rack Salotto"},
+                {"id": "pc-workstation", "name": "PC Workstation", "kind": "client", "roles": [], "addresses": {"ip": "192.168.1.100"}, "location": "Studio"},
+            ],
+            "links": [
+                {"id": "lnk-wan-router", "from_device_id": "wan-fiber", "to_device_id": "router-core", "medium": "wan"},
+                {"id": "lnk-router-switch", "from_device_id": "router-core", "to_device_id": "switch-poe-24p", "medium": "ethernet", "from_port": "LAN1", "to_port": "P24"},
+                {"id": "lnk-switch-ap1", "from_device_id": "switch-poe-24p", "to_device_id": "ap-livingroom", "medium": "poe", "poe": True, "from_port": "P1", "to_port": "Eth0"},
+                {"id": "lnk-switch-ap2", "from_device_id": "switch-poe-24p", "to_device_id": "ap-studio", "medium": "poe", "poe": True, "from_port": "P2", "to_port": "Eth0"},
+                {"id": "lnk-switch-nas", "from_device_id": "switch-poe-24p", "to_device_id": "nas-synology", "medium": "ethernet", "from_port": "P5", "to_port": "LAN1"},
+                {"id": "lnk-switch-srv", "from_device_id": "switch-poe-24p", "to_device_id": "srv-proxmox", "medium": "ethernet", "from_port": "P6", "to_port": "eno1"},
+                {"id": "lnk-switch-pc", "from_device_id": "switch-poe-24p", "to_device_id": "pc-workstation", "medium": "ethernet", "from_port": "P7", "to_port": "Eth0"},
+                {"id": "lnk-ups-nas", "from_device_id": "ups-nut", "to_device_id": "nas-synology", "medium": "power"},
+                {"id": "lnk-ups-srv", "from_device_id": "ups-nut", "to_device_id": "srv-proxmox", "medium": "power"},
+                {"id": "lnk-srv-ha", "from_device_id": "srv-proxmox", "to_device_id": "home-assistant", "medium": "logical"},
+            ],
+        },
+        {
+            "id": "simple_home",
+            "name": "Rete Domestica Semplice",
+            "description": "Modem router Wi-Fi principale collegato a uno switch, con NAS, Access Point mesh e client.",
+            "vantage_point_id": "nas-home",
+            "devices": [
+                {"id": "wan-modem", "name": "Linea Internet Fibra", "kind": "wan_gateway", "roles": ["wan_provider"], "addresses": {"ip": "192.168.1.1"}, "location": "Salotto"},
+                {"id": "router-wifi", "name": "Modem Router Wi-Fi", "kind": "router", "roles": ["dhcp_server", "dns_resolver"], "addresses": {"ip": "192.168.1.1"}, "location": "Salotto"},
+                {"id": "switch-lan", "name": "Switch Gigabit 8P", "kind": "switch", "roles": [], "addresses": {"ip": "192.168.1.2"}, "location": "Salotto"},
+                {"id": "ap-mesh", "name": "Ripetitore Wi-Fi Mesh", "kind": "access_point", "roles": [], "addresses": {"ip": "192.168.1.15"}, "location": "Corridoio"},
+                {"id": "nas-home", "name": "NAS Domestico", "kind": "nas", "roles": ["vantage_point"], "addresses": {"ip": "192.168.1.30"}, "location": "Studio"},
+                {"id": "smart-tv", "name": "Smart TV 4K", "kind": "client", "roles": [], "addresses": {"ip": "192.168.1.80"}, "location": "Salotto"},
+                {"id": "pc-desktop", "name": "PC Studio", "kind": "client", "roles": [], "addresses": {"ip": "192.168.1.101"}, "location": "Studio"},
+            ],
+            "links": [
+                {"id": "lnk-wan-modem", "from_device_id": "wan-modem", "to_device_id": "router-wifi", "medium": "wan"},
+                {"id": "lnk-router-switch", "from_device_id": "router-wifi", "to_device_id": "switch-lan", "medium": "ethernet"},
+                {"id": "lnk-switch-ap", "from_device_id": "switch-lan", "to_device_id": "ap-mesh", "medium": "ethernet"},
+                {"id": "lnk-switch-nas", "from_device_id": "switch-lan", "to_device_id": "nas-home", "medium": "ethernet"},
+                {"id": "lnk-ap-tv", "from_device_id": "ap-mesh", "to_device_id": "smart-tv", "medium": "wifi"},
+                {"id": "lnk-switch-pc", "from_device_id": "switch-lan", "to_device_id": "pc-desktop", "medium": "ethernet"},
+            ],
+        },
+        {
+            "id": "office",
+            "name": "Piccolo Ufficio / Studio",
+            "description": "Gateway di sicurezza, Switch PoE per AP e telecamere, Server backup protetto da UPS e stampante.",
+            "vantage_point_id": "srv-storage",
+            "devices": [
+                {"id": "wan-fiber", "name": "Fibra Ottica Ufficio", "kind": "wan_gateway", "roles": ["wan_provider"], "addresses": {"ip": "10.0.0.1"}, "location": "Ingresso"},
+                {"id": "router-security", "name": "Security Gateway UDM", "kind": "router", "roles": ["dhcp_server", "dns_resolver"], "addresses": {"ip": "10.0.0.254"}, "location": "Armadio Rack"},
+                {"id": "switch-poe-16p", "name": "Switch PoE 16 Porte", "kind": "switch", "roles": [], "addresses": {"ip": "10.0.0.2"}, "location": "Armadio Rack"},
+                {"id": "ups-office", "name": "UPS Gruppo Continuità", "kind": "ups", "roles": ["power_provider"], "addresses": {"ip": "10.0.0.15"}, "location": "Armadio Rack"},
+                {"id": "ap-office", "name": "Access Point PoE Ufficio", "kind": "access_point", "roles": [], "addresses": {"ip": "10.0.0.20"}, "location": "Open Space"},
+                {"id": "srv-storage", "name": "Server File & Backup", "kind": "nas", "roles": ["vantage_point"], "addresses": {"ip": "10.0.0.50"}, "location": "Armadio Rack"},
+                {"id": "cam-entry", "name": "Telecamera PoE Ingresso", "kind": "client", "roles": [], "addresses": {"ip": "10.0.0.120"}, "location": "Ingresso"},
+                {"id": "printer-net", "name": "Stampante di Rete", "kind": "client", "roles": [], "addresses": {"ip": "10.0.0.90"}, "location": "Open Space"},
+            ],
+            "links": [
+                {"id": "lnk-wan-gw", "from_device_id": "wan-fiber", "to_device_id": "router-security", "medium": "wan"},
+                {"id": "lnk-gw-sw", "from_device_id": "router-security", "to_device_id": "switch-poe-16p", "medium": "ethernet"},
+                {"id": "lnk-sw-ap", "from_device_id": "switch-poe-16p", "to_device_id": "ap-office", "medium": "poe", "poe": True},
+                {"id": "lnk-sw-cam", "from_device_id": "switch-poe-16p", "to_device_id": "cam-entry", "medium": "poe", "poe": True},
+                {"id": "lnk-sw-srv", "from_device_id": "switch-poe-16p", "to_device_id": "srv-storage", "medium": "ethernet"},
+                {"id": "lnk-sw-prt", "from_device_id": "switch-poe-16p", "to_device_id": "printer-net", "medium": "ethernet"},
+                {"id": "lnk-ups-srv", "from_device_id": "ups-office", "to_device_id": "srv-storage", "medium": "power"},
+            ],
+        },
+    ]
+

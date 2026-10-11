@@ -55,3 +55,4 @@ async def send_smtp(
     except Exception as exc:
         logger.error("Errore invio notifica SMTP a %s (%s): %s", host, to_addrs, exc)
         raise exc
+
