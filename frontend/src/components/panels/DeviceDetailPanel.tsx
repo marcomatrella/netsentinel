@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   X,
   Play,
   RefreshCw,
   CheckCircle,
+  CheckCircle2,
   AlertTriangle,
+  AlertOctagon,
   ArrowRight,
   Clock,
   Shield,
@@ -26,6 +28,7 @@ interface DeviceDetailPanelProps {
   onSelectDevice?: (deviceId: string) => void;
   onDeleteDevice?: (deviceId: string) => void;
   onUpdateDevice?: (deviceId: string, updatedData: Partial<Device>) => Promise<void>;
+  onRefreshTopology?: () => void;
 }
 
 const DEVICE_KINDS: Array<{ kind: DeviceKind; label: string }> = [
@@ -43,6 +46,91 @@ const DEVICE_KINDS: Array<{ kind: DeviceKind; label: string }> = [
   { kind: 'custom', label: 'Personalizzato' },
 ];
 
+interface CheckToast {
+  id: string;
+  type: 'ok' | 'warn' | 'crit';
+  checkName: string;
+  checkType: string;
+  deviceName: string;
+  deviceIp?: string;
+  headline: string;
+  description: string;
+}
+
+const buildCheckToastDescription = (chk: Check, res: any): string => {
+  const details = res?.details || {};
+  const val = res?.value;
+
+  switch (chk.type) {
+    case 'ping': {
+      const rtt = val ?? details.avg_rtt_ms ?? details.rtt_ms;
+      const loss = details.packet_loss_percent ?? 0;
+      if (res?.status === 'ok') {
+        return `Risposta ICMP ricevuta in ${rtt !== undefined ? `${Number(rtt).toFixed(1)} ms` : 'tempo regolare'} • Nessuna perdita pacchetti (${loss}%). Host online e raggiungibile.`;
+      }
+      return details.error || `Nessuna risposta dal target • Perdita pacchetti: ${loss}%. Host non risponde al ping.`;
+    }
+    case 'synology_dsm': {
+      const model = details.model || 'Synology NAS';
+      const temp = details.temperature ? `Temperatura: ${details.temperature}°C` : null;
+      const ver = details.version ? `DSM v${details.version}` : null;
+      const poolStatus = details.storage_pools?.map((p: any) => `${p.name || 'Pool'}: ${p.status || 'OK'}`).join(', ');
+      if (res?.status === 'ok') {
+        const parts = [model, ver, temp, poolStatus || 'Storage pool integro'].filter(Boolean);
+        return `${parts.join(' • ')}. Servizi DSM operativi regolarmente.`;
+      }
+      return details.error || (poolStatus ? `Stato storage: ${poolStatus}` : 'Anomalia rilevata sullo storage o sui dischi del NAS.');
+    }
+    case 'http': {
+      const code = details.status_code || details.code || 200;
+      const time = details.response_time_ms ? `${details.response_time_ms} ms` : null;
+      if (res?.status === 'ok') {
+        return `Risposta HTTP ${code} OK${time ? ` in ${time}` : ''}. Endpoint web raggiungibile e funzionante.`;
+      }
+      return details.error || `HTTP ${code} • Errore o timeout durante la richiesta web.`;
+    }
+    case 'tcp_port': {
+      const port = details.port || chk.params?.port || 'servizio';
+      const rtt = details.rtt_ms ? `${details.rtt_ms} ms` : null;
+      if (res?.status === 'ok') {
+        return `Porta TCP ${port} aperta e reattiva${rtt ? ` (connessione in ${rtt})` : ''}.`;
+      }
+      return details.error || `Porta TCP ${port} non risponde o connessione rifiutata.`;
+    }
+    case 'dns': {
+      const resolved = details.resolved_ip || details.answer;
+      const time = details.query_time_ms ? `${details.query_time_ms} ms` : null;
+      if (res?.status === 'ok') {
+        return `Risoluzione DNS riuscita${resolved ? `: ${resolved}` : ''}${time ? ` in ${time}` : ''}. Server DNS attivo.`;
+      }
+      return details.error || 'Mancata risoluzione del nome di dominio o timeout DNS.';
+    }
+    case 'nut': {
+      const charge = details.battery_charge ? `Batteria: ${details.battery_charge}%` : null;
+      const status = details.ups_status || 'In linea';
+      if (res?.status === 'ok') {
+        return `UPS attivo • ${[status, charge].filter(Boolean).join(' • ')}. Rete elettrica regolare.`;
+      }
+      return details.error || 'Allarme UPS: alimentazione a batteria o disconnessione.';
+    }
+    case 'generic_http_json':
+    case 'home_assistant':
+    case 'adguard_home':
+    case 'unifi': {
+      if (res?.status === 'ok') {
+        return details.message || `Integrazione ${chk.type} verificata con successo. API raggiungibili e funzionanti.`;
+      }
+      return details.error || details.message || `Errore comunicazione con l'API ${chk.type}.`;
+    }
+    default: {
+      if (res?.status === 'ok') {
+        return details.message || (val !== undefined && val !== null ? `Controllo completato regolarmente (Valore: ${val}).` : 'Controllo completato regolarmente con esito positivo.');
+      }
+      return details.error || details.message || 'Controllo terminato con errore o valori fuori soglia.';
+    }
+  }
+};
+
 export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   device,
   dependencies,
@@ -51,11 +139,39 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   onSelectDevice,
   onDeleteDevice,
   onUpdateDevice,
+  onRefreshTopology,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'checks' | 'deps' | 'events'>('overview');
   const [checks, setChecks] = useState<Check[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [runningCheckId, setRunningCheckId] = useState<string | null>(null);
+
+  // Timed Toast state
+  const [toast, setToast] = useState<CheckToast | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (toastData: CheckToast) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setToast(toastData);
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+    }, 5000);
+  };
+
+  const dismissToast = () => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setToast(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -92,13 +208,53 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const devMap = new Map(allDevices.map((d) => [d.id, d]));
 
   const handleRunCheck = async (checkId: string) => {
+    const chk = checks.find((c) => c.id === checkId);
     setRunningCheckId(checkId);
     try {
-      await executeCheckNow(checkId);
+      const res = await executeCheckNow(checkId);
       const updated = await fetchDeviceChecks(device.id);
       setChecks(updated);
-    } catch (err) {
+
+      if (onRefreshTopology) {
+        onRefreshTopology();
+      }
+
+      if (chk) {
+        const isOk = res.status === 'ok';
+        const isWarn = res.status === 'warn' || res.status === 'degraded';
+        const headline = isOk
+          ? 'Test completato con successo (OK)'
+          : isWarn
+          ? 'Controllo completato con avvisi (Degradato)'
+          : 'Test fallito (Critico / Non raggiungibile)';
+
+        const description = buildCheckToastDescription(chk, res);
+
+        showToast({
+          id: `${checkId}-${Date.now()}`,
+          type: isOk ? 'ok' : isWarn ? 'warn' : 'crit',
+          checkName: chk.name,
+          checkType: chk.type,
+          deviceName: device.name,
+          deviceIp: device.addresses?.ip,
+          headline,
+          description,
+        });
+      }
+    } catch (err: any) {
       console.error(err);
+      if (chk) {
+        showToast({
+          id: `${checkId}-${Date.now()}`,
+          type: 'crit',
+          checkName: chk.name,
+          checkType: chk.type,
+          deviceName: device.name,
+          deviceIp: device.addresses?.ip,
+          headline: 'Errore esecuzione test',
+          description: err.message || 'Impossibile completare il controllo. Verifica la connettività del server NetSentinel.',
+        });
+      }
     } finally {
       setRunningCheckId(null);
     }
@@ -648,6 +804,100 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
           </>
         )}
       </div>
+
+      {/* Timed Toast Notification */}
+      {toast && (
+        <div className="fixed top-16 right-6 z-50 max-w-sm w-[360px] animate-in fade-in slide-in-from-top-3 duration-200 pointer-events-auto">
+          <div
+            className={`relative rounded-2xl shadow-2xl backdrop-blur-xl border p-4 overflow-hidden transition-all ${
+              toast.type === 'ok'
+                ? 'bg-white/95 dark:bg-slate-900/95 border-emerald-500/40 dark:border-emerald-500/40 text-slate-800 dark:text-slate-100 shadow-emerald-500/10'
+                : toast.type === 'warn'
+                ? 'bg-white/95 dark:bg-slate-900/95 border-amber-500/40 dark:border-amber-500/40 text-slate-800 dark:text-slate-100 shadow-amber-500/10'
+                : 'bg-white/95 dark:bg-slate-900/95 border-rose-500/40 dark:border-rose-500/40 text-slate-800 dark:text-slate-100 shadow-rose-500/10'
+            }`}
+          >
+            {/* Top accent bar */}
+            <div
+              className={`absolute top-0 left-0 right-0 h-1.5 ${
+                toast.type === 'ok'
+                  ? 'bg-emerald-500'
+                  : toast.type === 'warn'
+                  ? 'bg-amber-500'
+                  : 'bg-rose-500'
+              }`}
+            />
+
+            <div className="flex items-start gap-3 pt-0.5">
+              <div
+                className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                  toast.type === 'ok'
+                    ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                    : toast.type === 'warn'
+                    ? 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                    : 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                }`}
+              >
+                {toast.type === 'ok' ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : toast.type === 'warn' ? (
+                  <AlertTriangle className="w-5 h-5" />
+                ) : (
+                  <AlertOctagon className="w-5 h-5" />
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0 pr-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                    {toast.headline}
+                  </h4>
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                      toast.type === 'ok'
+                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                        : toast.type === 'warn'
+                        ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                        : 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                    }`}
+                  >
+                    {toast.type.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  {toast.deviceName} {toast.deviceIp ? `(${toast.deviceIp})` : ''} • {toast.checkName}
+                </div>
+
+                <p className="text-xs text-slate-700 dark:text-slate-200 mt-1.5 leading-relaxed font-normal">
+                  {toast.description}
+                </p>
+              </div>
+
+              <button
+                onClick={dismissToast}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition -mr-1 -mt-1 shrink-0"
+                title="Chiudi notifica"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Bottom animated progress bar shrinking over 5s */}
+            <div className="mt-3 -mx-4 -mb-4 bg-slate-100 dark:bg-slate-800/80 h-1 overflow-hidden">
+              <div
+                className={`h-full toast-progress ${
+                  toast.type === 'ok'
+                    ? 'bg-emerald-500'
+                    : toast.type === 'warn'
+                    ? 'bg-amber-500'
+                    : 'bg-rose-500'
+                }`}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

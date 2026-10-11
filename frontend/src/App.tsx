@@ -658,6 +658,7 @@ export const App: React.FC = () => {
             }}
             onDeleteDevice={isEditMode ? handleDeleteDevice : undefined}
             onUpdateDevice={handleUpdateDevice}
+            onRefreshTopology={loadData}
           />
         )}
 

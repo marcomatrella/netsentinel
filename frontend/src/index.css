@@ -45,3 +45,16 @@
   stroke-dasharray: 6 3;
   animation: dash-flow 1.2s linear infinite;
 }
+
+@keyframes shrink-width {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.toast-progress {
+  animation: shrink-width 5s linear forwards;
+}

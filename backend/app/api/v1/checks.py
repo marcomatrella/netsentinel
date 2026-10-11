@@ -1,5 +1,6 @@
 """Checks REST API endpoints."""
 
+from datetime import datetime
 import json
 from typing import Any
 
@@ -140,6 +141,10 @@ async def execute_check_now(check_id: str, db: AsyncSession = Depends(get_db)) -
 
     res = await collector.collect(target_address=target, params=params, timeout_seconds=chk.timeout_seconds)
     obs = res.observations[0] if res.observations else None
+    if obs:
+        chk.current_status = obs.status
+        chk.last_run_at = datetime.utcnow()
+        await db.commit()
 
     return {
         "check_id": check_id,
