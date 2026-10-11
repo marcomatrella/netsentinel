@@ -7,18 +7,17 @@ services:
     container_name: netsentinel
     restart: unless-stopped
 
-    # Host network mode is recommended for LAN discovery, ICMP, and broadcast traffic
-    network_mode: host
+    # Per macOS / Docker Desktop locale: usa mapping porte e cap_add
+    # Per Linux / NAS (Synology, TrueNAS, unRAID): decommenta network_mode: host per discovery L2
+    ports:
+      - "8080:8080"
+    cap_add:
+      - NET_RAW  # Per ping ICMP diretti senza root
 
-    # Alternative bridge network mode (uncomment if network_mode: host is not desired):
-    # ports:
-    #   - "8080:8080"
-    # cap_add:
-    #   - NET_RAW
+    # network_mode: host  # Consigliato su Linux / NAS per discovery broadcast
 
     volumes:
       - ./data:/data
-      - /etc/localtime:/etc/localtime:ro
 
     environment:
       - TZ=Europe/Rome
@@ -42,3 +41,4 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
