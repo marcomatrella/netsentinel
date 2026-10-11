@@ -255,87 +255,100 @@ async def _analyze_device(
 
         # Reverse DNS lookup
         hostname = await _resolve_hostname(ip)
-        h_lower = (hostname or "").lower()
+        h = hostname or ""
+        h_lower = h.lower()
 
         roles: list[str] = []
-        if 53 in open_ports:
-            roles.append("dns_resolver")
 
-        # Refined device classification
-        if is_gw or any(k in h_lower for k in ["router", "gateway", "udm", "fritz", "pfsense", "opnsense"]):
+        # 1. Router / Gateway
+        if is_gw or any(k in h_lower for k in ["router", "gateway", "udm", "fritz", "pfsense", "opnsense", "firewall"]):
             kind = "router"
-            roles.extend(["gateway", "dhcp_server"])
-            if "dns_resolver" not in roles:
-                roles.append("dns_resolver")
-            name = f"Router Gateway ({hostname})" if hostname else f"Router Gateway ({ip})"
+            roles.extend(["gateway", "dhcp_server", "dns_resolver"])
+            name = f"Router Gateway ({h})" if h else f"Router Gateway ({ip})"
             loc = "Ingresso / Rack"
-        elif any(k in h_lower for k in ["switch", "netgear", "cisco"]) or h_lower.startswith("sw-"):
-            kind = "switch"
-            name = f"Switch Netgear ({hostname})" if "netgear" in h_lower else f"Switch ({hostname or ip})"
-            loc = "Rete"
-        elif any(k in h_lower for k in ["synology", "qnap", "truenas", "unraid"]) or ("nas" in h_lower and "homepod" not in h_lower):
+        # 2. NetSentinel Host (MacBook / Host machine running Docker)
+        elif is_local or any(k in h_lower for k in ["mbp", "macbook", "imac", "mac-mini"]):
+            kind = "server"
+            roles.append("vantage_point")
+            name = "MacBook Pro (Host NetSentinel)" if "mbp" in h_lower else (f"Host NetSentinel ({h})" if h else f"Host NetSentinel ({ip})")
+            loc = "Host NetSentinel"
+        # 3. Dedicated Storage / NAS
+        elif any(k in h_lower for k in ["synology", "qnap", "truenas", "unraid", "diskstation"]) or (
+            "nas" in h_lower and "homepod" not in h_lower
+        ):
             kind = "nas"
-            name = f"NAS Synology ({hostname})" if "synology" in h_lower else f"NAS Storage ({hostname or ip})"
+            if 53 in open_ports and "synology" in h_lower:
+                roles.append("dns_resolver")
+            name = f"NAS Synology ({h})" if "synology" in h_lower else f"NAS Storage ({h or ip})"
             loc = "Storage / Rack"
-        elif any(k in h_lower for k in ["u7pro", "unifi", "accesspoint", "eap", "wap"]):
+        # 4. Networking Switch (ONLY explicit switch names, never default to switch)
+        elif any(k in h_lower for k in ["switch", "netgear", "cisco", "usw", "edgeswitch", "tl-sg"]) or h_lower.startswith("sw-"):
+            kind = "switch"
+            name = f"Switch Netgear ({h})" if "netgear" in h_lower else f"Switch ({h or ip})"
+            loc = "Rete"
+        # 5. Wi-Fi Access Points (UniFi, Omada, etc.)
+        elif any(k in h_lower for k in ["u7pro", "u6", "uap", "accesspoint", "eap", "wap"]) or (
+            h_lower.startswith("ap-") or h_lower.endswith("-ap")
+        ):
             kind = "access_point"
-            name = f"Access Point UniFi ({hostname})" if ("u7" in h_lower or "unifi" in h_lower) else f"Access Point ({hostname or ip})"
+            name = f"Access Point UniFi ({h})" if ("u7" in h_lower or "u6" in h_lower or "unifi" in h_lower) else f"Access Point ({h or ip})"
             loc = "Wireless"
-        elif any(k in h_lower for k in ["homeassistant", "hass", "tado", "bridge", "netatmo", "hue", "shelly", "tapparella", "hub", "plug", "meross"]) or 8123 in open_ports:
+        # 6. Smart Home Hubs & Controllers
+        elif any(k in h_lower for k in ["homeassistant", "hass", "tado", "bridge", "netatmo", "hue", "zigbee"]) or 8123 in open_ports:
             kind = "smart_hub"
             roles.append("service")
-            name = f"Home Assistant Hub" if ("homeassistant" in h_lower or "hass" in h_lower) else f"Smart Hub ({hostname or ip})"
+            name = "Home Assistant Hub" if ("homeassistant" in h_lower or "hass" in h_lower) else f"Smart Hub ({h or ip})"
             loc = "Domotica"
+        # 7. IoT Devices: Smart Plugs, Tapparelle, Shelly, Dongles, Relays
+        elif any(k in h_lower for k in ["shelly", "tapparella", "plug", "meross", "dongle", "sonoff", "rele", "relay", "sensor", "presa"]):
+            kind = "smart_hub"
+            roles.append("service")
+            if "meross" in h_lower or "plug" in h_lower:
+                name = f"Presa Smart ({h or ip})"
+            elif "tapparella" in h_lower:
+                name = f"Tapparella ({h})"
+            elif "shelly" in h_lower:
+                name = f"Modulo Shelly ({h})"
+            elif "dongle" in h_lower:
+                name = f"Dongle Zigbee/IoT ({h})"
+            else:
+                name = f"Dispositivo IoT ({h or ip})"
+            loc = "Domotica"
+        # 8. Virtualization / Hypervisor Servers
         elif any(k in h_lower for k in ["proxmox", "pve", "esxi", "server"]) or 8006 in open_ports:
             kind = "server"
-            name = f"Server Proxmox VE ({hostname})" if "proxmox" in h_lower else f"Server ({hostname or ip})"
+            name = f"Server Proxmox VE ({h})" if "proxmox" in h_lower else f"Server ({h or ip})"
             loc = "Server / Rack"
+        # 9. UPS Power Supplies
         elif any(k in h_lower for k in ["ups", "apc", "eaton", "nut"]) or 3493 in open_ports:
             kind = "ups"
             roles.append("power_provider")
-            name = f"UPS Gruppo Continuità ({hostname or ip})"
+            name = f"UPS Gruppo Continuità ({h or ip})"
             loc = "Alimentazione"
-        elif any(k in h_lower for k in ["mbp", "macbook", "imac", "mac-mini"]):
-            kind = "server"
-            roles.append("vantage_point")
-            name = f"MacBook Pro NetSentinel ({hostname})"
-            loc = "Host NetSentinel"
+        # 10. Apple HomePod & Audio
         elif "homepod" in h_lower:
             kind = "client"
-            name = f"Apple HomePod ({hostname})"
-            loc = "Salotto"
+            name = f"Apple HomePod ({h})"
+            loc = "Audio / Salotto"
+        # 11. Mobile / Wearable Clients
         elif any(k in h_lower for k in ["iphone", "ipad", "watch", "phone"]):
             kind = "client"
-            name = hostname.replace("-", " ").title() if hostname else f"Client {ip}"
+            name = h.replace("-", " ").title() if h else f"Mobile {ip}"
             loc = "Mobile"
-        elif any(k in h_lower for k in ["tv", "lgwebos"]):
+        # 12. Smart TVs & Streaming Devices
+        elif any(k in h_lower for k in ["tv", "webos", "bravia", "chromecast", "firetv", "shield"]):
             kind = "client"
-            name = f"Smart TV ({hostname or ip})"
+            name = f"Smart TV ({h or ip})"
             loc = "Salotto"
-        elif any(k in h_lower for k in ["air-di", "z-fold", "galaxy", "pixel", "samsung", "dishwasher", "refrigerator"]):
+        # 13. Smart Appliances & Generic Personal Devices
+        elif any(k in h_lower for k in ["air-di", "z-fold", "galaxy", "pixel", "samsung", "dishwasher", "refrigerator", "washer"]):
             kind = "client"
-            name = hostname.replace("-", " ").title() if hostname else f"Client {ip}"
-            loc = "Client"
-        elif is_local:
-            kind = "server"
-            name = f"Server NetSentinel Host ({hostname or ip})"
-            roles.append("vantage_point")
-            loc = "Rack Salotto"
-        elif 5000 in open_ports:
-            kind = "nas"
-            name = f"NAS Storage ({hostname or ip})"
-            loc = "Storage / Rack"
-        elif 8080 in open_ports:
-            kind = "access_point"
-            name = f"Access Point Wi-Fi ({hostname or ip})"
-            loc = "Wireless"
-        elif 80 in open_ports or 443 in open_ports:
-            kind = "switch"
-            name = f"Dispositivo Rete ({hostname or ip})"
-            loc = "Rete"
+            name = h.replace("-", " ").title() if h else f"Dispositivo {ip}"
+            loc = "Casa"
+        # 14. DEFAULT: Client / Workstation (Never default to switch!)
         else:
             kind = "client"
-            name = hostname or f"Dispositivo {ip}"
+            name = h if h else f"Client {ip}"
             loc = "LAN"
 
         # Unique ID
