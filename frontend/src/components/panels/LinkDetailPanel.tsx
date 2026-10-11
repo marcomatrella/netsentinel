@@ -18,55 +18,55 @@ export const LinkDetailPanel: React.FC<LinkDetailPanelProps> = ({ link, devices,
   const dst = devMap.get(link.to_device_id);
 
   return (
-    <div className="w-80 bg-slate-900 border-l border-slate-800 flex flex-col h-full shadow-2xl z-20">
-      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+    <div className="w-80 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-2xl z-20 text-slate-800 dark:text-slate-100">
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-slate-100 text-sm">Dettaglio Collegamento</h3>
-          <span className="text-[11px] text-slate-400 font-mono">{link.id}</span>
+          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Dettaglio Collegamento</h3>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{link.id}</span>
         </div>
-        <button onClick={onClose} className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition">
+        <button onClick={onClose} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition">
           <X className="w-5 h-5" />
         </button>
       </div>
 
       <div className="p-4 space-y-4 text-xs">
-        <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60 flex items-center justify-between">
+        <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
           <div className="text-center flex-1">
-            <div className="font-semibold text-slate-200">{src?.name || link.from_device_id}</div>
-            <div className="text-[10px] text-slate-400">{link.from_port ? `Porta ${link.from_port}` : 'Porta auto'}</div>
+            <div className="font-semibold text-slate-800 dark:text-slate-200">{src?.name || link.from_device_id}</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400">{link.from_port ? `Porta ${link.from_port}` : 'Porta auto'}</div>
           </div>
-          <ArrowRight className="w-4 h-4 text-slate-500 mx-2" />
+          <ArrowRight className="w-4 h-4 text-slate-400 dark:text-slate-500 mx-2" />
           <div className="text-center flex-1">
-            <div className="font-semibold text-slate-200">{dst?.name || link.to_device_id}</div>
-            <div className="text-[10px] text-slate-400">{link.to_port ? `Porta ${link.to_port}` : 'Porta auto'}</div>
+            <div className="font-semibold text-slate-800 dark:text-slate-200">{dst?.name || link.to_device_id}</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400">{link.to_port ? `Porta ${link.to_port}` : 'Porta auto'}</div>
           </div>
         </div>
 
-        <div className="space-y-2 bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+        <div className="space-y-2 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50">
           <div className="flex justify-between">
-            <span className="text-slate-400">Tipologia (Medium):</span>
-            <span className="font-mono text-slate-200 uppercase font-semibold">{link.medium}</span>
+            <span className="text-slate-500 dark:text-slate-400">Tipologia (Medium):</span>
+            <span className="font-mono text-slate-800 dark:text-slate-200 uppercase font-semibold">{link.medium}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-400">Alimentazione PoE:</span>
-            <span className={link.poe ? 'text-amber-400 font-bold flex items-center gap-1' : 'text-slate-400'}>
-              {link.poe ? <><Zap className="w-3 h-3 fill-amber-400" /> Attiva</> : 'No'}
+            <span className="text-slate-500 dark:text-slate-400">Alimentazione PoE:</span>
+            <span className={link.poe ? 'text-amber-500 dark:text-amber-400 font-bold flex items-center gap-1' : 'text-slate-400'}>
+              {link.poe ? <><Zap className="w-3 h-3 fill-amber-500 dark:fill-amber-400" /> Attiva</> : 'No'}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-400">Stato del Link:</span>
-            <span className="text-emerald-400 font-bold uppercase">{link.status}</span>
+            <span className="text-slate-500 dark:text-slate-400">Stato del Link:</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase">{link.status}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-400">Fonte dello Stato:</span>
-            <span className="text-slate-300 italic">{link.status_source || 'Dedotto da raggiungibilità capi'}</span>
+            <span className="text-slate-500 dark:text-slate-400">Fonte dello Stato:</span>
+            <span className="text-slate-600 dark:text-slate-300 italic">{link.status_source || 'Dedotto da raggiungibilità capi'}</span>
           </div>
         </div>
 
         {link.cable_notes && (
-          <div className="bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
-            <span className="text-[11px] font-bold text-slate-400 block mb-1">Note Cablaggio</span>
-            <p className="text-slate-300">{link.cable_notes}</p>
+          <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Note Cablaggio</span>
+            <p className="text-slate-700 dark:text-slate-300">{link.cable_notes}</p>
           </div>
         )}
 
@@ -77,7 +77,7 @@ export const LinkDetailPanel: React.FC<LinkDetailPanelProps> = ({ link, devices,
                 onDeleteLink(link.id);
                 onClose();
               }}
-              className="w-full py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl font-medium transition text-xs flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-300 dark:bg-rose-600/20 dark:hover:bg-rose-600/30 dark:text-rose-300 dark:border-rose-500/30 rounded-xl font-medium transition text-xs flex items-center justify-center gap-1.5"
             >
               Elimina Questo Collegamento
             </button>
@@ -87,5 +87,3 @@ export const LinkDetailPanel: React.FC<LinkDetailPanelProps> = ({ link, devices,
     </div>
   );
 };
-
-

@@ -141,30 +141,30 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   };
 
   return (
-    <div className="w-96 bg-slate-900 border-l border-slate-800 flex flex-col h-full shadow-2xl z-20">
+    <div className="w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-2xl z-20 text-slate-800 dark:text-slate-100">
       {/* Header */}
-      <div className="p-4 border-b border-slate-800 flex items-start justify-between bg-slate-950/40">
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between bg-slate-50/70 dark:bg-slate-950/40">
         <div className="flex-1 mr-2">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-slate-100 text-base truncate" title={device.name}>
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base truncate" title={device.name}>
               {device.name}
             </h3>
             <span
               className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
                 device.status === 'ok'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                   : device.status === 'down'
-                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                  : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
               }`}
             >
               {device.status}
             </span>
           </div>
-          <div className="text-xs text-slate-400 mt-1 flex items-center gap-1.5 font-mono">
-            <span className="text-sky-400 font-semibold">{device.addresses?.ip || 'Nessun IP configurato'}</span>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5 font-mono">
+            <span className="text-sky-600 dark:text-sky-400 font-semibold">{device.addresses?.ip || 'Nessun IP configurato'}</span>
             <span>•</span>
-            <span className="uppercase text-[10px] text-slate-500">{device.kind}</span>
+            <span className="uppercase text-[10px] text-slate-400 dark:text-slate-500">{device.kind}</span>
           </div>
         </div>
 
@@ -174,7 +174,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
             className={`p-1.5 rounded-lg border transition ${
               isEditing
                 ? 'bg-sky-600 text-white border-sky-500 shadow'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:border-slate-700'
             }`}
             title={isEditing ? 'Annulla modifica' : 'Modifica indirizzo IP e impostazioni'}
           >
@@ -182,7 +182,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -191,13 +191,13 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
 
       {/* Tabs */}
       {!isEditing && (
-        <div className="flex border-b border-slate-800 text-xs">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 text-xs">
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex-1 py-2.5 text-center font-medium border-b-2 transition ${
               activeTab === 'overview'
-                ? 'border-sky-500 text-sky-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-sky-500 text-sky-600 dark:text-sky-400 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             Panoramica
@@ -206,8 +206,8 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
             onClick={() => setActiveTab('checks')}
             className={`flex-1 py-2.5 text-center font-medium border-b-2 transition ${
               activeTab === 'checks'
-                ? 'border-sky-500 text-sky-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-sky-500 text-sky-600 dark:text-sky-400 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             Controlli ({checks.length})
@@ -216,8 +216,8 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
             onClick={() => setActiveTab('deps')}
             className={`flex-1 py-2.5 text-center font-medium border-b-2 transition ${
               activeTab === 'deps'
-                ? 'border-sky-500 text-sky-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-sky-500 text-sky-600 dark:text-sky-400 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             Dipendenze
@@ -226,8 +226,8 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
             onClick={() => setActiveTab('events')}
             className={`flex-1 py-2.5 text-center font-medium border-b-2 transition ${
               activeTab === 'events'
-                ? 'border-sky-500 text-sky-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-sky-500 text-sky-600 dark:text-sky-400 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             Eventi
@@ -240,24 +240,24 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
         {/* --- EDIT MODE FORM --- */}
         {isEditing ? (
           <div className="space-y-4">
-            <div className="p-3 bg-sky-950/30 border border-sky-800/50 rounded-xl text-sky-200 text-[11px] flex items-center gap-2">
-              <Edit3 className="w-4 h-4 text-sky-400 shrink-0" />
+            <div className="p-3 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/50 rounded-xl text-sky-800 dark:text-sky-200 text-[11px] flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
               <span>Modifica parametri dell'apparato (IP, nome, ruoli di rete).</span>
             </div>
 
             <div>
-              <label className="block text-slate-400 font-medium mb-1">Nome Dispositivo:</label>
+              <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Nome Dispositivo:</label>
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="es. Server Domotico Home Assistant"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500"
               />
             </div>
 
             <div>
-              <label className="block text-slate-400 font-medium mb-1">
+              <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
                 Indirizzo IP primario (per ping e controlli attivi):
               </label>
               <input
@@ -265,20 +265,20 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                 value={editIp}
                 onChange={(e) => setEditIp(e.target.value)}
                 placeholder="es. 192.168.1.70"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-sky-500"
               />
-              <p className="text-[10px] text-slate-500 mt-1">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
                 NetSentinel invierà ping periodici a questo IP per misurare lo stato live e la latenza RTT.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Tipo Apparato:</label>
+                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Tipo Apparato:</label>
                 <select
                   value={editKind}
                   onChange={(e) => setEditKind(e.target.value as DeviceKind)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-sky-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500"
                 >
                   {DEVICE_KINDS.map((k) => (
                     <option key={k.kind} value={k.kind}>
@@ -289,11 +289,11 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Criticità (1-5):</label>
+                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Criticità (1-5):</label>
                 <select
                   value={editCriticality}
                   onChange={(e) => setEditCriticality(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-sky-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500"
                 >
                   <option value={1}>1 — Bassa</option>
                   <option value={2}>2 — Media</option>
@@ -305,102 +305,102 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
             </div>
 
             <div>
-              <label className="block text-slate-400 font-medium mb-1">Ubicazione / Rack / Stanza:</label>
+              <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Ubicazione / Rack / Stanza:</label>
               <input
                 type="text"
                 value={editLocation}
                 onChange={(e) => setEditLocation(e.target.value)}
                 placeholder="es. Rack Salotto, Studio, Mansarda"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500"
               />
             </div>
 
             {/* Ruoli di Rete / Servizi */}
-            <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/60 space-y-2.5">
-              <span className="block font-medium text-slate-300 text-xs">Ruoli & Servizi di Rete:</span>
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 space-y-2.5">
+              <span className="block font-medium text-slate-700 dark:text-slate-300 text-xs">Ruoli & Servizi di Rete:</span>
 
-              <label className="flex items-start gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <label className="flex items-start gap-2 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
                 <input
                   type="checkbox"
                   checked={editRoles.includes('dns_resolver')}
                   onChange={() => handleToggleRole('dns_resolver')}
-                  className="mt-0.5 rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
+                  className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-sky-500 focus:ring-0"
                 />
                 <div>
-                  <span className="font-semibold block text-sky-300">Server DNS (AdGuard Home / Pi-hole)</span>
-                  <span className="text-[10px] text-slate-400">Questo apparato risolve le query DNS della rete domestica</span>
+                  <span className="font-semibold block text-sky-600 dark:text-sky-300">Server DNS (AdGuard Home / Pi-hole)</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Questo apparato risolve le query DNS della rete domestica</span>
                 </div>
               </label>
 
-              <label className="flex items-start gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <label className="flex items-start gap-2 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
                 <input
                   type="checkbox"
                   checked={editRoles.includes('dhcp_server')}
                   onChange={() => handleToggleRole('dhcp_server')}
-                  className="mt-0.5 rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
+                  className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-sky-500 focus:ring-0"
                 />
                 <div>
-                  <span className="font-semibold block text-amber-300">Server DHCP</span>
-                  <span className="text-[10px] text-slate-400">Assegna gli indirizzi IP ai client e dispositivi di rete</span>
+                  <span className="font-semibold block text-amber-600 dark:text-amber-300">Server DHCP</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Assegna gli indirizzi IP ai client e dispositivi di rete</span>
                 </div>
               </label>
 
-              <label className="flex items-start gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <label className="flex items-start gap-2 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
                 <input
                   type="checkbox"
                   checked={editRoles.includes('gateway')}
                   onChange={() => handleToggleRole('gateway')}
-                  className="mt-0.5 rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
+                  className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-sky-500 focus:ring-0"
                 />
                 <div>
-                  <span className="font-semibold block text-purple-300">Default Gateway WAN</span>
-                  <span className="text-[10px] text-slate-400">Fornisce l'instradamento verso Internet</span>
+                  <span className="font-semibold block text-purple-600 dark:text-purple-300">Default Gateway WAN</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Fornisce l'instradamento verso Internet</span>
                 </div>
               </label>
 
-              <label className="flex items-start gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <label className="flex items-start gap-2 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
                 <input
                   type="checkbox"
                   checked={editRoles.includes('vantage_point')}
                   onChange={() => handleToggleRole('vantage_point')}
-                  className="mt-0.5 rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
+                  className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-sky-500 focus:ring-0"
                 />
                 <div>
-                  <span className="font-semibold block text-blue-300">Punto di Monitoraggio (Vantage Point)</span>
-                  <span className="text-[10px] text-slate-400">Host fisico dove risiede ed esegue NetSentinel</span>
+                  <span className="font-semibold block text-blue-600 dark:text-blue-300">Punto di Monitoraggio (Vantage Point)</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Host fisico dove risiede ed esegue NetSentinel</span>
                 </div>
               </label>
 
-              <label className="flex items-start gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <label className="flex items-start gap-2 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
                 <input
                   type="checkbox"
                   checked={editRoles.includes('power_provider')}
                   onChange={() => handleToggleRole('power_provider')}
-                  className="mt-0.5 rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
+                  className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-sky-500 focus:ring-0"
                 />
                 <div>
-                  <span className="font-semibold block text-yellow-300">Gruppo di Continuità (UPS)</span>
-                  <span className="text-[10px] text-slate-400">Fornisce energia ausiliaria agli apparati collegati</span>
+                  <span className="font-semibold block text-yellow-600 dark:text-yellow-300">Gruppo di Continuità (UPS)</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Fornisce energia ausiliaria agli apparati collegati</span>
                 </div>
               </label>
             </div>
 
             <div>
-              <label className="block text-slate-400 font-medium mb-1">Note:</label>
+              <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Note:</label>
               <textarea
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
                 placeholder="Note cablaggio, porte o servizi ospitati..."
                 rows={2}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 text-xs focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500"
               />
             </div>
 
-            <div className="pt-2 flex justify-end gap-2 border-t border-slate-800">
+            <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium transition"
               >
                 Annulla
               </button>
@@ -420,7 +420,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
           <>
             {activeTab === 'overview' && (
               <div className="space-y-3">
-                <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60 space-y-2">
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700/60 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400">ID Apparato:</span>
                     <span className="font-mono text-slate-200">{device.id}</span>

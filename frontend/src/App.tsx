@@ -41,6 +41,7 @@ import { NetworkRolesModal } from './components/panels/NetworkRolesModal';
 import { NotificationSettingsModal } from './components/notifications/NotificationSettingsModal';
 import { HeaderMenuDropdown } from './components/navigation/HeaderMenuDropdown';
 import { LanguageSwitcher } from './components/navigation/LanguageSwitcher';
+import { ThemeSwitcher } from './components/navigation/ThemeSwitcher';
 import { TimeMachineSlider } from './components/timemachine/TimeMachineSlider';
 import { useTranslation } from './i18n/I18nContext';
 
@@ -321,51 +322,56 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* Top Navbar (Hidden in Kiosk Mode) */}
       {!isKioskMode && (
-        <header className="h-14 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-4 flex items-center justify-between z-30">
+        <header className="h-14 border-b border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 backdrop-blur-md px-4 flex items-center justify-between z-30">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
               <Shield className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-sm tracking-tight text-white">NetSentinel</h1>
-                <span className="text-[10px] bg-slate-800 text-slate-400 font-mono px-1.5 py-0.5 rounded border border-slate-700">
+                <h1 className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white">NetSentinel</h1>
+                <span className="text-[10px] bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-mono px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">
                   v1.0.0
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">{t('header.subtitle')}</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{t('header.subtitle')}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             {statusBadge()}
 
-            <div className="h-4 w-px bg-slate-800 mx-1" />
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
 
-            {/* Mode Switch (Sola lettura / Modifica) */}
+            {/* 1 - Modifica plancia */}
             <button
               onClick={() => setIsEditMode(!isEditMode)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm ${
                 isEditMode
                   ? 'bg-amber-600 text-white border-amber-500 shadow-amber-500/20'
-                  : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700'
               }`}
-              title={isEditMode ? t('menu.toggle_live_view') : t('menu.toggle_edit_mode')}
+              title={isEditMode ? t('menu.toggle_live_view') : t('header.edit_canvas')}
             >
-              {isEditMode ? <Edit3 className="w-3.5 h-3.5 text-amber-300" /> : <Eye className="w-3.5 h-3.5 text-emerald-400" />}
-              <span>{isEditMode ? t('header.edit_mode') : t('header.live_view')}</span>
+              {isEditMode ? (
+                <Eye className="w-3.5 h-3.5 text-white" />
+              ) : (
+                <Edit3 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+              )}
+              <span>{isEditMode ? t('header.view_live') : t('header.edit_canvas')}</span>
             </button>
 
-            {/* Language Switcher (IT / EN) */}
+            {/* 2 - Light/Dark mode */}
+            <ThemeSwitcher />
+
+            {/* 3 - Lingua (con bandiera della lingua) */}
             <LanguageSwitcher />
 
-            {/* Comprehensive Header Dropdown Menu */}
+            {/* 4 - Tasto per menu contestuale con tutte le voci */}
             <HeaderMenuDropdown
-              isEditMode={isEditMode}
-              onToggleEditMode={() => setIsEditMode(!isEditMode)}
               onOpenInitialSetup={() => setIsInitialSetupOpen(true)}
               onOpenRolesModal={() => setIsRolesModalOpen(true)}
               onOpenWizard={() => setIsWizardOpen(true)}
@@ -373,42 +379,33 @@ export const App: React.FC = () => {
               onOpenKiosk={() => setIsKioskMode(true)}
               onRefresh={() => loadData()}
             />
-
-            {/* Quick Refresh Icon */}
-            <button
-              onClick={() => loadData()}
-              className="p-1.5 bg-slate-800 hover:bg-slate-750 text-slate-400 hover:text-slate-200 border border-slate-700 rounded-lg text-xs transition shadow-sm"
-              title={t('header.refresh')}
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
           </div>
         </header>
       )}
 
       {/* Edit Mode Top Floating Action Bar */}
       {isEditMode && !isKioskMode && (
-        <div className="bg-sky-950/70 border-b border-sky-800/60 px-6 py-2 flex items-center justify-between text-xs z-20 backdrop-blur-md">
-          <div className="flex items-center gap-2 text-sky-200">
-            <Edit3 className="w-4 h-4 text-sky-400" />
+        <div className="bg-sky-50/95 dark:bg-sky-950/70 border-b border-sky-200 dark:border-sky-800/60 px-6 py-2 flex items-center justify-between text-xs z-20 backdrop-blur-md">
+          <div className="flex items-center gap-2 text-sky-900 dark:text-sky-200">
+            <Edit3 className="w-4 h-4 text-sky-600 dark:text-sky-400" />
             <span className="font-semibold">{t('edit_bar.title')}</span>
-            <span className="text-slate-400">
+            <span className="text-slate-600 dark:text-slate-400">
               {t('edit_bar.instructions')}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             {saveSuccessMsg && (
-              <span className="text-emerald-400 flex items-center gap-1 font-semibold animate-pulse">
+              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold animate-pulse">
                 <CheckCircle2 className="w-4 h-4" />
                 {saveSuccessMsg}
               </span>
             )}
             <button
               onClick={() => setIsAddDeviceOpen(true)}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg font-medium transition flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg font-medium transition flex items-center gap-1.5 shadow-sm"
             >
-              <Plus className="w-3.5 h-3.5 text-sky-400" />
+              <Plus className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
               <span>{t('edit_bar.add_device')}</span>
             </button>
             <button
@@ -424,7 +421,7 @@ export const App: React.FC = () => {
                 loadData();
                 setIsEditMode(false);
               }}
-              className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg font-medium transition flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-300 dark:border-transparent rounded-lg font-medium transition flex items-center gap-1.5"
             >
               <Undo2 className="w-3.5 h-3.5" />
               <span>{t('edit_bar.cancel')}</span>

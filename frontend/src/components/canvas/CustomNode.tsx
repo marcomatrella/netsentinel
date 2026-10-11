@@ -77,7 +77,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
 
   return (
     <div
-      className={`relative min-w-[190px] rounded-xl bg-slate-900/90 backdrop-blur-md px-3.5 py-3 border transition-all duration-200 ${
+      className={`relative min-w-[190px] rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-3.5 py-3 border transition-all duration-200 ${
         statusBorderColors[status]
       } ${selected ? 'ring-2 ring-sky-400 shadow-lg' : 'shadow-md'} ${
         isRoot ? 'root-cause-ring border-rose-500 ring-2 ring-rose-500' : ''
@@ -108,60 +108,60 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
           <IconComponent className="w-5 h-5" />
         </div>
         <div className="overflow-hidden flex-1">
-          <div className="font-semibold text-xs text-slate-100 truncate" title={nodeData.name}>
+          <div className="font-semibold text-xs text-slate-800 dark:text-slate-100 truncate" title={nodeData.name}>
             {nodeData.name}
           </div>
-          <div className="text-[11px] text-slate-400 truncate">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
             {nodeData.ip || nodeData.kind}
           </div>
         </div>
       </div>
 
       {/* Roles & Status Footer */}
-      <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+      <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
         <div className="flex items-center gap-1.5">
           <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium border uppercase ${statusBadgeBg[status]}`}>
             {status}
           </span>
           {nodeData.rtt_ms !== undefined && status === 'ok' ? (
-            <span className="text-emerald-400 font-mono text-[9px] flex items-center gap-0.5" title="Latenza ping RTT media">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[9px] flex items-center gap-0.5" title="Latenza ping RTT media">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {nodeData.rtt_ms}ms
             </span>
           ) : status === 'unknown' ? (
-            <span className="text-slate-500 font-mono text-[9px] flex items-center gap-0.5" title="Controllo in corso">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+            <span className="text-slate-400 dark:text-slate-500 font-mono text-[9px] flex items-center gap-0.5" title="Controllo in corso">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
               attesa ping...
             </span>
           ) : status === 'down' ? (
-            <span className="text-rose-400 font-mono text-[9px] flex items-center gap-0.5" title="Nessuna risposta al ping">
+            <span className="text-rose-600 dark:text-rose-400 font-mono text-[9px] flex items-center gap-0.5" title="Nessuna risposta al ping">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
               no ping
             </span>
           ) : nodeData.metricsBadge ? (
-            <span className="text-slate-400 font-mono text-[9px]">
+            <span className="text-slate-600 dark:text-slate-400 font-mono text-[9px]">
               {nodeData.metricsBadge}
             </span>
           ) : null}
         </div>
         <div className="flex gap-1">
           {nodeData.roles?.includes('dns_resolver') && (
-            <span className="bg-cyan-950 text-cyan-300 border border-cyan-800 px-1 rounded text-[8px] font-bold" title="Server DNS / AdGuard Home">
+            <span className="bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 px-1 rounded text-[8px] font-bold" title="Server DNS / AdGuard Home">
               DNS
             </span>
           )}
           {nodeData.roles?.includes('dhcp_server') && (
-            <span className="bg-amber-950 text-amber-300 border border-amber-800 px-1 rounded text-[8px] font-bold" title="Server DHCP">
+            <span className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-1 rounded text-[8px] font-bold" title="Server DHCP">
               DHCP
             </span>
           )}
           {nodeData.roles?.includes('gateway') && (
-            <span className="bg-purple-950 text-purple-300 border border-purple-800 px-1 rounded text-[8px] font-bold" title="Default Gateway WAN">
+            <span className="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 px-1 rounded text-[8px] font-bold" title="Default Gateway WAN">
               GW
             </span>
           )}
           {nodeData.roles?.includes('power_provider') && (
-            <span className="bg-yellow-950 text-yellow-300 border border-yellow-800 px-1 rounded text-[8px] font-bold" title="Alimentazione / UPS">
+            <span className="bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-800 px-1 rounded text-[8px] font-bold" title="Alimentazione / UPS">
               UPS
             </span>
           )}

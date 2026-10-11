@@ -18,6 +18,7 @@ import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
 import { Device, Link, Incident, CanvasLayout } from '../../types';
 import { getLayoutedElements } from '../../utils/elkLayout';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface NetworkCanvasProps {
   devices: Device[];
@@ -45,6 +46,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   onAddDeviceDrop,
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
 
   const nodeTypes = useMemo(() => ({ customNode: CustomNode as any }), []);
   const edgeTypes = useMemo(() => ({ customEdge: CustomEdge as any }), []);
@@ -318,7 +320,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   return (
     <div
       ref={reactFlowWrapper}
-      className="w-full h-full relative bg-slate-950"
+      className="w-full h-full relative bg-slate-100 dark:bg-slate-950 transition-colors duration-150"
       onDragOver={isEditMode ? onDragOver : undefined}
       onDrop={isEditMode ? onDrop : undefined}
     >
@@ -326,7 +328,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       <div className="absolute top-4 right-4 z-10 flex gap-2">
         <button
           onClick={handleAutoLayout}
-          className="px-3 py-1.5 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-medium shadow-lg backdrop-blur-sm transition flex items-center gap-1.5"
+          className="px-3 py-1.5 bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white rounded-lg text-xs font-medium shadow-lg backdrop-blur-sm transition flex items-center gap-1.5"
           title="Organizza automaticamente nodi e livelli"
         >
           <span>✨ Auto-Layout (ELK)</span>
@@ -352,12 +354,17 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         nodesDraggable={true}
         nodesConnectable={isEditMode}
       >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#334155" />
-        <Controls className="!bg-slate-900 !border-slate-800 !text-slate-300 [&>button]:!bg-slate-850 [&>button]:!border-slate-700" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={16}
+          size={1}
+          color={theme === 'dark' ? '#334155' : '#cbd5e1'}
+        />
+        <Controls className="!bg-white dark:!bg-slate-900 !border-slate-200 dark:!border-slate-800 !text-slate-700 dark:!text-slate-300 [&>button]:!bg-slate-50 dark:[&>button]:!bg-slate-850 [&>button]:!border-slate-200 dark:[&>button]:!border-slate-700" />
         <MiniMap
           nodeColor={() => '#38bdf8'}
-          maskColor="rgba(15, 23, 42, 0.7)"
-          className="!bg-slate-900 !border-slate-800 rounded-lg overflow-hidden shadow-xl"
+          maskColor={theme === 'dark' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.7)'}
+          className="!bg-white dark:!bg-slate-900 !border-slate-200 dark:!border-slate-800 rounded-lg overflow-hidden shadow-xl"
         />
       </ReactFlow>
     </div>

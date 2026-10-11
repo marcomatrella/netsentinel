@@ -1,23 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Menu,
-  X,
+  ChevronDown,
   Sparkles,
   Network,
   Wand2,
   Mail,
-  Edit3,
-  Eye,
   Maximize2,
   RefreshCw,
-  ChevronDown,
-  Layers,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 
 interface HeaderMenuDropdownProps {
-  isEditMode: boolean;
-  onToggleEditMode: () => void;
   onOpenInitialSetup: () => void;
   onOpenRolesModal: () => void;
   onOpenWizard: () => void;
@@ -27,8 +21,6 @@ interface HeaderMenuDropdownProps {
 }
 
 export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
-  isEditMode,
-  onToggleEditMode,
   onOpenInitialSetup,
   onOpenRolesModal,
   onOpenWizard,
@@ -78,42 +70,42 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 border shadow-sm ${
+        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm ${
           isOpen
             ? 'bg-sky-600 text-white border-sky-400 shadow-sky-500/20'
-            : 'bg-slate-800 hover:bg-slate-750 text-slate-200 border-slate-700 hover:border-slate-600'
+            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
         }`}
         title={t('header.menu_tools')}
         aria-expanded={isOpen}
       >
-        <Layers className={`w-4 h-4 ${isOpen ? 'text-white' : 'text-sky-400'}`} />
+        <Menu className={`w-4 h-4 ${isOpen ? 'text-white' : 'text-sky-500 dark:text-sky-400'}`} />
         <span>{t('header.menu_tools')}</span>
         <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Flyout Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-84 bg-slate-900/95 backdrop-blur-xl border border-slate-700/90 rounded-2xl shadow-2xl p-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-150 divide-y divide-slate-800/80">
+        <div className="absolute right-0 mt-2 w-84 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700/90 rounded-2xl shadow-2xl p-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-150 divide-y divide-slate-100 dark:divide-slate-800/80">
           
           {/* Section 1: Topologia & Setup */}
           <div className="pb-2 space-y-1">
-            <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {t('menu.section_config')}
             </div>
 
             {/* Configurazione Apparati */}
             <button
               onClick={() => handleAction(onOpenInitialSetup)}
-              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 transition flex items-start gap-3 group"
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group"
             >
-              <div className="w-7 h-7 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-500 dark:text-sky-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                 <Sparkles className="w-3.5 h-3.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-200 group-hover:text-sky-300 transition-colors">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-sky-600 dark:group-hover:text-sky-300 transition-colors">
                   {t('menu.devices_setup')}
                 </div>
-                <div className="text-[11px] text-slate-400 truncate">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   {t('menu.devices_setup_desc')}
                 </div>
               </div>
@@ -122,16 +114,16 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
             {/* Servizi DNS & DHCP */}
             <button
               onClick={() => handleAction(onOpenRolesModal)}
-              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 transition flex items-start gap-3 group"
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group"
             >
-              <div className="w-7 h-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-500 dark:text-cyan-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                 <Network className="w-3.5 h-3.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-200 group-hover:text-cyan-300 transition-colors">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
                   {t('menu.dns_dhcp_roles')}
                 </div>
-                <div className="text-[11px] text-slate-400 truncate">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   {t('menu.dns_dhcp_roles_desc')}
                 </div>
               </div>
@@ -140,16 +132,16 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
             {/* Wizard 8 Passi */}
             <button
               onClick={() => handleAction(onOpenWizard)}
-              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 transition flex items-start gap-3 group"
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group"
             >
-              <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                 <Wand2 className="w-3.5 h-3.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-200 group-hover:text-indigo-300 transition-colors">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
                   {t('menu.wizard_8_steps')}
                 </div>
-                <div className="text-[11px] text-slate-400 truncate">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   {t('menu.wizard_8_steps_desc')}
                 </div>
               </div>
@@ -158,23 +150,23 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
 
           {/* Section 2: Notifiche & Allarmi */}
           <div className="py-2 space-y-1">
-            <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {t('menu.section_notifications')}
             </div>
 
             {/* Notifiche Email */}
             <button
               onClick={() => handleAction(onOpenNotificationModal)}
-              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 transition flex items-start gap-3 group"
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group"
             >
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                 <Mail className="w-3.5 h-3.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-200 group-hover:text-emerald-300 transition-colors">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
                   {t('menu.email_notifications')}
                 </div>
-                <div className="text-[11px] text-slate-400 truncate">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   {t('menu.email_notifications_desc')}
                 </div>
               </div>
@@ -183,51 +175,25 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
 
           {/* Section 3: Visualizzazione & Strumenti */}
           <div className="pt-2 space-y-1">
-            <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {t('menu.section_tools')}
             </div>
-
-            {/* Switch Live / Edit Mode */}
-            <button
-              onClick={() => handleAction(onToggleEditMode)}
-              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 transition flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-2.5 text-slate-200 group-hover:text-white">
-                {isEditMode ? (
-                  <Eye className="w-4 h-4 text-emerald-400" />
-                ) : (
-                  <Edit3 className="w-4 h-4 text-sky-400" />
-                )}
-                <span className="font-medium">
-                  {isEditMode ? t('menu.toggle_live_view') : t('menu.toggle_edit_mode')}
-                </span>
-              </div>
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded font-mono font-semibold ${
-                  isEditMode
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                }`}
-              >
-                {isEditMode ? 'EDIT' : 'LIVE'}
-              </span>
-            </button>
 
             {/* Fullscreen / Kiosk */}
             <button
               onClick={() => handleAction(onOpenKiosk)}
-              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 transition flex items-center gap-2.5 text-slate-200 group"
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-center gap-2.5 text-slate-700 dark:text-slate-200 group"
             >
-              <Maximize2 className="w-4 h-4 text-slate-400 group-hover:text-slate-200" />
+              <Maximize2 className="w-4 h-4 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
               <span className="font-medium">{t('menu.fullscreen')}</span>
             </button>
 
             {/* Force Refresh */}
             <button
               onClick={() => handleAction(onRefresh)}
-              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 transition flex items-center gap-2.5 text-slate-200 group"
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-center gap-2.5 text-slate-700 dark:text-slate-200 group"
             >
-              <RefreshCw className="w-4 h-4 text-slate-400 group-hover:text-slate-200" />
+              <RefreshCw className="w-4 h-4 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
               <span className="font-medium">{t('menu.force_refresh')}</span>
             </button>
           </div>
@@ -237,4 +203,3 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
     </div>
   );
 };
-

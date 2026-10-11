@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-150;
   }
 }
 
@@ -45,4 +45,3 @@
   stroke-dasharray: 6 3;
   animation: dash-flow 1.2s linear infinite;
 }
-

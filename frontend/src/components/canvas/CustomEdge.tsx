@@ -119,43 +119,43 @@ export const CustomEdge = memo(({
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
-          className={`flex items-center gap-1.5 bg-slate-900/90 border px-2 py-0.5 rounded-full text-[10px] text-slate-300 shadow cursor-pointer transition ${
+          className={`flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/90 border px-2 py-0.5 rounded-full text-[10px] text-slate-700 dark:text-slate-300 shadow cursor-pointer transition ${
             edgeData.isFaultPath || status === 'down'
-              ? 'border-rose-500/80 text-rose-300 shadow-rose-950/40'
+              ? 'border-rose-500/80 text-rose-600 dark:text-rose-300 shadow-rose-950/40'
               : status === 'ok'
-              ? 'border-emerald-600/60 hover:border-emerald-400 hover:text-white'
-              : 'border-slate-700/80 text-slate-400'
+              ? 'border-emerald-500/60 dark:border-emerald-600/60 hover:border-emerald-400 hover:text-slate-900 dark:hover:text-white'
+              : 'border-slate-300 dark:border-slate-700/80 text-slate-500 dark:text-slate-400'
           }`}
           title={`Link ${medium.toUpperCase()} — Stato: ${status.toUpperCase()} (${edgeData.statusSource || 'dedotto'})`}
         >
-          {medium === 'poe' && <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />}
-          {medium === 'power' && <Zap className="w-3 h-3 text-yellow-400" />}
-          {medium === 'wifi' && <Wifi className="w-3 h-3 text-cyan-400" />}
-          {(edgeData.isFaultPath || status === 'down') && <ShieldAlert className="w-3 h-3 text-rose-400 animate-bounce" />}
+          {medium === 'poe' && <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />}
+          {medium === 'power' && <Zap className="w-3 h-3 text-yellow-500 dark:text-yellow-400" />}
+          {medium === 'wifi' && <Wifi className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />}
+          {(edgeData.isFaultPath || status === 'down') && <ShieldAlert className="w-3 h-3 text-rose-500 dark:text-rose-400 animate-bounce" />}
           
           <span className="font-mono text-[9px] uppercase font-bold">{medium}</span>
 
           {status === 'ok' && !edgeData.isFaultPath && (
-            <span className="text-[8px] text-emerald-400 font-medium flex items-center gap-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Attivo
             </span>
           )}
           {status === 'unverified' && (
-            <span className="text-[8px] text-slate-400 font-medium flex items-center gap-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+            <span className="text-[8px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
               Attesa check
             </span>
           )}
           {(status === 'down' || edgeData.isFaultPath) && (
-            <span className="text-[8px] text-rose-400 font-medium flex items-center gap-0.5">
+            <span className="text-[8px] text-rose-600 dark:text-rose-400 font-medium flex items-center gap-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
               KO
             </span>
           )}
 
           {(edgeData.fromPort || edgeData.toPort) && (
-            <span className="text-slate-400 text-[8px] border-l border-slate-700 pl-1">
+            <span className="text-slate-500 dark:text-slate-400 text-[8px] border-l border-slate-300 dark:border-slate-700 pl-1">
               {edgeData.fromPort ? `p${edgeData.fromPort}` : ''}
               {edgeData.fromPort && edgeData.toPort ? '→' : ''}
               {edgeData.toPort ? `p${edgeData.toPort}` : ''}

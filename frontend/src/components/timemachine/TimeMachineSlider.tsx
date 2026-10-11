@@ -51,21 +51,21 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
     : new Date(Date.now() - offsetHours * 3600 * 1000).toLocaleString('it-IT');
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-4 text-xs select-none">
+    <div className="bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-4 text-xs select-none">
       <div className="flex items-center gap-2">
-        <History className="w-4 h-4 text-sky-400" />
-        <span className="font-semibold text-slate-200">Macchina del Tempo:</span>
+        <History className="w-4 h-4 text-sky-500 dark:text-sky-400" />
+        <span className="font-semibold text-slate-700 dark:text-slate-200">Macchina del Tempo:</span>
         <span className={`font-mono px-2 py-0.5 rounded text-[11px] ${
           offsetHours === 0
-            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold'
-            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold'
+            : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30'
         }`}>
           {currentDateDisplay}
         </span>
       </div>
 
       <div className="flex items-center gap-2 flex-1 max-w-xs">
-        <span className="text-[10px] text-slate-500">-24h</span>
+        <span className="text-[10px] text-slate-400 dark:text-slate-500">-24h</span>
         <input
           type="range"
           min="0"
@@ -73,9 +73,9 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
           step="0.5"
           value={offsetHours}
           onChange={handleSliderChange}
-          className="w-full accent-sky-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
+          className="w-full accent-sky-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
         />
-        <span className="text-[10px] text-slate-500">Ora</span>
+        <span className="text-[10px] text-slate-400 dark:text-slate-500">Ora</span>
       </div>
 
       <div className="flex items-center gap-2">
