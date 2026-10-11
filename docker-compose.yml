@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/marcomatrella/netsentinel:latest
+    image: netsentinel:latest
     container_name: netsentinel
     restart: unless-stopped
 
