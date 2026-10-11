@@ -24,6 +24,7 @@ import { Check, Device, Dependency, DeviceKind } from '../../types';
 import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck } from '../../api/client';
 import { PRESET_COLORS, getDeviceColorId, setDeviceColorTag, getColorConfig } from '../../constants/colors';
 import { formatTimeOnly } from '../../utils/date';
+import { DeviceColorModal } from './DeviceColorModal';
 
 interface DeviceDetailPanelProps {
   device: Device | null;
@@ -196,23 +197,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const [editNotes, setEditNotes] = useState<string>('');
   const [editColor, setEditColor] = useState<string>('slate');
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [showColorPopover, setShowColorPopover] = useState<boolean>(false);
-  const colorPopoverRef = useRef<HTMLDivElement>(null);
-
-  // Close color popover on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (colorPopoverRef.current && !colorPopoverRef.current.contains(e.target as Node)) {
-        setShowColorPopover(false);
-      }
-    };
-    if (showColorPopover) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showColorPopover]);
+  const [isColorModalOpen, setIsColorModalOpen] = useState<boolean>(false);
 
   // Custom check creation state
   const [showAddCheck, setShowAddCheck] = useState<boolean>(false);
@@ -239,7 +224,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
       setEditColor(getDeviceColorId(device.tags));
       setIsEditing(false);
       setShowAddCheck(false);
-      setShowColorPopover(false);
+      setIsColorModalOpen(false);
     }
   }, [device]);
 
@@ -249,23 +234,17 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const downstreamDeps = dependencies.filter((d) => d.provider_id === device.id);
   const devMap = new Map(allDevices.map((d) => [d.id, d]));
 
-  const handleQuickColorChange = async (colorId: string) => {
+  const handleSaveColor = async (colorId: string) => {
     if (!device) return;
     const newTags = setDeviceColorTag(device.tags || [], colorId);
     setEditColor(colorId);
-    setShowColorPopover(false);
-    try {
-      if (onUpdateDevice) {
-        await onUpdateDevice(device.id, { tags: newTags });
-      } else {
-        await updateDevice(device.id, { tags: newTags });
-      }
-      if (onRefreshTopology) {
-        onRefreshTopology();
-      }
-    } catch (err: any) {
-      console.error('Errore aggiornamento colore:', err);
-      alert('Errore durante l\'aggiornamento del colore: ' + (err.message || 'Verifica il backend.'));
+    if (onUpdateDevice) {
+      await onUpdateDevice(device.id, { tags: newTags });
+    } else {
+      await updateDevice(device.id, { tags: newTags });
+    }
+    if (onRefreshTopology) {
+      onRefreshTopology();
     }
   };
 
@@ -810,11 +789,17 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                     <span className="text-slate-400">Criticità:</span>
                     <span className="text-amber-400 font-semibold">{device.criticality} / 5</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Colore Striscia Canvas:</span>
+                  <div
+                    onClick={() => setIsColorModalOpen(true)}
+                    className="flex justify-between items-center cursor-pointer group hover:bg-slate-800/60 -mx-1 px-1 py-1 rounded-lg transition"
+                    title="Clicca per personalizzare il colore"
+                  >
+                    <span className="text-slate-400 group-hover:text-slate-300">Colore Striscia:</span>
                     <div className="flex items-center gap-1.5">
                       <span className={`w-2.5 h-2.5 rounded-full ${getColorConfig(getDeviceColorId(device.tags)).dotClass}`} />
-                      <span className="text-slate-200 font-medium">{getColorConfig(getDeviceColorId(device.tags)).name}</span>
+                      <span className="text-slate-200 group-hover:text-sky-300 font-medium transition text-xs">
+                        {getColorConfig(getDeviceColorId(device.tags)).name}
+                      </span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
@@ -823,69 +808,26 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
+                    type="button"
                     onClick={() => setIsEditing(true)}
-                    className="flex-1 py-2 bg-slate-800 hover:bg-slate-750 text-sky-300 border border-slate-700 hover:border-sky-500/50 rounded-xl font-medium transition text-xs flex items-center justify-center gap-1.5 shadow"
+                    className="py-2.5 px-3 bg-slate-800 hover:bg-slate-750 text-sky-300 border border-slate-700 hover:border-sky-500/50 rounded-xl font-medium transition text-xs flex items-center justify-center gap-1.5 shadow"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Modifica Apparato o IP</span>
+                    <Edit3 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Modifica Dati</span>
                   </button>
 
-                  <div className="relative" ref={colorPopoverRef}>
-                    <button
-                      type="button"
-                      onClick={() => setShowColorPopover(!showColorPopover)}
-                      className={`px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 border rounded-xl font-medium transition text-xs flex items-center gap-1.5 shadow ${
-                        showColorPopover ? 'border-sky-500 ring-2 ring-sky-500/30' : 'border-slate-700 hover:border-sky-500/50'
-                      }`}
-                      title="Scegli colore distintivo per il canvas"
-                    >
-                      <PaletteIcon className="w-4 h-4 text-sky-400" />
-                      <span className={`w-3 h-3 rounded-full ${getColorConfig(getDeviceColorId(device.tags)).dotClass} ring-1 ring-white/20`} />
-                    </button>
-
-                    {showColorPopover && (
-                      <div className="absolute right-0 bottom-full mb-2 w-64 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 space-y-2 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                            <PaletteIcon className="w-3.5 h-3.5 text-sky-500" />
-                            Colore Striscia Apparato
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setShowColorPopover(false)}
-                            className="text-slate-400 hover:text-slate-200 p-0.5 rounded-full"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                          Seleziona una striscia di colore per riconoscere visivamente l'apparato sul canvas.
-                        </p>
-                        <div className="grid grid-cols-2 gap-1.5 pt-1">
-                          {PRESET_COLORS.map((c) => {
-                            const isSelected = getDeviceColorId(device.tags) === c.id;
-                            return (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => handleQuickColorChange(c.id)}
-                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-[11px] transition text-left ${
-                                  isSelected
-                                    ? 'bg-sky-500/15 border-sky-500 text-sky-700 dark:text-sky-300 font-bold ring-1 ring-sky-500/50'
-                                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-400'
-                                }`}
-                              >
-                                <span className={`w-3 h-3 rounded-full ${c.dotClass} shrink-0 ring-1 ring-black/10`} />
-                                <span className="truncate">{c.name.split(' ')[0]}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsColorModalOpen(true)}
+                    className="py-2.5 px-3 bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-amber-500/50 rounded-xl font-medium transition text-xs flex items-center justify-center gap-2 shadow group"
+                    title="Personalizza il colore della striscia sul canvas"
+                  >
+                    <PaletteIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate">Colore Canvas</span>
+                    <span className={`w-2.5 h-2.5 rounded-full ${getColorConfig(getDeviceColorId(device.tags)).dotClass} ring-1 ring-white/20 shrink-0`} />
+                  </button>
                 </div>
 
                 {device.roles?.length > 0 && (
@@ -1306,6 +1248,14 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* Centered Device Color Modal */}
+      <DeviceColorModal
+        isOpen={isColorModalOpen}
+        device={device}
+        onClose={() => setIsColorModalOpen(false)}
+        onSave={handleSaveColor}
+      />
     </div>
   );
 };
