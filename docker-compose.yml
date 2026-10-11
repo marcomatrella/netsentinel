@@ -27,6 +27,13 @@ services:
     cap_add:
       - NET_RAW
 
+    # File permissions note for Linux / Synology NAS:
+    # NetSentinel runs as an unprivileged user (UID: 1000) for security.
+    # Ensure the host directory is writable by UID 1000:
+    #   mkdir -p ./data && chown -R 1000:1000 ./data  (or chmod -R 777 ./data)
+    # Alternatively, you can run the container as root by uncommenting the line below:
+    # user: "0:0"
+
     volumes:
       - ./data:/data
 

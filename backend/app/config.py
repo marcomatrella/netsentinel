@@ -60,7 +60,27 @@ class Settings(BaseSettings):
     def resolve_paths(self) -> None:
         """Ensure directories exist and resolve absolute database path."""
         path = Path(self.data_dir).resolve()
-        path.mkdir(parents=True, exist_ok=True)
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            uid = os.getuid() if hasattr(os, "getuid") else "unknown"
+            raise PermissionError(
+                f"\n[NetSentinel Error] Impossibile creare la cartella dati '{path}' (permesso negato, UID: {uid}).\n"
+                f"Su Linux/Synology esegui sull'host:\n"
+                f"   chown -R 1000:1000 {self.data_dir} (oppure chmod -R 777 {self.data_dir})\n"
+                f"oppure aggiungi 'user: \"0:0\"' nel tuo docker-compose.yml.\n"
+            ) from e
+
+        if path.exists() and not os.access(path, os.W_OK):
+            uid = os.getuid() if hasattr(os, "getuid") else "unknown"
+            raise PermissionError(
+                f"\n[NetSentinel Error] La directory dati '{path}' non è scrivibile dall'utente corrente (UID: {uid}).\n"
+                f"SQLite richiede permessi di scrittura sulla directory per creare il database e i file WAL/lock.\n"
+                f"Su Linux/Synology esegui sull'host:\n"
+                f"   chown -R 1000:1000 {self.data_dir} (oppure chmod -R 777 {self.data_dir})\n"
+                f"oppure aggiungi 'user: \"0:0\"' nel tuo docker-compose.yml.\n"
+            )
+
         if not self.database_url:
             db_path = path / "netsentinel.db"
             self.database_url = f"sqlite+aiosqlite:///{db_path}"

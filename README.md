@@ -112,6 +112,14 @@ docker compose up -d
 > **Deployment on Remote Linux / NAS (Synology DSM, TrueNAS, unRAID, Proxmox)**:
 > Always use `network_mode: host` and keep `cap_add: [NET_RAW]`. Do not publish `ports:`, as the container binds directly to the host's port `8080`. This provides zero-overhead latency and enables physical L2 broadcast discovery.
 >
+> **Persistent Storage Permissions**:
+> The container runs as an unprivileged user (`UID 1000`) for container security. On Linux/Synology, ensure the host directory has write permissions:
+> ```bash
+> mkdir -p ./data && chown -R 1000:1000 ./data
+> # or chmod -R 777 ./data
+> ```
+> Alternatively, you can run the container as root by adding `user: "0:0"` to `docker-compose.yml` (or `--user 0:0` in `docker run`).
+>
 > **Development on macOS / Windows (Docker Desktop)**:
 > Docker Desktop runs in a virtual machine and cannot attach directly to the host's physical network stack. In that case, comment out `network_mode: host` and publish ports with `ports: ["8080:8080"]` instead.
 
