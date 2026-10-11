@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.db.models import Device, Event, Incident, Observation, to_utc_iso
@@ -48,10 +48,10 @@ async def get_historical_snapshot(
         )
         active_incident = inc_res.scalar_one_or_none()
 
-        # 3. Fetch closest observations around target_time
+        # 3. Fetch closest observations and state events around target_time
         historical_devices = []
         for d in devices:
-            # Check last observation for this device up to target_time
+            # A) Check the last observation for this device up to target_time
             obs_res = await db.execute(
                 select(Observation)
                 .where(Observation.device_id == d.id)
@@ -61,36 +61,70 @@ async def get_historical_snapshot(
             )
             last_obs = obs_res.scalar_one_or_none()
 
-            # Determine exact device status at target_time by checking the last device_state_change event
-            ev_status_res = await db.execute(
+            # B) Check the last state change event (either device_state_change or check_state_change) up to target_time
+            last_ev_res = await db.execute(
                 select(Event)
                 .where(Event.device_id == d.id)
-                .where(Event.event_type == "device_state_change")
+                .where(Event.event_type.in_(["device_state_change", "check_state_change"]))
                 .where(Event.ts <= t_clean)
                 .order_by(desc(Event.ts))
                 .limit(1)
             )
-            last_ev = ev_status_res.scalar_one_or_none()
+            last_ev = last_ev_res.scalar_one_or_none()
 
-            if last_ev and last_ev.details_json:
-                try:
-                    ev_details = json.loads(last_ev.details_json)
-                    status = ev_details.get("new_status") or "ok"
-                except Exception:
-                    status = last_obs.status if last_obs else d.status
-            elif last_obs:
-                # Fallback: if last observation was crit, mark as down
-                status = "down" if last_obs.status in ["crit", "down"] else ("degraded" if last_obs.status == "warn" else "ok")
-            else:
+            status = None
+
+            if last_ev:
+                if last_ev.event_type == "device_state_change" and last_ev.details_json:
+                    try:
+                        ev_details = json.loads(last_ev.details_json)
+                        status = ev_details.get("new_status")
+                    except Exception:
+                        pass
+                elif last_ev.event_type == "check_state_change":
+                    if last_ev.severity == "crit":
+                        status = "down"
+                    elif last_ev.severity == "warn":
+                        status = "degraded"
+                    elif "OK" in (last_ev.title or "").upper() or "RIPRISTINATO" in (last_ev.title or "").upper():
+                        status = "ok"
+
+            if not status and last_obs:
+                if last_obs.status in ["crit", "down"]:
+                    status = "down"
+                elif last_obs.status == "warn":
+                    status = "degraded"
+                else:
+                    status = "ok"
+
+            # C) If target_time is at or around an event (e.g. user selected from Event Log with +/- a few seconds window)
+            if not status or status == "ok":
+                near_ev_res = await db.execute(
+                    select(Event)
+                    .where(Event.device_id == d.id)
+                    .where(Event.ts >= t_clean - timedelta(seconds=120))
+                    .where(Event.ts <= t_clean + timedelta(seconds=120))
+                    .where(Event.severity.in_(["crit", "warn"]))
+                    .order_by(desc(Event.ts))
+                    .limit(1)
+                )
+                near_ev = near_ev_res.scalar_one_or_none()
+                if near_ev:
+                    status = "down" if near_ev.severity == "crit" else "degraded"
+
+            # Fallback to current device status if no historical records exist
+            if not status:
                 status = d.status
 
-            # If an incident was active and this device is root cause:
+            # If an incident was active at target_time and this device was the root cause:
             if active_incident and active_incident.root_cause_device_id == d.id:
                 status = "down"
 
-            # Normalize raw observation status
-            if status == "crit":
+            # Normalize raw status
+            if status in ["crit", "down", "unreachable"]:
                 status = "down"
+            elif status == "warn":
+                status = "degraded"
 
             historical_devices.append({
                 "id": d.id,

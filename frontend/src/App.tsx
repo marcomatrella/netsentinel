@@ -152,12 +152,15 @@ export const App: React.FC = () => {
       const snapshot = await fetchHistoricalSnapshot(targetDate.toISOString());
       if (snapshot && topology) {
         const histMap = new Map(snapshot.devices.map((d: any) => [d.id, d.status]));
-        setTopology({
-          ...topology,
-          devices: topology.devices.map((dev) => ({
-            ...dev,
-            status: (histMap.get(dev.id) as any) || dev.status,
-          })),
+        setTopology((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            devices: prev.devices.map((dev) => ({
+              ...dev,
+              status: (histMap.get(dev.id) as any) || dev.status,
+            })),
+          };
         });
         setActiveIncident(snapshot.active_incident);
 
