@@ -21,6 +21,7 @@ import {
   Plug,
   Rss,
   Gauge,
+  Siren,
 } from 'lucide-react';
 import { DeviceKind, DeviceStatus } from '../../types';
 import { getColorConfig } from '../../constants/colors';
@@ -92,6 +93,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
   const isRoot = Boolean(nodeData.isRootCause);
   const status = nodeData.status || 'unknown';
   const isEdit = Boolean(nodeData.isEditMode);
+  const isOffline = status === 'down' || status === 'unreachable';
 
   const nodeColor = getColorConfig(nodeData.color || 'slate');
   const isColored = Boolean(nodeData.color && nodeData.color !== 'slate');
@@ -102,8 +104,10 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
 
   return (
     <div
-      className={`relative min-w-[190px] rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-3.5 py-3 border transition-all duration-200 ${
-        isColored && status === 'ok'
+      className={`relative min-w-[190px] rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-3.5 py-3 border transition-all duration-300 ${
+        isOffline
+          ? 'node-offline-glow scale-[1.05] z-20 border-rose-500 ring-2 ring-rose-500/70 bg-rose-50/90 dark:bg-rose-950/40'
+          : isColored && status === 'ok'
           ? `${nodeColor.borderClass} dark:${nodeColor.borderClass}`
           : statusBorderColors[status]
       } ${selected ? 'ring-2 ring-sky-400 shadow-lg' : 'shadow-md'} ${
@@ -111,7 +115,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       }`}
     >
       {/* Grouping Color Accent Stripe (Full width top bar) */}
-      {isColored && (
+      {isColored && !isOffline && (
         <div
           className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-xl ${nodeColor.bgClass}`}
         />
@@ -153,24 +157,40 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         }`}
       />
 
+      {/* Offline Alarm Floating Badge */}
+      {isOffline && (
+        <div
+          className="absolute -top-3 -right-2.5 z-30 flex items-center gap-1 bg-gradient-to-r from-rose-600 to-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-rose-600/50 ring-2 ring-rose-300 dark:ring-rose-400 animate-pulse"
+          title={status === 'unreachable' ? 'Apparato Non Raggiungibile' : 'Allarme: Apparato Offline!'}
+        >
+          <Siren className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+          <span>OFFLINE</span>
+        </div>
+      )}
+
       {/* Root Cause Banner */}
       {isRoot && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1 z-10">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1 z-20">
           <AlertTriangle className="w-3 h-3" /> Causa Radice
         </div>
       )}
 
       {/* Vantage Point Icon */}
       {nodeData.isVantagePoint && (
-        <div className="absolute -top-2.5 -right-2 bg-sky-600 text-white p-1 rounded-full shadow" title="Vantage Point (Monitor)">
+        <div
+          className={`absolute -top-2.5 ${isOffline ? '-left-2' : '-right-2'} bg-sky-600 text-white p-1 rounded-full shadow z-20`}
+          title="Vantage Point (Monitor)"
+        >
           <Eye className="w-3 h-3" />
         </div>
       )}
 
       <div className="flex items-center gap-2.5">
         <div
-          className={`p-2 rounded-lg border ${
-            isColored
+          className={`p-2 rounded-lg border transition-all ${
+            isOffline
+              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/50 shadow-md shadow-rose-500/30 animate-pulse'
+              : isColored
               ? `${nodeColor.badgeClass} ${nodeColor.borderClass} ${nodeColor.textClass}`
               : `${statusBadgeBg[status]}`
           }`}
@@ -179,7 +199,13 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         </div>
         <div className="overflow-hidden flex-1">
           <div className="font-semibold text-xs text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5" title={nodeData.name}>
-            {isColored && (
+            {isOffline && (
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+              </span>
+            )}
+            {isColored && !isOffline && (
               <span className={`w-2 h-2 rounded-full shrink-0 ${nodeColor.dotClass}`} title={`Gruppo: ${nodeColor.name}`} />
             )}
             <span className="truncate">{nodeData.name}</span>
@@ -193,7 +219,12 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       {/* Roles & Status Footer */}
       <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
         <div className="flex items-center gap-1.5">
-          <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium border uppercase ${statusBadgeBg[status]}`}>
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium border uppercase flex items-center gap-1 ${
+            isOffline
+              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/50 font-bold'
+              : statusBadgeBg[status]
+          }`}>
+            {isOffline && <AlertTriangle className="w-2.5 h-2.5 text-rose-500 shrink-0" />}
             {status}
           </span>
           {nodeData.rtt_ms !== undefined && status === 'ok' ? (
@@ -208,7 +239,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
             </span>
           ) : status === 'down' ? (
             <span className="text-rose-600 dark:text-rose-400 font-mono text-[9px] flex items-center gap-0.5" title="Nessuna risposta al ping">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
               no ping
             </span>
           ) : nodeData.metricsBadge ? (
