@@ -167,6 +167,18 @@ export async function assignNetworkRoles(payload: {
   return res.json();
 }
 
+export async function fetchNotificationChannels(): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/notifications/channels`);
+  if (!res.ok) throw new Error('Errore durante il recupero dei canali di notifica.');
+  return res.json();
+}
+
+export async function getNotificationChannel(channelId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/notifications/channels/${channelId}`);
+  if (!res.ok) throw new Error('Errore durante il recupero del canale di notifica.');
+  return res.json();
+}
+
 export async function saveNotificationChannel(payload: any): Promise<any> {
   const res = await fetch(`${API_BASE}/notifications/channels`, {
     method: 'POST',
@@ -174,6 +186,14 @@ export async function saveNotificationChannel(payload: any): Promise<any> {
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error('Errore durante il salvataggio del canale di notifica.');
+  return res.json();
+}
+
+export async function deleteNotificationChannel(channelId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/notifications/channels/${channelId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Errore durante l\'eliminazione del canale di notifica.');
   return res.json();
 }
 
@@ -187,3 +207,28 @@ export async function testNotificationChannel(channelId: string): Promise<any> {
   }
   return res.json();
 }
+
+export async function testNotificationConfig(payload: {
+  channel_id?: string;
+  type: string;
+  config: Record<string, any>;
+  quiet_hours?: Record<string, any>;
+}): Promise<any> {
+  const res = await fetch(`${API_BASE}/notifications/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Errore invio email di prova.');
+  }
+  return res.json();
+}
+
+export async function fetchNotificationLogs(limit: number = 20): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/notifications/logs?limit=${limit}`);
+  if (!res.ok) throw new Error('Errore durante il recupero dei log delle notifiche.');
+  return res.json();
+}
+

@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Sparkles,
   Network,
+  Mail,
 } from 'lucide-react';
 
 import { Device, Link, FullTopology, Incident, CanvasLayout } from './types';
@@ -37,6 +38,7 @@ import { WizardModal } from './components/wizard/WizardModal';
 import { InitialSetupModal } from './components/onboarding/InitialSetupModal';
 import { AddDeviceModal } from './components/panels/AddDeviceModal';
 import { NetworkRolesModal } from './components/panels/NetworkRolesModal';
+import { NotificationSettingsModal } from './components/notifications/NotificationSettingsModal';
 import { TimeMachineSlider } from './components/timemachine/TimeMachineSlider';
 
 export const App: React.FC = () => {
@@ -51,6 +53,7 @@ export const App: React.FC = () => {
   const [isInitialSetupOpen, setIsInitialSetupOpen] = useState<boolean>(false);
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState<boolean>(false);
   const [isRolesModalOpen, setIsRolesModalOpen] = useState<boolean>(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState<boolean>(false);
   const [isKioskMode, setIsKioskMode] = useState<boolean>(false);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
   const [isHistoricalMode, setIsHistoricalMode] = useState<boolean>(false);
@@ -382,6 +385,16 @@ export const App: React.FC = () => {
               <span>Wizard 8 Passi</span>
             </button>
 
+            {/* Notification Settings button */}
+            <button
+              onClick={() => setIsNotificationModalOpen(true)}
+              className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
+              title="Configura il server SMTP e i destinatari delle notifiche email con test in tempo reale"
+            >
+              <Mail className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Notifiche Email</span>
+            </button>
+
             {/* Kiosk Mode Toggle */}
             <button
               onClick={() => setIsKioskMode(true)}
@@ -631,6 +644,14 @@ export const App: React.FC = () => {
             loadData();
             setIsWizardOpen(false);
           }}
+        />
+      )}
+
+      {/* Dedicated Notification Settings Modal */}
+      {isNotificationModalOpen && (
+        <NotificationSettingsModal
+          isOpen={isNotificationModalOpen}
+          onClose={() => setIsNotificationModalOpen(false)}
         />
       )}
     </div>
