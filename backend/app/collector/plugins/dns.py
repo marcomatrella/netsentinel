@@ -60,7 +60,7 @@ class DnsCollector(BaseCollector):
         timeout_seconds: float = 5.0,
     ) -> CollectorResult:
         server = params.get("server") or target_address or "1.1.1.1"
-        domain = params.get("domain", "cloudflare.com")
+        domain = params.get("domain") or params.get("query") or "cloudflare.com"
         timeout_sec = min(float(params.get("timeout_seconds", 3.0)), timeout_seconds)
         ref_server = params.get("reference_server", "1.1.1.1")
 
@@ -78,6 +78,22 @@ class DnsCollector(BaseCollector):
                             "domain": domain,
                             "error": f"Il resolver DNS {server} non risponde (timeout {timeout_sec}s).",
                             "diagnosis": "resolver_down",
+                        },
+                    )
+                ]
+            )
+
+        if target_status == "error":
+            return CollectorResult(
+                observations=[
+                    CollectorObservation(
+                        status="crit",
+                        value=None,
+                        details={
+                            "server": server,
+                            "domain": domain,
+                            "error": f"Errore di comunicazione o socket verso il server DNS {server}.",
+                            "diagnosis": "resolver_error",
                         },
                     )
                 ]
@@ -139,39 +155,26 @@ class DnsCollector(BaseCollector):
         )
 
     async def _send_dns_query(self, server: str, domain: str, timeout_sec: float) -> tuple[str, float | None, int]:
-        """Send UDP DNS query and return (status, rtt_ms, rcode)."""
+        """Send UDP DNS query asynchronously via worker thread for full compatibility with uvloop and default event loops."""
+        return await asyncio.to_thread(self._sync_dns_query, server, domain, timeout_sec)
+
+    def _sync_dns_query(self, server: str, domain: str, timeout_sec: float) -> tuple[str, float | None, int]:
+        """Synchronous UDP query execution using standard blocking sockets with timeout."""
         query_id = 0x5678
         pkt = build_dns_query(domain, query_id)
-        loop = asyncio.get_running_loop()
-
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setblocking(False)
+        sock.settimeout(timeout_sec)
         t0 = time.time()
         try:
-            await loop.sock_sendto(sock, pkt, (server, 53))
-            fut = loop.create_future()
-
-            def on_readable():
-                try:
-                    data, _ = sock.recvfrom(1024)
-                    if not fut.done():
-                        fut.set_result(data)
-                except Exception as ex:
-                    if not fut.done():
-                        fut.set_exception(ex)
-
-            loop.add_reader(sock.fileno(), on_readable)
-            data = await asyncio.wait_for(fut, timeout=timeout_sec)
+            sock.sendto(pkt, (server, 53))
+            data, _ = sock.recvfrom(1024)
             rtt_ms = round((time.time() - t0) * 1000.0, 2)
             rcode, _ = parse_dns_response(data, query_id)
             return ("ok", rtt_ms, rcode)
-        except TimeoutError:
+        except (TimeoutError, socket.timeout):
             return ("timeout", None, -1)
         except Exception:
             return ("error", None, -1)
         finally:
-            try:
-                loop.remove_reader(sock.fileno())
-            except Exception:
-                pass
             sock.close()
+
