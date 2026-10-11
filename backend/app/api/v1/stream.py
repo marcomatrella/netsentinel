@@ -5,7 +5,7 @@ import json
 import logging
 from collections.abc import AsyncGenerator
 
-from app.db.models import Device, Incident, Link, Observation, utcnow
+from app.db.models import Device, Incident, Link, Observation, to_utc_iso, utcnow
 from app.db.session import AsyncSessionLocal
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -43,7 +43,7 @@ async def event_generator() -> AsyncGenerator[str, None]:
                         {
                             "id": r[0],
                             "status": r[1],
-                            "status_since": r[2].isoformat() if r[2] else None,
+                            "status_since": to_utc_iso(r[2]),
                             "rtt_ms": rtt_map.get(r[0]),
                         }
                         for r in db_devs
@@ -83,11 +83,11 @@ async def event_generator() -> AsyncGenerator[str, None]:
                             "root_cause_category": active_inc.root_cause_category,
                             "confidence": active_inc.confidence,
                             "summary": active_inc.summary,
-                            "started_at": active_inc.started_at.isoformat() if active_inc.started_at else None,
+                            "started_at": to_utc_iso(active_inc.started_at),
                         }
 
                     payload = {
-                        "ts": utcnow().isoformat(),
+                        "ts": to_utc_iso(utcnow()),
                         "devices": devs,
                         "links": links,
                         "active_incident": inc_data,

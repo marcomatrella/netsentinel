@@ -20,6 +20,15 @@ def utcnow() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
+def to_utc_iso(dt: datetime | None) -> str | None:
+    """Serialize datetime to ISO-8601 string with UTC 'Z' timezone suffix."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.isoformat().replace("+00:00", "Z")
+
+
 class Device(Base):
     """Monitored network device / appliance / service."""
 

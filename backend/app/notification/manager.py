@@ -7,7 +7,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from app.config import settings
-from app.db.models import Device, Incident, NotificationChannel, NotificationLog, utcnow
+from app.db.models import Device, Incident, NotificationChannel, NotificationLog, to_utc_iso, utcnow
 from app.db.session import AsyncSessionLocal
 from app.notification.channels.home_assistant import send_home_assistant_notification
 from app.notification.channels.ntfy import send_ntfy
@@ -113,8 +113,8 @@ class NotificationManager:
                 "id": incident.id,
                 "summary": incident.summary,
                 "confidence": incident.confidence,
-                "started_at": incident.started_at.isoformat() if incident.started_at else "",
-                "resolved_at": incident.resolved_at.isoformat() if incident.resolved_at else "",
+                "started_at": to_utc_iso(incident.started_at) or "",
+                "resolved_at": to_utc_iso(incident.resolved_at) or "",
                 "root_cause_device_id": incident.root_cause_device_id,
                 "root_cause_category": incident.root_cause_category,
                 "recommendations": json.loads(incident.recommendations_json) if incident.recommendations_json else [],

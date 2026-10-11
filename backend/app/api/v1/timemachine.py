@@ -5,7 +5,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from app.db.models import Device, Event, Incident, Observation
+from app.db.models import Device, Event, Incident, Observation, to_utc_iso
 from app.db.session import get_db
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import desc, select
@@ -33,7 +33,7 @@ async def get_historical_snapshot(
         devices = dev_res.scalars().all()
         if not devices:
             return {
-                "target_time": t_clean.isoformat(),
+                "target_time": to_utc_iso(t_clean),
                 "active_incident": None,
                 "devices": [],
             }
@@ -72,7 +72,7 @@ async def get_historical_snapshot(
                 "kind": d.kind,
                 "status": status,
                 "last_metric": last_obs.value if last_obs else None,
-                "observation_ts": last_obs.ts.isoformat() if last_obs else None,
+                "observation_ts": to_utc_iso(last_obs.ts) if last_obs else None,
             })
 
         inc_data = None
@@ -98,8 +98,8 @@ async def get_historical_snapshot(
                 "evidence": evidence_list,
                 "recommendations": recommendations_list,
                 "timeline": timeline_list,
-                "started_at": active_incident.started_at.isoformat(),
-                "resolved_at": active_incident.resolved_at.isoformat() if active_incident.resolved_at else None,
+                "started_at": to_utc_iso(active_incident.started_at),
+                "resolved_at": to_utc_iso(active_incident.resolved_at),
             }
 
         # 4. Fetch discrete events around target_time
@@ -122,7 +122,7 @@ async def get_historical_snapshot(
                     pass
             events_around.append({
                 "id": ev.id,
-                "ts": ev.ts.isoformat(),
+                "ts": to_utc_iso(ev.ts),
                 "device_id": ev.device_id,
                 "device_name": dev.name if dev else None,
                 "device_ip": dev_ip,
@@ -135,7 +135,7 @@ async def get_historical_snapshot(
             })
 
         return {
-            "target_time": t_clean.isoformat(),
+            "target_time": to_utc_iso(t_clean),
             "active_incident": inc_data,
             "devices": historical_devices,
             "events_around": events_around,
@@ -143,7 +143,7 @@ async def get_historical_snapshot(
     except Exception as e:
         logger.warning("Errore durante il recupero dello snapshot storico: %s", e)
         return {
-            "target_time": target_time.isoformat() if hasattr(target_time, "isoformat") else str(target_time),
+            "target_time": to_utc_iso(target_time) if hasattr(target_time, "isoformat") else str(target_time),
             "active_incident": None,
             "devices": [],
         }

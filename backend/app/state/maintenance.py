@@ -3,6 +3,8 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from app.db.models import to_utc_iso
+
 
 class MaintenanceTracker:
     """Tracks scheduled or active maintenance windows."""
@@ -44,7 +46,7 @@ class MaintenanceTracker:
         return {
             "is_active": self.is_active(),
             "enabled": self.enabled,
-            "until": self.until.isoformat() if self.until else None,
+            "until": to_utc_iso(self.until),
             "notes": self.notes,
         }
 

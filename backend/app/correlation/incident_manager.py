@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from app.db.models import Event, Incident, utcnow
+from app.db.models import Event, Incident, to_utc_iso, utcnow
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,7 +70,7 @@ class IncidentManager:
             inc_id = f"inc-{int(now.timestamp())}-{root_cause_device_id or 'net'}"
             initial_timeline = [
                 {
-                    "ts": now.isoformat(),
+                    "ts": to_utc_iso(now),
                     "event_type": "incident_opened",
                     "message": f"Incidente aperto: {summary}",
                     "device_id": root_cause_device_id,
@@ -114,7 +114,7 @@ class IncidentManager:
             # If root cause changed, log shift
             if incident.root_cause_device_id != root_cause_device_id:
                 timeline.append({
-                    "ts": now.isoformat(),
+                    "ts": to_utc_iso(now),
                     "event_type": "root_cause_shift",
                     "message": f"Causa radice aggiornata da '{incident.root_cause_device_id}' a '{root_cause_device_id}'.",
                     "device_id": root_cause_device_id,
@@ -172,7 +172,7 @@ class IncidentManager:
         timeline = json.loads(incident.timeline_json) if incident.timeline_json else []
         duration_s = int((now - incident.started_at).total_seconds())
         timeline.append({
-            "ts": now.isoformat(),
+            "ts": to_utc_iso(now),
             "event_type": "incident_resolved",
             "message": f"Tutti gli apparati e servizi sono rientrati. Durata totale incidente: {duration_s} secondi.",
         })

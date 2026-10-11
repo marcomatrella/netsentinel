@@ -6,7 +6,7 @@ from typing import Any
 
 from app.correlation.incident_manager import incident_manager
 from app.correlation.rules.rule_evaluator import RuleEvaluator
-from app.db.models import Dependency, Device, Incident, Link, utcnow
+from app.db.models import Dependency, Device, Incident, Link, to_utc_iso, utcnow
 from app.topology.graph import TopologyGraph
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -124,7 +124,7 @@ class CorrelationEngine:
                 {
                     "device_id": candidate.id,
                     "status": candidate.status,
-                    "ts": candidate.status_since.isoformat(),
+                    "ts": to_utc_iso(candidate.status_since),
                     "message": f"Apparato '{candidate.name}' in stato {candidate.status.upper()}.",
                     "positive": True,
                 }
@@ -137,7 +137,7 @@ class CorrelationEngine:
                     evidence.append({
                         "device_id": p_id,
                         "status": "ok",
-                        "ts": dev_map[p_id].status_since.isoformat(),
+                        "ts": to_utc_iso(dev_map[p_id].status_since),
                         "message": f"Il nodo a monte '{dev_map[p_id].name}' è regolarmente attivo (esclude guasto a monte).",
                         "positive": True,
                     })

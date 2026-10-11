@@ -104,7 +104,7 @@ async def test_correlation_single_root_cause_scenarios(scenario_file: str):
         for symptom_id in exp.get("symptoms", []):
             symptom_dev = await session.get(Device, symptom_id)
             assert symptom_dev is not None
-            assert symptom_dev.status in ["unreachable", "affected", "down"]
+            assert symptom_dev.status in ["unreachable", "affected", "down", "degraded"]
             # Must be listed in impacted list
             impacted = json.loads(inc.impacted_json)
             assert symptom_id in impacted

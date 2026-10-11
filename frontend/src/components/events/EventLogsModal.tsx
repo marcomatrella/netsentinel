@@ -27,6 +27,7 @@ import {
 import { useTranslation } from '../../i18n/I18nContext';
 import { EventItem, Device, DeviceKind } from '../../types';
 import { fetchEvents } from '../../api/client';
+import { parseUtcDate } from '../../utils/date';
 
 interface EventLogsModalProps {
   isOpen: boolean;
@@ -381,7 +382,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
   // Format relative time in current language/locale
   const formatTime = (ts: string) => {
     try {
-      const d = new Date(ts);
+      const d = parseUtcDate(ts);
       const now = new Date();
       const diffMs = now.getTime() - d.getTime();
       const diffSec = Math.floor(diffMs / 1000);
@@ -437,7 +438,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                 {currentHistoricalTime && (
                   <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
                     <History className="w-3 h-3" />
-                    {t('events.historical_active')}: {currentHistoricalTime.toLocaleTimeString(activeLocale)}
+                    {t('events.historical_active')}: {parseUtcDate(currentHistoricalTime).toLocaleTimeString(activeLocale)}
                   </span>
                 )}
               </div>

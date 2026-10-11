@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { History, RotateCcw, ScrollText, AlertTriangle } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
+import { formatDateTime } from '../../utils/date';
 
 interface TimeMachineSliderProps {
   onTimeChange?: (timestamp: Date) => void;
@@ -74,8 +75,8 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
     offsetHours === 0 && isLive
       ? t('timemachine.live_mode')
       : externalTargetTime
-      ? externalTargetTime.toLocaleString(activeLocale)
-      : new Date(Date.now() - offsetHours * 3600 * 1000).toLocaleString(activeLocale);
+      ? formatDateTime(externalTargetTime, activeLocale)
+      : formatDateTime(new Date(Date.now() - offsetHours * 3600 * 1000), activeLocale);
 
   return (
     <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-4 text-xs select-none max-w-4xl transition-all">

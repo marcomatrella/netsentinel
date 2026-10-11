@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 
-from app.db.models import Incident, utcnow
+from app.db.models import Incident, to_utc_iso, utcnow
 from app.db.session import get_db
 from app.schemas.entities import (
     IncidentAcknowledge,
@@ -122,7 +122,7 @@ async def acknowledge_incident(
 
     timeline = json.loads(inc.timeline_json) if inc.timeline_json else []
     timeline.append({
-        "ts": utcnow().isoformat(),
+        "ts": to_utc_iso(utcnow()),
         "event_type": "incident_acknowledged",
         "message": f"Incidente preso in carico da '{payload.acknowledged_by}'.",
     })

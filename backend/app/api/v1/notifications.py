@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 from app.config import settings
-from app.db.models import NotificationChannel, NotificationLog, utcnow
+from app.db.models import NotificationChannel, NotificationLog, to_utc_iso, utcnow
 from app.db.session import get_db
 from app.notification.channels.smtp import send_smtp
 from app.notification.formatters import render_test_notification
@@ -248,7 +248,7 @@ async def list_notification_logs(limit: int = 50, db: AsyncSession = Depends(get
     return [
         {
             "id": log.id,
-            "ts": log.ts.isoformat(),
+            "ts": to_utc_iso(log.ts),
             "incident_id": log.incident_id,
             "channel_id": log.channel_id,
             "status": log.status,

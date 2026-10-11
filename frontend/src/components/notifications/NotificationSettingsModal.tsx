@@ -27,6 +27,7 @@ import {
   fetchNotificationLogs,
 } from '../../api/client';
 import { useTranslation } from '../../i18n/I18nContext';
+import { formatDateTime } from '../../utils/date';
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
@@ -795,7 +796,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                         return (
                           <tr key={log.id} className="hover:bg-slate-800/40">
                             <td className="p-3 font-mono text-[11px] text-slate-400 whitespace-nowrap">
-                              {new Date(log.ts).toLocaleString('it-IT')}
+                              {formatDateTime(log.ts, 'it-IT')}
                             </td>
                             <td className="p-3">
                               <span

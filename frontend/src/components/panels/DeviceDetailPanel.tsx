@@ -23,6 +23,7 @@ import {
 import { Check, Device, Dependency, DeviceKind } from '../../types';
 import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck } from '../../api/client';
 import { PRESET_COLORS, getDeviceColorId, setDeviceColorTag, getColorConfig } from '../../constants/colors';
+import { formatTimeOnly } from '../../utils/date';
 
 interface DeviceDetailPanelProps {
   device: Device | null;
@@ -814,7 +815,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400">Stato da:</span>
-                    <span className="text-slate-200">{new Date(device.status_since).toLocaleTimeString()}</span>
+                    <span className="text-slate-200">{formatTimeOnly(device.status_since)}</span>
                   </div>
                 </div>
 
@@ -1138,7 +1139,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                     <div key={ev.id} className="p-2.5 bg-slate-800/50 rounded border border-slate-700/50 space-y-1">
                       <div className="flex justify-between items-center text-[10px]">
                         <span className="font-semibold text-slate-300">{ev.event_type}</span>
-                        <span className="text-slate-500">{new Date(ev.ts).toLocaleTimeString()}</span>
+                        <span className="text-slate-500">{formatTimeOnly(ev.ts)}</span>
                       </div>
                       <div className="text-slate-200 font-medium">{ev.title}</div>
                       <div className="text-[11px] text-slate-400">{ev.message}</div>

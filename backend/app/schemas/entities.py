@@ -1,21 +1,46 @@
 """Pydantic v2 schemas for NetSentinel entities."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
+
+class NetSentinelBaseModel(BaseModel):
+    """Base model ensuring all naive UTC datetimes are serialized with the 'Z' timezone specifier."""
+
+    @field_serializer(
+        "status_since",
+        "last_seen",
+        "updated_at",
+        "last_run_at",
+        "next_run_at",
+        "ts",
+        "started_at",
+        "resolved_at",
+        "acknowledged_at",
+        mode="plain",
+        check_fields=False,
+    )
+    def serialize_utc_datetime(self, dt: datetime | None) -> str | None:
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt.isoformat().replace("+00:00", "Z")
+
 
 # ---------------------------------------------------------------------------
 # Device Schemas
 # ---------------------------------------------------------------------------
 
-class DeviceAddresses(BaseModel):
+class DeviceAddresses(NetSentinelBaseModel):
     ip: str | None = None
     mac: str | None = None
     hostname: str | None = None
 
 
-class InterfaceBase(BaseModel):
+class InterfaceBase(NetSentinelBaseModel):
     id: str
     name: str
     type: str = "ethernet"
@@ -24,7 +49,7 @@ class InterfaceBase(BaseModel):
     notes: str | None = None
 
 
-class DeviceBase(BaseModel):
+class DeviceBase(NetSentinelBaseModel):
     id: str
     name: str
     kind: str
@@ -40,7 +65,7 @@ class DeviceCreate(DeviceBase):
     pass
 
 
-class DeviceUpdate(BaseModel):
+class DeviceUpdate(NetSentinelBaseModel):
     name: str | None = None
     kind: str | None = None
     location: str | None = None
@@ -63,7 +88,7 @@ class DeviceRead(DeviceBase):
 # Link Schemas
 # ---------------------------------------------------------------------------
 
-class LinkBase(BaseModel):
+class LinkBase(NetSentinelBaseModel):
     id: str
     from_device_id: str
     from_port: str | None = None
@@ -89,7 +114,7 @@ class LinkRead(LinkBase):
 # Dependency Schemas
 # ---------------------------------------------------------------------------
 
-class DependencyBase(BaseModel):
+class DependencyBase(NetSentinelBaseModel):
     id: str
     dependent_id: str
     provider_id: str
@@ -111,16 +136,16 @@ class DependencyRead(DependencyBase):
 # Check Schemas
 # ---------------------------------------------------------------------------
 
-class CheckFailurePolicy(BaseModel):
+class CheckFailurePolicy(NetSentinelBaseModel):
     consecutive_failures: int = 3
     window_seconds: int = 60
 
 
-class CheckRecoveryPolicy(BaseModel):
+class CheckRecoveryPolicy(NetSentinelBaseModel):
     consecutive_successes: int = 2
 
 
-class CheckBase(BaseModel):
+class CheckBase(NetSentinelBaseModel):
     id: str
     device_id: str
     type: str
@@ -138,7 +163,7 @@ class CheckCreate(CheckBase):
     pass
 
 
-class CheckUpdate(BaseModel):
+class CheckUpdate(NetSentinelBaseModel):
     name: str | None = None
     params: dict[str, Any] | None = None
     interval_seconds: int | None = None
@@ -160,7 +185,7 @@ class CheckRead(CheckBase):
 # Observation & Event Schemas
 # ---------------------------------------------------------------------------
 
-class ObservationRead(BaseModel):
+class ObservationRead(NetSentinelBaseModel):
     id: int
     ts: datetime
     device_id: str
@@ -170,7 +195,7 @@ class ObservationRead(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
-class EventRead(BaseModel):
+class EventRead(NetSentinelBaseModel):
     id: int
     ts: datetime
     device_id: str | None = None
@@ -189,7 +214,7 @@ class EventRead(BaseModel):
 # Incident Schemas
 # ---------------------------------------------------------------------------
 
-class IncidentEvidence(BaseModel):
+class IncidentEvidence(NetSentinelBaseModel):
     check_id: str | None = None
     device_id: str | None = None
     status: str
@@ -198,14 +223,14 @@ class IncidentEvidence(BaseModel):
     positive: bool = True  # True = evidence supporting diagnosis, False = negative evidence
 
 
-class IncidentTimelineItem(BaseModel):
+class IncidentTimelineItem(NetSentinelBaseModel):
     ts: datetime
     event_type: str
     message: str
     device_id: str | None = None
 
 
-class IncidentHypothesis(BaseModel):
+class IncidentHypothesis(NetSentinelBaseModel):
     category: str
     description: str
     confidence: float
@@ -213,7 +238,7 @@ class IncidentHypothesis(BaseModel):
     suggested_checks: list[str] = Field(default_factory=list)
 
 
-class IncidentRead(BaseModel):
+class IncidentRead(NetSentinelBaseModel):
     id: str
     status: str
     started_at: datetime
@@ -231,7 +256,7 @@ class IncidentRead(BaseModel):
     acknowledged_at: datetime | None = None
 
 
-class IncidentAcknowledge(BaseModel):
+class IncidentAcknowledge(NetSentinelBaseModel):
     acknowledged_by: str = "user"
 
 
@@ -239,13 +264,13 @@ class IncidentAcknowledge(BaseModel):
 # Canvas Layout Schemas
 # ---------------------------------------------------------------------------
 
-class CanvasLayoutSave(BaseModel):
+class CanvasLayoutSave(NetSentinelBaseModel):
     nodes: list[dict[str, Any]] = Field(default_factory=list)
     edges: list[dict[str, Any]] = Field(default_factory=list)
     groups: list[dict[str, Any]] = Field(default_factory=list)
 
 
-class CanvasLayoutRead(BaseModel):
+class CanvasLayoutRead(NetSentinelBaseModel):
     id: str
     nodes: list[dict[str, Any]]
     edges: list[dict[str, Any]]
