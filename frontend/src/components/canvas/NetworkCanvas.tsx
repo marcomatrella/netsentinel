@@ -324,16 +324,18 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       onDragOver={isEditMode ? onDragOver : undefined}
       onDrop={isEditMode ? onDrop : undefined}
     >
-      {/* Auto-layout overlay button */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2">
-        <button
-          onClick={handleAutoLayout}
-          className="px-3 py-1.5 bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white rounded-lg text-xs font-medium shadow-lg backdrop-blur-sm transition flex items-center gap-1.5"
-          title="Organizza automaticamente nodi e livelli"
-        >
-          <span>✨ Auto-Layout (ELK)</span>
-        </button>
-      </div>
+      {/* Auto-layout overlay button (only visible in Edit Mode) */}
+      {isEditMode && (
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <button
+            onClick={handleAutoLayout}
+            className="px-3 py-1.5 bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white rounded-lg text-xs font-medium shadow-lg backdrop-blur-sm transition flex items-center gap-1.5"
+            title="Organizza automaticamente nodi e livelli"
+          >
+            <span>✨ Auto-Layout (ELK)</span>
+          </button>
+        </div>
+      )}
 
       <ReactFlow
         nodes={nodes}
@@ -351,7 +353,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.2}
         maxZoom={2.5}
-        nodesDraggable={true}
+        nodesDraggable={isEditMode}
         nodesConnectable={isEditMode}
       >
         <Background
