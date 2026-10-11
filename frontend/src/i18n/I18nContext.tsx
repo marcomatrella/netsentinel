@@ -1,13 +1,32 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import itTranslations from './locales/it.json';
 import enTranslations from './locales/en.json';
+import frTranslations from './locales/fr.json';
+import deTranslations from './locales/de.json';
+import esTranslations from './locales/es.json';
 
-export type SupportedLanguage = 'it' | 'en';
+export type SupportedLanguage = 'it' | 'en' | 'fr' | 'de' | 'es';
+
+export interface LanguageMeta {
+  code: SupportedLanguage;
+  name: string;
+  nativeName: string;
+  flag: string;
+}
+
+export const SUPPORTED_LANGUAGES: LanguageMeta[] = [
+  { code: 'it', name: 'Italiano', nativeName: 'Italiano', flag: '🇮🇹' },
+  { code: 'en', name: 'Inglese', nativeName: 'English', flag: '🇬🇧' },
+  { code: 'fr', name: 'Francese', nativeName: 'Français', flag: '🇫🇷' },
+  { code: 'de', name: 'Tedesco', nativeName: 'Deutsch', flag: '🇩🇪' },
+  { code: 'es', name: 'Spagnolo', nativeName: 'Español', flag: '🇪🇸' },
+];
 
 interface I18nContextType {
   language: SupportedLanguage;
   setLanguage: (lang: SupportedLanguage) => void;
-  toggleLanguage: () => void;
+  availableLanguages: LanguageMeta[];
+  currentLanguageMeta: LanguageMeta;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -16,19 +35,23 @@ const STORAGE_KEY = 'netsentinel_lang';
 const translationsMap: Record<SupportedLanguage, any> = {
   it: itTranslations,
   en: enTranslations,
+  fr: frTranslations,
+  de: deTranslations,
+  es: esTranslations,
 };
 
 function resolveInitialLanguage(): SupportedLanguage {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'it' || saved === 'en') {
+    const saved = localStorage.getItem(STORAGE_KEY) as SupportedLanguage | null;
+    if (saved && ['it', 'en', 'fr', 'de', 'es'].includes(saved)) {
       return saved;
     }
     // Auto-detect from browser locale
     const browserLang = (navigator.language || (navigator.languages && navigator.languages[0]) || '').toLowerCase();
-    if (browserLang.startsWith('it')) {
-      return 'it';
-    }
+    if (browserLang.startsWith('it')) return 'it';
+    if (browserLang.startsWith('fr')) return 'fr';
+    if (browserLang.startsWith('de')) return 'de';
+    if (browserLang.startsWith('es')) return 'es';
   } catch (e) {
     console.warn('Could not read language from localStorage/navigator:', e);
   }
@@ -50,9 +73,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const toggleLanguage = useCallback(() => {
-    setLanguage(language === 'it' ? 'en' : 'it');
-  }, [language, setLanguage]);
+  const currentLanguageMeta = SUPPORTED_LANGUAGES.find((l) => l.code === language) || SUPPORTED_LANGUAGES[0];
 
   const t = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
@@ -88,7 +109,15 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   return (
-    <I18nContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
+    <I18nContext.Provider
+      value={{
+        language,
+        setLanguage,
+        availableLanguages: SUPPORTED_LANGUAGES,
+        currentLanguageMeta,
+        t,
+      }}
+    >
       {children}
     </I18nContext.Provider>
   );
