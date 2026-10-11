@@ -39,9 +39,13 @@ import { InitialSetupModal } from './components/onboarding/InitialSetupModal';
 import { AddDeviceModal } from './components/panels/AddDeviceModal';
 import { NetworkRolesModal } from './components/panels/NetworkRolesModal';
 import { NotificationSettingsModal } from './components/notifications/NotificationSettingsModal';
+import { HeaderMenuDropdown } from './components/navigation/HeaderMenuDropdown';
+import { LanguageSwitcher } from './components/navigation/LanguageSwitcher';
 import { TimeMachineSlider } from './components/timemachine/TimeMachineSlider';
+import { useTranslation } from './i18n/I18nContext';
 
 export const App: React.FC = () => {
+  const { t } = useTranslation();
   const [topology, setTopology] = useState<FullTopology | null>(null);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [activeIncident, setActiveIncident] = useState<Incident | null>(null);
@@ -332,83 +336,49 @@ export const App: React.FC = () => {
                   v1.0.0
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">Monitoraggio Intelligente con Correlazione Topologica</p>
+              <p className="text-[11px] text-slate-400 font-medium">{t('header.subtitle')}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {statusBadge()}
 
-            <div className="h-4 w-px bg-slate-800" />
+            <div className="h-4 w-px bg-slate-800 mx-1" />
 
             {/* Mode Switch (Sola lettura / Modifica) */}
             <button
               onClick={() => setIsEditMode(!isEditMode)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm ${
                 isEditMode
-                  ? 'bg-sky-600 text-white border-sky-500 shadow-md shadow-sky-500/20'
-                  : 'bg-slate-850 hover:bg-slate-800 text-slate-300 border-slate-700'
+                  ? 'bg-amber-600 text-white border-amber-500 shadow-amber-500/20'
+                  : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700'
               }`}
-              title="Attiva la modalità disegno/modifica sulla tela"
+              title={isEditMode ? t('menu.toggle_live_view') : t('menu.toggle_edit_mode')}
             >
-              {isEditMode ? <Edit3 className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              <span>{isEditMode ? 'Modalità Modifica' : 'Vista Operativa LIVE'}</span>
+              {isEditMode ? <Edit3 className="w-3.5 h-3.5 text-amber-300" /> : <Eye className="w-3.5 h-3.5 text-emerald-400" />}
+              <span>{isEditMode ? t('header.edit_mode') : t('header.live_view')}</span>
             </button>
 
-            {/* Initial Setup / Reset Button */}
-            <button
-              onClick={() => setIsInitialSetupOpen(true)}
-              className="px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 hover:border-sky-500/50 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
-              title="Apri configurazione guidata apparati o carica modelli"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-              <span>Configurazione Apparati</span>
-            </button>
+            {/* Language Switcher (IT / EN) */}
+            <LanguageSwitcher />
 
-            {/* Network Roles (DNS & DHCP) */}
-            <button
-              onClick={() => setIsRolesModalOpen(true)}
-              className="px-3 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 hover:border-cyan-500/50 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
-              title="Configura chi eroga i servizi DNS (AdGuard Home/Pi-hole) e DHCP"
-            >
-              <Network className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Servizi DNS & DHCP</span>
-            </button>
+            {/* Comprehensive Header Dropdown Menu */}
+            <HeaderMenuDropdown
+              isEditMode={isEditMode}
+              onToggleEditMode={() => setIsEditMode(!isEditMode)}
+              onOpenInitialSetup={() => setIsInitialSetupOpen(true)}
+              onOpenRolesModal={() => setIsRolesModalOpen(true)}
+              onOpenWizard={() => setIsWizardOpen(true)}
+              onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
+              onOpenKiosk={() => setIsKioskMode(true)}
+              onRefresh={() => loadData()}
+            />
 
-            {/* Wizard button */}
-            <button
-              onClick={() => setIsWizardOpen(true)}
-              className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 hover:border-indigo-500/50 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
-              title="Avvia il wizard guidato passo-passo"
-            >
-              <Wand2 className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Wizard 8 Passi</span>
-            </button>
-
-            {/* Notification Settings button */}
-            <button
-              onClick={() => setIsNotificationModalOpen(true)}
-              className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
-              title="Configura il server SMTP e i destinatari delle notifiche email con test in tempo reale"
-            >
-              <Mail className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Notifiche Email</span>
-            </button>
-
-            {/* Kiosk Mode Toggle */}
-            <button
-              onClick={() => setIsKioskMode(true)}
-              className="p-1.5 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 rounded-lg text-xs transition"
-              title="Passa a Schermo Intero / Modalità Kiosk"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-
-            {/* Refresh button */}
+            {/* Quick Refresh Icon */}
             <button
               onClick={() => loadData()}
-              className="p-1.5 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 rounded-lg text-xs transition"
-              title="Aggiorna dati"
+              className="p-1.5 bg-slate-800 hover:bg-slate-750 text-slate-400 hover:text-slate-200 border border-slate-700 rounded-lg text-xs transition shadow-sm"
+              title={t('header.refresh')}
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -421,9 +391,9 @@ export const App: React.FC = () => {
         <div className="bg-sky-950/70 border-b border-sky-800/60 px-6 py-2 flex items-center justify-between text-xs z-20 backdrop-blur-md">
           <div className="flex items-center gap-2 text-sky-200">
             <Edit3 className="w-4 h-4 text-sky-400" />
-            <span className="font-semibold">Modalità Modifica Attiva:</span>
+            <span className="font-semibold">{t('edit_bar.title')}</span>
             <span className="text-slate-400">
-              Trascina gli apparati dalla tavolozza o creane di nuovi. Collega i nodi trascinando le maniglie.
+              {t('edit_bar.instructions')}
             </span>
           </div>
 
@@ -439,7 +409,7 @@ export const App: React.FC = () => {
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg font-medium transition flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5 text-sky-400" />
-              <span>+ Aggiungi Apparato</span>
+              <span>{t('edit_bar.add_device')}</span>
             </button>
             <button
               onClick={handleSaveTopology}
@@ -447,7 +417,7 @@ export const App: React.FC = () => {
               className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold shadow-md shadow-sky-500/25 transition flex items-center gap-1.5"
             >
               <Save className="w-3.5 h-3.5" />
-              <span>{isSaving ? 'Salvataggio...' : 'Salva Modifiche'}</span>
+              <span>{isSaving ? t('edit_bar.saving') : t('edit_bar.save_changes')}</span>
             </button>
             <button
               onClick={() => {
@@ -457,7 +427,7 @@ export const App: React.FC = () => {
               className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg font-medium transition flex items-center gap-1.5"
             >
               <Undo2 className="w-3.5 h-3.5" />
-              <span>Annulla</span>
+              <span>{t('edit_bar.cancel')}</span>
             </button>
           </div>
         </div>

@@ -26,6 +26,7 @@ import {
   testNotificationConfig,
   fetchNotificationLogs,
 } from '../../api/client';
+import { useTranslation } from '../../i18n/I18nContext';
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   isOpen,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'config' | 'logs'>('config');
 
   // Channel configuration state
@@ -331,13 +333,13 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                Configurazione Notifiche Email
+                {t('notifications.modal_title')}
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-semibold">
-                  SMTP
+                  {t('notifications.modal_badge')}
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                Imposta il server di posta, i destinatari e verifica l'invio con la mail di prova formattata in HTML.
+                {t('notifications.modal_desc')}
               </p>
             </div>
           </div>
@@ -353,7 +355,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Configurazione
+                {t('notifications.tab_config')}
               </button>
               <button
                 onClick={() => {
@@ -366,7 +368,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span>Storico Invii</span>
+                <span>{t('notifications.tab_logs')}</span>
               </button>
             </div>
 
@@ -827,7 +829,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
         <div className="px-6 py-4 bg-slate-850 border-t border-slate-700/80 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <Info className="w-4 h-4 text-sky-400 shrink-0" />
-            <span>NetSentinel invia solo report consolidati in HTML per evitare spam di notifiche.</span>
+            <span>{t('notifications.footer_hint')}</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -839,7 +841,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 hover:border-sky-500/60 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm disabled:opacity-50"
             >
               <Send className={`w-3.5 h-3.5 text-sky-400 ${testing ? 'animate-bounce' : ''}`} />
-              <span>{testing ? 'Invio Mail di Prova...' : 'Testa Impostazioni'}</span>
+              <span>{testing ? t('notifications.testing_btn') : t('notifications.test_btn')}</span>
             </button>
 
             {/* Save button */}
@@ -850,7 +852,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
               className="px-5 py-2 bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-sky-500/20 disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{saving ? 'Salvataggio...' : 'Salva Impostazioni'}</span>
+              <span>{saving ? t('common.saving') : t('notifications.save_btn')}</span>
             </button>
           </div>
         </div>
