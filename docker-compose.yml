@@ -37,14 +37,14 @@ services:
       - NETSENTINEL_SECRET_KEY=  # Optional: provide a 32-byte Fernet key or let NetSentinel generate one
       # - NETSENTINEL_HEARTBEAT_URL=https://hc-ping.com/your-uuid-here
 
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 256M
-        reservations:
-          cpus: '0.05'
-          memory: 64M
+    # Optional resource constraints (commented out by default because Synology DSM and
+    # embedded Linux kernels do not enable CFS bandwidth / NanoCPUs cgroups).
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 256M
+    #     reservations:
+    #       memory: 64M
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]

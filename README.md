@@ -101,11 +101,6 @@ services:
       - TZ=Europe/Rome
     volumes:
       - ./data:/data
-    deploy:
-      resources:
-        limits:
-          cpus: "0.50"
-          memory: 300M
 ```
 
 Start the container:
