@@ -29,7 +29,7 @@ async def send_smtp(
         to_addrs = [a.strip() for a in to_addrs.split(",") if a.strip()]
 
     if not to_addrs:
-        logger.warning("Nessun destinatario email configurato per SMTP.")
+        logger.warning("⚠️ [SMTP] Nessun destinatario email configurato per il canale SMTP.")
         return False
 
     msg = EmailMessage()
@@ -38,6 +38,17 @@ async def send_smtp(
     msg["To"] = ", ".join(to_addrs)
     msg.set_content(text_body)
     msg.add_alternative(html_body, subtype="html")
+
+    sec_label = "SSL/TLS (Porta 465)" if use_tls else ("STARTTLS (Porta 587)" if start_tls else "In chiaro (Porta 25)")
+    logger.info(
+        "📬 [SMTP INVIO] Connessione a %s:%d [%s] -> Mittente: '%s' -> Destinatari: %s | Oggetto: '%s'",
+        host,
+        port,
+        sec_label,
+        from_addr,
+        to_addrs,
+        subject,
+    )
 
     try:
         await aiosmtplib.send(
@@ -50,9 +61,9 @@ async def send_smtp(
             start_tls=start_tls if not use_tls else False,
             timeout=10.0,
         )
-        logger.info("Notifica email inviata con successo a %s", to_addrs)
+        logger.info("🎉 [SMTP SUCCESSO] Notifica email recapitata con successo dal server %s ai destinatari %s", host, to_addrs)
         return True
     except Exception as exc:
-        logger.error("Errore invio notifica SMTP a %s (%s): %s", host, to_addrs, exc)
+        logger.error("❌ [SMTP ERRORE] Impossibile inviare email tramite %s:%d a %s: %s", host, port, to_addrs, exc)
         raise exc
 

@@ -141,6 +141,12 @@ class NotificationManager:
                 severity = "crit" if (not is_resolved and incident.confidence >= 0.90) else "warn"
 
                 if self.is_in_quiet_hours(qh_cfg, severity):
+                    logger.info(
+                        "🌙 [NOTIFICA SILENZIATA] Canale '%s' (%s) -> Orario di silenzio attivo. Allarme '%s' soppresso.",
+                        channel.name,
+                        channel.type,
+                        subject,
+                    )
                     log = NotificationLog(
                         incident_id=incident.id,
                         channel_id=channel.id,
@@ -157,6 +163,12 @@ class NotificationManager:
                 requires_wan = ch_config.get("requires_wan", channel.type in ["smtp", "ntfy"])
 
                 if requires_wan and not self.is_wan_online:
+                    logger.info(
+                        "⏳ [NOTIFICA IN CODA] Canale '%s' (%s) -> Connessione WAN offline. Allarme accodato: '%s'",
+                        channel.name,
+                        channel.type,
+                        subject,
+                    )
                     log = NotificationLog(
                         incident_id=incident.id,
                         channel_id=channel.id,
@@ -169,8 +181,22 @@ class NotificationManager:
                     continue
 
                 # Dispatch immediately
+                logger.info(
+                    "📧 [INVIO NOTIFICA] Canale '%s' (Tipo: %s) -> Invio in corso: '%s' (Incidente: %s, Risolto: %s)",
+                    channel.name,
+                    channel.type,
+                    subject,
+                    incident.id,
+                    is_resolved,
+                )
                 try:
                     await self._dispatch_channel(channel, subject, html_body, text_body, inc_dict)
+                    logger.info(
+                        "✅ [NOTIFICA INVIATA] Canale '%s' (%s) -> Invio completato con successo: '%s'",
+                        channel.name,
+                        channel.type,
+                        subject,
+                    )
                     log = NotificationLog(
                         incident_id=incident.id,
                         channel_id=channel.id,
@@ -179,6 +205,13 @@ class NotificationManager:
                         ts=utcnow(),
                     )
                 except Exception as exc:
+                    logger.error(
+                        "❌ [ERRORE NOTIFICA] Canale '%s' (%s) -> Fallimento invio notifica '%s': %s",
+                        channel.name,
+                        channel.type,
+                        subject,
+                        exc,
+                    )
                     log = NotificationLog(
                         incident_id=incident.id,
                         channel_id=channel.id,

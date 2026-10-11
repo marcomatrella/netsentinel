@@ -207,6 +207,27 @@ class SchedulerEngine:
                 chk.current_status = h_res.new_status
                 chk.status_since = utcnow()
 
+                if h_res.new_status in ["crit", "warn"]:
+                    err_detail = obs.details.get("error") or obs.details.get("packet_loss_percent") or "Check fallito"
+                    logger.info(
+                        "⚠️ [CHECK ANOMALIA] Apparato '%s' (%s) -> Check '%s' FALLITO [%s -> %s]: %s",
+                        device.name,
+                        chk.device_id,
+                        chk.name,
+                        old_chk_status.upper(),
+                        h_res.new_status.upper(),
+                        err_detail,
+                    )
+                elif h_res.new_status == "ok":
+                    rtt_str = f" (RTT: {obs.value}ms)" if obs.value is not None else ""
+                    logger.info(
+                        "✅ [CHECK RIPRISTINO] Apparato '%s' (%s) -> Check '%s' RIPRISTINATO [OK]%s",
+                        device.name,
+                        chk.device_id,
+                        chk.name,
+                        rtt_str,
+                    )
+
                 # Record check state change event
                 ev = Event(
                     ts=utcnow(),
@@ -286,6 +307,33 @@ class SchedulerEngine:
                 old_dev_status = device.status
                 device.status = new_dev_status
                 device.status_since = utcnow()
+
+                if new_dev_status in ["down", "unreachable"]:
+                    logger.info(
+                        "🚨 [DISPOSITIVO OFFLINE] Apparato '%s' (%s, Kind: %s) -> STATO: %s (era %s)",
+                        device.name,
+                        device.id,
+                        device.kind,
+                        new_dev_status.upper(),
+                        old_dev_status.upper(),
+                    )
+                elif new_dev_status == "ok":
+                    logger.info(
+                        "🟢 [DISPOSITIVO ONLINE] Apparato '%s' (%s, Kind: %s) -> TORNATO ONLINE [OK] (era %s)",
+                        device.name,
+                        device.id,
+                        device.kind,
+                        old_dev_status.upper(),
+                    )
+                else:
+                    logger.info(
+                        "ℹ️ [DISPOSITIVO STATO] Apparato '%s' (%s) -> cambio stato %s -> %s",
+                        device.name,
+                        device.id,
+                        old_dev_status.upper(),
+                        new_dev_status.upper(),
+                    )
+
                 # Passive devices (clients) only emit info severity events
                 severity = "info" if is_passive else ("crit" if new_dev_status in ["down", "flapping"] else "info")
                 ev_dev = Event(

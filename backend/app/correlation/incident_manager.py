@@ -153,6 +153,12 @@ class IncidentManager:
             is_new = (not incident or incident.timeline_json and "incident_opened" in incident.timeline_json and len(json.loads(incident.timeline_json)) == 1)
             is_shift = (incident.timeline_json and "root_cause_shift" in incident.timeline_json and json.loads(incident.timeline_json)[-1]["event_type"] == "root_cause_shift")
             if is_new or is_shift:
+                logger.info(
+                    "📢 [ALLARME INCIDENTE] Attivazione canale notifiche per incidente '%s' (Causa radice: %s, Shift: %s)",
+                    incident.id,
+                    incident.root_cause_device_id,
+                    is_shift,
+                )
                 await notification_manager.notify_incident(incident, is_resolved=False, is_shift=is_shift)
         except Exception as exc:
             logger.warning("Errore trigger notifiche incidente: %s", exc)
@@ -199,6 +205,7 @@ class IncidentManager:
         # Dispatch resolution notification
         try:
             from app.notification.manager import notification_manager
+            logger.info("🎉 [NOTIFICA RISOLUZIONE] Invio notifica di rientro/risoluzione per incidente '%s'", incident.id)
             await notification_manager.notify_incident(incident, is_resolved=True, is_shift=False)
         except Exception as exc:
             logger.warning("Errore trigger notifica risoluzione incidente: %s", exc)
