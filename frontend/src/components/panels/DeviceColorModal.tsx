@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Device, DeviceKind } from '../../types';
 import { PRESET_COLORS, getColorConfig, getDeviceColorId } from '../../constants/colors';
+import { useTranslation } from '../../i18n/I18nContext';
 
 interface DeviceColorModalProps {
   isOpen: boolean;
@@ -82,6 +83,7 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const [selectedColor, setSelectedColor] = useState<string>('slate');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -123,7 +125,7 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                Personalizza Colore Apparato
+                {t('device_color.title')}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {device.name} • {device.addresses?.ip || device.kind}
@@ -145,7 +147,7 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
           {/* Live Preview Box */}
           <div className="space-y-2">
             <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-              Anteprima sul Canvas
+              {t('device_color.preview_heading')}
             </span>
             <div className="bg-slate-100 dark:bg-slate-950/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
               
@@ -189,7 +191,7 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
               </div>
 
               <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-3 text-center">
-                Il bordo del box indica lo stato (online/offline), mentre la striscia superiore evidenzia la categoria.
+                {t('device_color.preview_desc')}
               </span>
             </div>
           </div>
@@ -197,7 +199,7 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
           {/* Color Palettes Grid */}
           <div className="space-y-2">
             <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-              Scegli un colore per la striscia:
+              {t('device_color.choose_color')}
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {PRESET_COLORS.map((c) => {
@@ -230,7 +232,7 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-xl transition"
           >
-            Annulla
+            {t('device_color.btn_cancel')}
           </button>
           <button
             type="button"
@@ -239,11 +241,11 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
             className="px-5 py-2 text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white rounded-xl shadow-lg shadow-sky-600/20 flex items-center gap-2 transition disabled:opacity-50"
           >
             {isSaving ? (
-              <span>Salvataggio...</span>
+              <span>{t('device_color.btn_saving')}</span>
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                <span>Salva Colore</span>
+                <span>{t('device_color.btn_save')}</span>
               </>
             )}
           </button>
@@ -253,4 +255,3 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
     </div>
   );
 };
-

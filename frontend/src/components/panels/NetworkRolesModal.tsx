@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Shield, Globe, HardDrive, Check, Radio, Cpu, Network } from 'lucide-react';
+import { X, Shield, Check } from 'lucide-react';
 import { Device } from '../../types';
 import { assignNetworkRoles } from '../../api/client';
+import { useTranslation } from '../../i18n/I18nContext';
 
 interface NetworkRolesModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
   vantagePointId,
   onRolesAssigned,
 }) => {
+  const { t } = useTranslation();
+
   // Find current role holders
   const currentDns = devices.find((d) => d.roles?.includes('dns_resolver'))?.id || '';
   const currentDhcp = devices.find((d) => d.roles?.includes('dhcp_server'))?.id || '';
@@ -69,9 +72,9 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-bold text-slate-100 text-sm">Servizi Fondamentali di Rete (DNS & DHCP)</h2>
+              <h2 className="font-bold text-slate-100 text-sm">{t('network_roles.modal_title')}</h2>
               <p className="text-[11px] text-slate-400">
-                Specifica quale apparato eroga ciascun servizio critico nella tua topologia
+                {t('network_roles.modal_desc')}
               </p>
             </div>
           </div>
@@ -87,25 +90,22 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
             <div className="flex items-center justify-between">
               <label className="font-bold text-slate-200 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                Server DNS Primario (AdGuard Home / Pi-hole / Router):
+                {t('network_roles.dns_label')}
               </label>
-              <span className="text-[10px] text-cyan-400 font-mono">porta 53</span>
+              <span className="text-[10px] text-cyan-400 font-mono">{t('network_roles.port_53')}</span>
             </div>
             <select
               value={selectedDns}
               onChange={(e) => setSelectedDns(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-cyan-500 font-medium"
             >
-              <option value="">-- Nessun server DNS locale dedicato --</option>
+              <option value="">{t('network_roles.no_dns')}</option>
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name} ({d.addresses?.ip || 'no IP'}) — {d.kind.toUpperCase()}
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-slate-400">
-              Se il tuo DNS gira in un container (es. AdGuard Home su NAS), seleziona qui il tuo NAS. Tutti i client dipenderanno da lui per navigare.
-            </p>
           </div>
 
           {/* DHCP Server Selector */}
@@ -113,39 +113,36 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
             <div className="flex items-center justify-between">
               <label className="font-bold text-slate-200 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                Server DHCP di Rete (Assegnazione IP):
+                {t('network_roles.dhcp_label')}
               </label>
-              <span className="text-[10px] text-amber-400 font-mono">porta 67/68</span>
+              <span className="text-[10px] text-amber-400 font-mono">{t('network_roles.port_67')}</span>
             </div>
             <select
               value={selectedDhcp}
               onChange={(e) => setSelectedDhcp(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-amber-500 font-medium"
             >
-              <option value="">-- Nessun server DHCP locale --</option>
+              <option value="">{t('network_roles.no_dhcp')}</option>
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name} ({d.addresses?.ip || 'no IP'}) — {d.kind.toUpperCase()}
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-slate-400">
-              Indica chi assegna gli IP ai client (es. Router principale, o NAS con server DHCP attivo).
-            </p>
           </div>
 
           {/* Gateway WAN Selector */}
           <div className="bg-slate-850 p-3 rounded-xl border border-slate-700/60 space-y-1.5">
             <label className="font-bold text-slate-200 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-purple-400" />
-              Default Gateway L3 / Router Internet:
+              {t('network_roles.gateway_label')}
             </label>
             <select
               value={selectedGateway}
               onChange={(e) => setSelectedGateway(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-purple-500 font-medium"
             >
-              <option value="">-- Seleziona Gateway --</option>
+              <option value="">{t('network_roles.no_gateway')}</option>
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name} ({d.addresses?.ip || 'no IP'}) — {d.kind.toUpperCase()}
@@ -158,22 +155,20 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
           <div className="bg-slate-850 p-3 rounded-xl border border-slate-700/60 space-y-1.5">
             <label className="font-bold text-slate-200 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-400" />
-              Punto di Monitoraggio NetSentinel (Vantage Point):
+              {t('network_roles.vp_label')}
             </label>
             <select
               value={selectedVp}
               onChange={(e) => setSelectedVp(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 font-medium"
             >
+              <option value="">{t('network_roles.no_vp')}</option>
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name} ({d.addresses?.ip || 'no IP'})
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-slate-400">
-              L'host da cui NetSentinel osserva e pinga tutta la rete (es. il NAS dove gira il container Docker).
-            </p>
           </div>
 
           {/* Action buttons */}
@@ -183,7 +178,7 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition"
             >
-              Annulla
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -191,7 +186,7 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
               className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold shadow-md shadow-sky-500/20 transition flex items-center gap-1.5"
             >
               <Check className="w-4 h-4" />
-              <span>{isSubmitting ? 'Salvataggio...' : 'Applica Ruoli di Rete'}</span>
+              <span>{isSubmitting ? t('network_roles.btn_saving') : t('network_roles.btn_save')}</span>
             </button>
           </div>
         </form>

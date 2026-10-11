@@ -20,33 +20,34 @@ import {
   Gauge,
 } from 'lucide-react';
 import { DeviceKind } from '../../types';
+import { useTranslation } from '../../i18n/I18nContext';
 
-interface PaletteItem {
+interface PaletteItemDef {
   kind: DeviceKind;
-  label: string;
-  category: string;
+  labelKey: string;
+  categoryKey: string;
   icon: React.ComponentType<{ className?: string }>;
   defaultRoles: string[];
 }
 
-const PALETTE_ITEMS: PaletteItem[] = [
-  { kind: 'wan_gateway', label: 'Internet / WAN', category: 'Infrastruttura', icon: Globe, defaultRoles: ['wan_provider'] },
-  { kind: 'modem', label: 'Modem / ONT Fibra', category: 'Infrastruttura', icon: Rss, defaultRoles: ['wan_provider'] },
-  { kind: 'firewall', label: 'Firewall (pfSense/OPNsense)', category: 'Infrastruttura', icon: Flame, defaultRoles: ['gateway'] },
-  { kind: 'router', label: 'Router / Gateway', category: 'Infrastruttura', icon: RouterIcon, defaultRoles: ['gateway'] },
-  { kind: 'switch', label: 'Switch Ethernet', category: 'Infrastruttura', icon: Network, defaultRoles: [] },
-  { kind: 'access_point', label: 'Access Point Wi-Fi', category: 'Wireless', icon: Wifi, defaultRoles: [] },
-  { kind: 'poe_injector', label: 'Iniettore PoE', category: 'Alimentazione', icon: Radio, defaultRoles: [] },
-  { kind: 'ups', label: 'UPS Rack / Batteria', category: 'Alimentazione', icon: Zap, defaultRoles: ['power_provider'] },
-  { kind: 'smart_plug', label: 'Presa Smart / PDU', category: 'Alimentazione', icon: Plug, defaultRoles: [] },
-  { kind: 'nas', label: 'NAS / Storage', category: 'Server & Servizi', icon: HardDrive, defaultRoles: ['dns_resolver', 'dhcp_server'] },
-  { kind: 'server', label: 'Server / Hypervisor (Proxmox)', category: 'Server & Servizi', icon: Server, defaultRoles: [] },
-  { kind: 'smart_hub', label: 'Server Domotico (HA)', category: 'Server & Servizi', icon: Cpu, defaultRoles: ['service'] },
-  { kind: 'camera', label: 'Telecamera IP (RTSP)', category: 'Videosorveglianza', icon: Camera, defaultRoles: [] },
-  { kind: 'nvr', label: 'NVR / Videosorveglianza', category: 'Videosorveglianza', icon: Video, defaultRoles: [] },
-  { kind: 'printer', label: 'Stampante di Rete', category: 'Dispositivi', icon: Printer, defaultRoles: [] },
-  { kind: 'sensor', label: 'Sensore IoT / Ambiente', category: 'Dispositivi', icon: Gauge, defaultRoles: [] },
-  { kind: 'client', label: 'Gruppo Client / TV / PC', category: 'Dispositivi', icon: Smartphone, defaultRoles: [] },
+const PALETTE_DEFINITIONS: PaletteItemDef[] = [
+  { kind: 'wan_gateway', labelKey: 'palette.items.wan_gateway', categoryKey: 'palette.cat_infrastructure', icon: Globe, defaultRoles: ['wan_provider'] },
+  { kind: 'modem', labelKey: 'palette.items.modem', categoryKey: 'palette.cat_infrastructure', icon: Rss, defaultRoles: ['wan_provider'] },
+  { kind: 'firewall', labelKey: 'palette.items.firewall', categoryKey: 'palette.cat_infrastructure', icon: Flame, defaultRoles: ['gateway'] },
+  { kind: 'router', labelKey: 'palette.items.router', categoryKey: 'palette.cat_infrastructure', icon: RouterIcon, defaultRoles: ['gateway'] },
+  { kind: 'switch', labelKey: 'palette.items.switch', categoryKey: 'palette.cat_infrastructure', icon: Network, defaultRoles: [] },
+  { kind: 'access_point', labelKey: 'palette.items.access_point', categoryKey: 'palette.cat_wireless', icon: Wifi, defaultRoles: [] },
+  { kind: 'poe_injector', labelKey: 'palette.items.poe_injector', categoryKey: 'palette.cat_power', icon: Radio, defaultRoles: [] },
+  { kind: 'ups', labelKey: 'palette.items.ups', categoryKey: 'palette.cat_power', icon: Zap, defaultRoles: ['power_provider'] },
+  { kind: 'smart_plug', labelKey: 'palette.items.smart_plug', categoryKey: 'palette.cat_power', icon: Plug, defaultRoles: [] },
+  { kind: 'nas', labelKey: 'palette.items.nas', categoryKey: 'palette.cat_servers_services', icon: HardDrive, defaultRoles: ['dns_resolver', 'dhcp_server'] },
+  { kind: 'server', labelKey: 'palette.items.server', categoryKey: 'palette.cat_servers_services', icon: Server, defaultRoles: [] },
+  { kind: 'smart_hub', labelKey: 'palette.items.smart_hub', categoryKey: 'palette.cat_servers_services', icon: Cpu, defaultRoles: ['service'] },
+  { kind: 'camera', labelKey: 'palette.items.camera', categoryKey: 'palette.cat_surveillance', icon: Camera, defaultRoles: [] },
+  { kind: 'nvr', labelKey: 'palette.items.nvr', categoryKey: 'palette.cat_surveillance', icon: Video, defaultRoles: [] },
+  { kind: 'printer', labelKey: 'palette.items.printer', categoryKey: 'palette.cat_devices', icon: Printer, defaultRoles: [] },
+  { kind: 'sensor', labelKey: 'palette.items.sensor', categoryKey: 'palette.cat_devices', icon: Gauge, defaultRoles: [] },
+  { kind: 'client', labelKey: 'palette.items.client', categoryKey: 'palette.cat_devices', icon: Smartphone, defaultRoles: [] },
 ];
 
 interface PaletteProps {
@@ -54,16 +55,23 @@ interface PaletteProps {
 }
 
 export const Palette: React.FC<PaletteProps> = ({ onAddNode }) => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const onDragStart = (event: React.DragEvent, item: PaletteItem) => {
+  const items = PALETTE_DEFINITIONS.map((def) => ({
+    ...def,
+    label: t(def.labelKey),
+    category: t(def.categoryKey),
+  }));
+
+  const onDragStart = (event: React.DragEvent, item: { kind: DeviceKind; label: string; defaultRoles: string[] }) => {
     event.dataTransfer.setData('application/reactflow/kind', item.kind);
     event.dataTransfer.setData('application/reactflow/label', item.label);
     event.dataTransfer.setData('application/reactflow/roles', JSON.stringify(item.defaultRoles));
     event.dataTransfer.effectAllowed = 'move';
   };
 
-  const filtered = PALETTE_ITEMS.filter((item) =>
+  const filtered = items.filter((item) =>
     item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -72,7 +80,7 @@ export const Palette: React.FC<PaletteProps> = ({ onAddNode }) => {
     <div className="w-64 bg-white/95 dark:bg-slate-900/95 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full select-none">
       <div className="p-3 border-b border-slate-200 dark:border-slate-800">
         <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-          Tavolozza Apparati
+          {t('palette.title')}
         </h2>
         <div className="relative">
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
@@ -80,7 +88,7 @@ export const Palette: React.FC<PaletteProps> = ({ onAddNode }) => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Cerca apparato..."
+            placeholder={t('palette.search_placeholder')}
             className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700/80 rounded-lg pl-8 pr-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500"
           />
         </div>
@@ -114,9 +122,8 @@ export const Palette: React.FC<PaletteProps> = ({ onAddNode }) => {
       </div>
 
       <div className="p-2.5 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 text-center">
-        Trascina sulla tela o clicca per inserire
+        {t('palette.footer_hint')}
       </div>
     </div>
   );
 };
-

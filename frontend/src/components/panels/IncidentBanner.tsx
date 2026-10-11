@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertOctagon, CheckCircle2, ChevronDown, ChevronUp, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
 import { Incident } from '../../types';
 import { acknowledgeIncident } from '../../api/client';
+import { useTranslation } from '../../i18n/I18nContext';
 
 interface IncidentBannerProps {
   incident: Incident | null;
@@ -9,6 +10,7 @@ interface IncidentBannerProps {
 }
 
 export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefresh }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [acknowledging, setAcknowledging] = useState(false);
 
@@ -38,13 +40,13 @@ export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefr
           <div>
             <div className="flex items-center gap-2">
               <span className="bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
-                Incidente Aperto
+                {t('incident_banner.incident_open')}
               </span>
               <span className="text-xs font-bold text-rose-200">
-                Causa: {incident.root_cause_device_id || 'Rete'}
+                {t('incident_banner.cause', { name: incident.root_cause_device_id || 'Rete' })}
               </span>
               <span className="text-xs bg-rose-900/80 border border-rose-700/60 px-2 py-0.5 rounded text-rose-300 font-mono">
-                Confidenza {confidencePct}%
+                {t('incident_banner.confidence', { pct: confidencePct })}
               </span>
             </div>
             <p className="text-xs text-rose-200/90 mt-0.5 line-clamp-1">
@@ -61,11 +63,11 @@ export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefr
               className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-xs font-semibold shadow transition disabled:opacity-50"
             >
               <UserCheck className="w-3.5 h-3.5" />
-              Prendi in carico
+              {t('incident_banner.btn_acknowledge')}
             </button>
           ) : (
             <span className="flex items-center gap-1 text-xs text-rose-300 bg-rose-900/60 px-2.5 py-1 rounded border border-rose-800">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Preso in carico
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> {t('incident_banner.acknowledged')}
             </span>
           )}
 
@@ -83,7 +85,7 @@ export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefr
         <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-rose-800/60 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div>
             <h4 className="font-bold text-rose-200 uppercase tracking-wider text-[11px] mb-1.5 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Azioni Consigliate
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> {t('incident_banner.recommended_actions')}
             </h4>
             <ul className="space-y-1 list-disc list-inside text-rose-200/90">
               {incident.recommendations?.map((r, idx) => (
@@ -93,7 +95,7 @@ export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefr
           </div>
           <div>
             <h4 className="font-bold text-rose-200 uppercase tracking-wider text-[11px] mb-1.5 flex items-center gap-1.5">
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" /> Apparati Impattati ({incident.impacted?.length || 0})
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" /> {t('incident_banner.impacted_devices', { count: incident.impacted?.length || 0 })}
             </h4>
             <div className="flex flex-wrap gap-1">
               {incident.impacted?.map((id) => (
@@ -108,4 +110,3 @@ export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefr
     </div>
   );
 };
-

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { DeviceKind, DeviceStatus } from '../../types';
 import { getColorConfig } from '../../constants/colors';
+import { useTranslation } from '../../i18n/I18nContext';
 
 interface CustomNodeData {
   id: string;
@@ -87,6 +88,7 @@ const statusBadgeBg: Record<DeviceStatus, string> = {
 };
 
 export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
+  const { t } = useTranslation();
   const nodeData = data as CustomNodeData;
   const IconComponent = kindIcons[nodeData.kind] || Layers;
 
@@ -116,7 +118,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       {isColored && (
         <div
           className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-xl ${nodeColor.bgClass}`}
-          title={`Categoria: ${nodeColor.name}`}
+          title={t('custom_node.category_title', { name: nodeColor.name })}
         />
       )}
 
@@ -160,7 +162,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       {isOffline && (
         <div
           className="absolute -top-3 -right-2.5 z-30 flex items-center gap-1 bg-gradient-to-r from-rose-600 to-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-rose-600/50 ring-2 ring-rose-300 dark:ring-rose-400 animate-pulse"
-          title={status === 'unreachable' ? 'Apparato Non Raggiungibile' : 'Allarme: Apparato Offline!'}
+          title={status === 'unreachable' ? t('custom_node.unreachable_tooltip') : t('custom_node.offline_alert_tooltip')}
         >
           <Siren className="w-3.5 h-3.5 text-amber-300 shrink-0" />
           <span>OFFLINE</span>
@@ -170,7 +172,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       {/* Root Cause Banner */}
       {isRoot && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1 z-20">
-          <AlertTriangle className="w-3 h-3" /> Causa Radice
+          <AlertTriangle className="w-3 h-3" /> {t('custom_node.root_cause')}
         </div>
       )}
 
@@ -203,7 +205,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
               </span>
             )}
             {isColored && !isOffline && (
-              <span className={`w-2 h-2 rounded-full shrink-0 ${nodeColor.dotClass}`} title={`Gruppo: ${nodeColor.name}`} />
+              <span className={`w-2 h-2 rounded-full shrink-0 ${nodeColor.dotClass}`} title={t('custom_node.category_title', { name: nodeColor.name })} />
             )}
             <span className="truncate">{nodeData.name}</span>
           </div>
@@ -225,19 +227,19 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
             {status}
           </span>
           {nodeData.rtt_ms !== undefined && status === 'ok' ? (
-            <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[9px] flex items-center gap-0.5" title="Latenza ping RTT media">
+            <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[9px] flex items-center gap-0.5" title={t('custom_node.avg_ping_rtt')}>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {nodeData.rtt_ms}ms
             </span>
           ) : status === 'unknown' ? (
-            <span className="text-slate-400 dark:text-slate-500 font-mono text-[9px] flex items-center gap-0.5" title="Controllo in corso">
+            <span className="text-slate-400 dark:text-slate-500 font-mono text-[9px] flex items-center gap-0.5" title={t('custom_node.checking_progress')}>
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
-              attesa ping...
+              {t('custom_node.waiting_ping')}
             </span>
           ) : status === 'down' ? (
-            <span className="text-rose-600 dark:text-rose-400 font-mono text-[9px] flex items-center gap-0.5" title="Nessuna risposta al ping">
+            <span className="text-rose-600 dark:text-rose-400 font-mono text-[9px] flex items-center gap-0.5" title={t('custom_node.no_ping_response')}>
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-              no ping
+              {t('custom_node.no_ping')}
             </span>
           ) : nodeData.metricsBadge ? (
             <span className="text-slate-600 dark:text-slate-400 font-mono text-[9px]">
@@ -247,8 +249,8 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         </div>
         <div className="flex gap-1">
           {isPassive && (
-            <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 px-1 rounded text-[8px] font-medium" title="Client con tracciamento passivo (nessun falso allarme)">
-              Passivo
+            <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 px-1 rounded text-[8px] font-medium" title={t('custom_node.passive_tooltip')}>
+              {t('custom_node.passive_badge')}
             </span>
           )}
           {nodeData.roles?.includes('dns_resolver') && (
