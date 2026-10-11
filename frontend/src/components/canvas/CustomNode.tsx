@@ -107,17 +107,16 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       className={`relative min-w-[190px] rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-3.5 py-3 border transition-all duration-300 ${
         isOffline
           ? 'node-offline-glow scale-[1.05] z-20 border-rose-500 ring-2 ring-rose-500/70 bg-rose-50/90 dark:bg-rose-950/40'
-          : isColored && status === 'ok'
-          ? `${nodeColor.borderClass} dark:${nodeColor.borderClass}`
           : statusBorderColors[status]
       } ${selected ? 'ring-2 ring-sky-400 shadow-lg' : 'shadow-md'} ${
         isRoot ? 'root-cause-ring border-rose-500 ring-2 ring-rose-500' : ''
       }`}
     >
-      {/* Grouping Color Accent Stripe (Full width top bar) */}
-      {isColored && !isOffline && (
+      {/* Category / Group Color Accent Stripe along top border */}
+      {isColored && (
         <div
           className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-xl ${nodeColor.bgClass}`}
+          title={`Categoria: ${nodeColor.name}`}
         />
       )}
 
@@ -190,9 +189,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
           className={`p-2 rounded-lg border transition-all ${
             isOffline
               ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/50 shadow-md shadow-rose-500/30 animate-pulse'
-              : isColored
-              ? `${nodeColor.badgeClass} ${nodeColor.borderClass} ${nodeColor.textClass}`
-              : `${statusBadgeBg[status]}`
+              : statusBadgeBg[status]
           }`}
         >
           <IconComponent className="w-5 h-5" />
