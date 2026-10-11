@@ -11,8 +11,11 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.health import router as health_router
+from app.api.v1.router import api_v1_router
 from app.config import settings
-from app.db.session import init_db
+from app.db.models import Event, utcnow
+from app.db.session import AsyncSessionLocal, init_db
+from app.scheduler.engine import scheduler
 
 # Configure structured logging
 logging.basicConfig(
@@ -30,8 +33,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_db()
     logger.info("Database SQLite (WAL) inizializzato con successo in: %s", settings.data_dir)
 
+    # Step 2: Record monitor restart event
+    async with AsyncSessionLocal() as session:
+        ev = Event(
+            ts=utcnow(),
+            event_type="monitor_restart",
+            severity="info",
+            title="Avvio servizio NetSentinel",
+            message=f"NetSentinel v{settings.app_version} è stato avviato correttamente.",
+            details_json="{}",
+        )
+        session.add(ev)
+        await session.commit()
+
+    # Step 3: Start internal scheduler
+    await scheduler.start()
+
     yield
 
+    # Teardown
+    await scheduler.stop()
     logger.info("Arresto di NetSentinel completato.")
 
 
@@ -53,6 +74,7 @@ app.add_middleware(
 
 # Register core health & metrics endpoints
 app.include_router(health_router)
+app.include_router(api_v1_router)
 
 # Mount frontend static files if present
 static_path = Path(settings.static_dir).resolve()

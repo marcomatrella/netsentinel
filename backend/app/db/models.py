@@ -43,8 +43,8 @@ class Device(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
-    interfaces = relationship("Interface", back_populates="device", cascade="all, delete-orphan")
-    checks = relationship("Check", back_populates="device", cascade="all, delete-orphan")
+    interfaces = relationship("Interface", back_populates="device", cascade="all, delete-orphan", lazy="selectin")
+    checks = relationship("Check", back_populates="device", cascade="all, delete-orphan", lazy="selectin")
 
 
 class Interface(Base):
