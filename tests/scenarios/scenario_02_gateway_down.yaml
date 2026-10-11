@@ -1,0 +1,60 @@
+name: "Scenario 2 — Gateway Giù"
+description: "Il gateway è spento o non risponde, isolando la WAN."
+
+topology:
+  vantage_point: "synology-nas"
+  devices:
+    - id: "synology-nas"
+      name: "Synology NAS"
+      kind: "nas"
+      roles: ["vantage_point"]
+    - id: "switch-core"
+      name: "Core Switch"
+      kind: "switch"
+    - id: "gateway-router"
+      name: "Router Gateway"
+      kind: "router"
+      roles: ["gateway"]
+    - id: "wan-internet"
+      name: "Internet WAN"
+      kind: "wan_gateway"
+      roles: ["wan_provider"]
+
+  links:
+    - id: "l1"
+      from: "synology-nas"
+      to: "switch-core"
+    - id: "l2"
+      from: "switch-core"
+      to: "gateway-router"
+    - id: "l3"
+      from: "gateway-router"
+      to: "wan-internet"
+
+  dependencies:
+    - id: "d1"
+      dependent: "synology-nas"
+      provider: "switch-core"
+      kind: "l2_path"
+    - id: "d2"
+      dependent: "gateway-router"
+      provider: "switch-core"
+      kind: "l2_path"
+    - id: "d3"
+      dependent: "wan-internet"
+      provider: "gateway-router"
+      kind: "l3_gateway"
+
+device_states:
+  synology-nas: "ok"
+  switch-core: "ok"
+  gateway-router: "down"
+  wan-internet: "down"
+
+expected:
+  incident_count: 1
+  root_cause_device_id: "gateway-router"
+  root_cause_category: "gateway"
+  confidence_min: 0.85
+  key_phrase: "Gateway di rete offline"
+  symptoms: ["wan-internet"]

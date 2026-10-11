@@ -1,0 +1,193 @@
+# NetSentinel — Libreria Regole di Diagnosi (Sezione 6.4)
+
+rules:
+  # Regola 1: Perdita WAN
+  - id: "rule_01_wan_loss"
+    category: "wan"
+    name: "Perdita Connessione WAN / Internet"
+    target_kind: ["wan_gateway"]
+    confidence_base: 0.95
+    title: "Connessione Internet non disponibile (Guasto linea o ISP)"
+    summary: "Il gateway locale è perfettamente operativo e raggiungibile, ma la connettività verso l'esterno (DNS pubblico o ping WAN) è interrotta. La LAN interna è sana."
+    recommendations:
+      - "Verifica le spie WAN/PON del modem o dell'ONT fibra."
+      - "Riavvia il router/ONT operatore se non si riallinea entro 5 minuti."
+      - "Controlla la presenza di disservizi generalizzati dell'operatore (ISP)."
+    alternative_hypotheses:
+      - category: "dns"
+        description: "Possibile blocco o censura dei resolver DNS pubblici anziché interruzione fisica WAN."
+        confidence: 0.05
+        suggested_checks: ["ping_direct_ip"]
+
+  # Regola 2: Gateway giù
+  - id: "rule_02_gateway_down"
+    category: "gateway"
+    name: "Gateway / Router principale non raggiungibile"
+    target_kind: ["router", "wan_gateway"]
+    confidence_base: 0.90
+    title: "Gateway di rete offline (Spento o bloccato)"
+    summary: "Il router/gateway principale della rete non risponde ai controlli. Tutte le destinazioni esterne e le rotte inter-VLAN sono isolate."
+    recommendations:
+      - "Verifica l'alimentazione elettrica e lo stato delle spie del router."
+      - "Controlla il cavo Ethernet tra lo switch principale e la porta LAN del router."
+      - "Esegui un ciclo di accensione forzato (hard reboot) del gateway."
+    alternative_hypotheses:
+      - category: "cable"
+        description: "Guasto o disconnessione del cavo uplink tra switch e router."
+        confidence: 0.10
+        suggested_checks: ["switch_port_status"]
+
+  # Regola 3: Riavvio AP
+  - id: "rule_03_ap_reboot"
+    category: "hardware"
+    name: "Riavvio Access Point rilevato"
+    target_kind: ["access_point"]
+    confidence_base: 0.85
+    title: "Access Point riavviato di recente"
+    summary: "L'uptime dell'access point si è azzerato mentre il link sullo switch è rimasto costantemente attivo. Indica un reboot per crash, watchdog o aggiornamento."
+    recommendations:
+      - "Controlla i log di sistema dell'AP per panic di kernel o esaurimento memoria."
+      - "Verifica se è stato effettuato un aggiornamento firmware automatico."
+    alternative_hypotheses:
+      - category: "power"
+        description: "Micro-interruzione dell'alimentazione PoE."
+        confidence: 0.15
+
+  # Regola 4: Perdita alimentazione/PoE AP
+  - id: "rule_04_ap_poe_loss"
+    category: "power"
+    name: "Perdita alimentazione PoE o guasto cavo AP"
+    target_kind: ["access_point", "poe_injector"]
+    confidence_base: 0.90
+    title: "Access Point offline per perdita alimentazione o cavo scollegato"
+    summary: "L'access point non risponde e il link fisico risulta assente. L'iniettore o la porta PoE dello switch non erogano corrente o il cavo è disconnesso."
+    recommendations:
+      - "Controlla se il LED dell'iniettore PoE è acceso."
+      - "Verifica il connettore RJ45 e l'integrità del cavo nelle canaline."
+      - "Prova a ricollegare l'AP con un cavo patch corto direttamente allo switch/iniettore."
+    alternative_hypotheses:
+      - category: "hardware"
+        description: "Guasto hardware interno dell'access point."
+        confidence: 0.10
+
+  # Regola 5: Cavo/connettore instabile
+  - id: "rule_05_cable_flapping"
+    category: "cable"
+    name: "Cablaggio degradato / Flapping del link"
+    target_kind: ["any"]
+    confidence_base: 0.85
+    title: "Cablaggio di rete instabile o velocità negoziata ridotta"
+    summary: "Rilevati frequenti cambi di stato up/down (link flapping) o errori di trasmissione. Tipico sintomo di crimpatura difettosa o interferenze."
+    recommendations:
+      - "Sostituisci il cavo patch o ricrimpa i plug RJ45 su entrambi i capi."
+      - "Verifica che il cavo non passi a stretto contatto con cavi di potenza a 230V privi di schermatura."
+
+  # Regola 6: Switch giù
+  - id: "rule_06_switch_down"
+    category: "network_device"
+    name: "Switch di rete principale offline"
+    target_kind: ["switch"]
+    confidence_base: 0.95
+    title: "Switch principale non raggiungibile (Tutti i nodi a valle isolati)"
+    summary: "Lo switch non risponde ai controlli e tutti gli apparati a valle sono contemporaneamente irraggiungibili dal monitor. Lo switch è la causa radice."
+    recommendations:
+      - "Verifica l'alimentazione dello switch (cavo di alimentazione, presa o UPS)."
+      - "Controlla le spie LED di accensione e attività delle porte."
+      - "Riavvia lo switch se i circuiti sono congelati."
+
+  # Regola 7: NAS/DHCP-DNS giù
+  - id: "rule_07_nas_dhcp_dns_down"
+    category: "server"
+    name: "Server centrale (NAS) offline con DNS/DHCP"
+    target_kind: ["nas", "server"]
+    confidence_base: 0.95
+    title: "NAS offline: Servizi DNS, DHCP e storage interrotti"
+    summary: "Il NAS è completamente offline. Di conseguenza, i client perdono la risoluzione dei nomi e i rinnovi DHCP, ma l'infrastruttura di commutazione (switch/router) è sana."
+    recommendations:
+      - "Verifica lo stato fisico del NAS (spie power e dischi)."
+      - "Controlla l'alimentazione dall'UPS."
+      - "Verifica l'accesso alla scheda di rete e al cavo LAN del NAS."
+
+  # Regola 8: DNS degradato
+  - id: "rule_08_dns_degraded"
+    category: "service"
+    name: "Risoluzione DNS locale degradata o upstream falliti"
+    target_kind: ["nas", "server", "router", "smart_hub"]
+    confidence_base: 0.90
+    title: "Servizio DNS non risponde o upstream SERVFAIL"
+    summary: "La rete a livello IP funziona regolarmente, ma le query DNS verso il server locale falliscono o restituiscono errori di inoltro agli upstream."
+    recommendations:
+      - "Accedi alla dashboard di AdGuard Home o Pi-hole e verifica lo stato dei server upstream."
+      - "Riavvia il container o servizio DNS sul server."
+      - "Verifica che il DNS locale non sia bloccato da regole firewall o rate-limiting."
+
+  # Regola 9: DHCP non risponde
+  - id: "rule_09_dhcp_failure"
+    category: "service"
+    name: "Server DHCP inattivo o lease esaurite"
+    target_kind: ["nas", "router", "server"]
+    confidence_base: 0.85
+    title: "Servizio DHCP fermo o pool di indirizzi esaurito"
+    summary: "I nuovi client non riescono a ottenere un indirizzo IP, sebbene il server host sia raggiungibile a livello di rete."
+    recommendations:
+      - "Verifica che il server DHCP sia attivo e non in conflitto con altri server nella LAN."
+      - "Controlla il pool di indirizzi disponibili (subnet saturation)."
+
+  # Regola 10: UPS su batteria / blackout
+  - id: "rule_10_ups_on_battery"
+    category: "power"
+    name: "UPS in modalità batteria (Blackout elettrico)"
+    target_kind: ["ups"]
+    confidence_base: 0.98
+    title: "Mancanza di rete elettrica: UPS su batteria"
+    summary: "Il gruppo di continuità è passato allo stato On Battery (OB). I dispositivi privi di protezione UPS risultano spenti."
+    recommendations:
+      - "Verifica il quadro elettrico generale o la presenza di blackout di zona."
+      - "Monitora l'autonomia residua prima dello spegnimento automatico dei carichi critici."
+
+  # Regola 11: Isolamento del vantage point
+  - id: "rule_11_vantage_point_isolated"
+    category: "vantage_point"
+    name: "Isolamento locale del Vantage Point"
+    target_kind: ["vantage_point", "nas", "server"]
+    confidence_base: 0.95
+    title: "Il monitor (Vantage Point) è isolato dalla rete"
+    summary: "NetSentinel non riesce a comunicare con nessun apparato, nemmeno con il proprio switch o gateway immediato. Il problema è locale all'host del monitor."
+    recommendations:
+      - "Verifica il cavo di rete dell'host su cui gira NetSentinel."
+      - "Controlla le impostazioni di interfaccia di rete (host network mode) o VLAN del container."
+
+  # Regola 12: Disco/volume in sofferenza
+  - id: "rule_12_storage_degraded"
+    category: "hardware"
+    name: "Volume di archiviazione o disco S.M.A.R.T. degradato"
+    target_kind: ["nas", "server"]
+    confidence_base: 0.90
+    title: "Avviso preventivo: Rischio guasto disco o volume degradato"
+    summary: "Parametri S.M.A.R.T. peggiorati (settori rilocati) o volume RAID in stato degraded. Nessun blocco immediato ma rischio di perdita dati."
+    recommendations:
+      - "Verifica quale disco riporta errori nel Gestore Archiviazione del NAS."
+      - "Effettua un backup immediato dei dati critici e pianifica la sostituzione dell'unità."
+
+  # Regola 13: Home server instabile
+  - id: "rule_13_service_hang"
+    category: "service"
+    name: "Server raggiungibile ma servizio applicativo bloccato"
+    target_kind: ["smart_hub", "server", "nas"]
+    confidence_base: 0.85
+    title: "Host operativo ma servizio applicativo (es. Home Assistant) non risponde"
+    summary: "L'host risponde al ping di rete, ma l'API o l'interfaccia web del servizio è bloccata o in timeout."
+    recommendations:
+      - "Accedi via SSH all'host e verifica il consumo CPU/RAM con 'htop'."
+      - "Riavvia il container o il processo del servizio bloccato."
+
+  # Regola 14: Aggiornamento firmware
+  - id: "rule_14_firmware_upgrade"
+    category: "maintenance"
+    name: "Aggiornamento firmware o manutenzione programmata"
+    target_kind: ["any"]
+    confidence_base: 0.80
+    title: "Aggiornamento firmware o riavvio di manutenzione"
+    summary: "Disconnessione temporanea con ritorno alla normalità e incremento della versione firmware registrata."
+    recommendations:
+      - "Nessuna azione richiesta se tutti i servizi sono rientrati nei parametri nominali."

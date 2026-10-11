@@ -1,0 +1,59 @@
+name: "Scenario 1 — Perdita Connessione WAN"
+description: "Il gateway è raggiungibile, ma i controlli verso internet falliscono."
+
+topology:
+  vantage_point: "synology-nas"
+  devices:
+    - id: "synology-nas"
+      name: "Synology NAS"
+      kind: "nas"
+      roles: ["vantage_point"]
+    - id: "switch-core"
+      name: "Core Switch"
+      kind: "switch"
+    - id: "gateway-router"
+      name: "Router Gateway"
+      kind: "router"
+      roles: ["gateway"]
+    - id: "wan-internet"
+      name: "Internet WAN"
+      kind: "wan_gateway"
+      roles: ["wan_provider"]
+
+  links:
+    - id: "l1"
+      from: "synology-nas"
+      to: "switch-core"
+    - id: "l2"
+      from: "switch-core"
+      to: "gateway-router"
+    - id: "l3"
+      from: "gateway-router"
+      to: "wan-internet"
+
+  dependencies:
+    - id: "d1"
+      dependent: "synology-nas"
+      provider: "switch-core"
+      kind: "l2_path"
+    - id: "d2"
+      dependent: "switch-core"
+      provider: "gateway-router"
+      kind: "l3_gateway"
+    - id: "d3"
+      dependent: "gateway-router"
+      provider: "wan-internet"
+      kind: "wan"
+
+device_states:
+  synology-nas: "ok"
+  switch-core: "ok"
+  gateway-router: "ok"
+  wan-internet: "down"
+
+expected:
+  incident_count: 1
+  root_cause_device_id: "wan-internet"
+  root_cause_category: "wan"
+  confidence_min: 0.90
+  key_phrase: "Connessione Internet non disponibile"

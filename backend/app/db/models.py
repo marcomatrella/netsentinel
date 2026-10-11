@@ -82,6 +82,9 @@ class Link(Base):
     throughput_bps: Mapped[float | None] = mapped_column(Float, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
+    from_device = relationship("Device", foreign_keys=[from_device_id])
+    to_device = relationship("Device", foreign_keys=[to_device_id])
+
 
 class Dependency(Base):
     """Dependency relationship ('dependent depends on provider for kind')."""
@@ -95,6 +98,9 @@ class Dependency(Base):
     strength: Mapped[str] = mapped_column(String(16), default="hard")
     source: Mapped[str] = mapped_column(String(16), default="inferred")
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    dependent = relationship("Device", foreign_keys=[dependent_id])
+    provider = relationship("Device", foreign_keys=[provider_id])
 
 
 class Check(Base):

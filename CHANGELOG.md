@@ -7,7 +7,14 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 ## [Unreleased]
 
 ### Aggiunto
-- **Milestone M1**:
+- **Milestone M2**:
+  - Modello del grafo di rete su NetworkX (`TopologyGraph`) con orientamento rispetto al Vantage Point, calcolo percorsi di hop e dipendenze transitive.
+  - Motore di correlazione topologica (`CorrelationEngine`) implementante l'algoritmo in 7 fasi (Sezione 6.3): distinzione tra cause radice e sintomi (`UNREACHABLE` e `AFFECTED`), evidenze positive e negative, confidenza.
+  - Libreria dichiarativa YAML con le 14 regole di diagnosi (`default_rules.yaml`) e valutatore di regole (`RuleEvaluator`).
+  - Gestore del ciclo di vita degli incidenti (`IncidentManager`) con deduplica, rilevamento dello shift della causa radice, cronologia eventi e risoluzione automatica al ripristino.
+  - Documentazione approfondita dell'algoritmo di correlazione con diagramma Mermaid (`docs/correlation.md`).
+  - Suite completa di test guidati da scenari YAML (`scenario_01_wan_loss`, `scenario_02_gateway_down`, `scenario_06_switch_down`, `scenario_07_nas_dhcp_dns_down`, `scenario_11_vantage_point_isolated`, guasti multipli indipendenti, root-cause shift e ciclo di vita API REST).
+  - 25 test unitari e di scenario verdi con 100% di successo.
   - Sistema di collector a plugin (`BaseCollector`, `CollectorRegistry`) con registrazione automatica.
   - Plugin base implementati: `ping` (ICMP con fallback TCP), `tcp_port`, `http` (latenza, status code, SSL, contenuto), `dns` (risoluzione UDP ad alte prestazioni con distinzione resolver down vs upstream SERVFAIL).
   - Motore di isteresi per i controlli (`failure_policy`, `recovery_policy`) e sintesi dello stato dell'apparato (`down`, `degraded`, `ok`, `unreachable`, `flapping`, `unknown`).

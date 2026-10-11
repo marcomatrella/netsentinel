@@ -1,0 +1,34 @@
+name: "Scenario 11 — Vantage Point Isolato"
+description: "Il monitor non riesce a raggiungere il proprio switch o router."
+
+topology:
+  vantage_point: "synology-nas"
+  devices:
+    - id: "synology-nas"
+      name: "Synology NAS"
+      kind: "nas"
+      roles: ["vantage_point"]
+    - id: "switch-core"
+      name: "Core Switch"
+      kind: "switch"
+
+  links:
+    - id: "l1"
+      from: "synology-nas"
+      to: "switch-core"
+
+  dependencies:
+    - id: "d1"
+      dependent: "synology-nas"
+      provider: "switch-core"
+      kind: "l2_path"
+
+device_states:
+  synology-nas: "unknown"
+  switch-core: "down"
+
+expected:
+  incident_count: 1
+  root_cause_category: "vantage_point"
+  confidence_min: 0.90
+  key_phrase: "Vantage Point"

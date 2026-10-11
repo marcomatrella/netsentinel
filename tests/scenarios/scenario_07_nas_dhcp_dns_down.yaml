@@ -1,0 +1,63 @@
+name: "Scenario 7 — NAS / DNS / DHCP Giù"
+description: "Il NAS che ospita DNS e DHCP è offline. I client non risolvono i nomi."
+
+topology:
+  vantage_point: "gateway-router"
+  devices:
+    - id: "gateway-router"
+      name: "Router Gateway"
+      kind: "router"
+      roles: ["vantage_point", "gateway"]
+    - id: "switch-core"
+      name: "Core Switch"
+      kind: "switch"
+    - id: "synology-nas"
+      name: "Synology NAS"
+      kind: "nas"
+      roles: ["dhcp_server", "dns_resolver"]
+    - id: "clients-lan"
+      name: "Client LAN"
+      kind: "client"
+
+  links:
+    - id: "l1"
+      from: "gateway-router"
+      to: "switch-core"
+    - id: "l2"
+      from: "switch-core"
+      to: "synology-nas"
+    - id: "l3"
+      from: "switch-core"
+      to: "clients-lan"
+
+  dependencies:
+    - id: "d1"
+      dependent: "switch-core"
+      provider: "gateway-router"
+      kind: "l2_path"
+    - id: "d2"
+      dependent: "synology-nas"
+      provider: "switch-core"
+      kind: "l2_path"
+    - id: "d3"
+      dependent: "clients-lan"
+      provider: "synology-nas"
+      kind: "dns"
+    - id: "d4"
+      dependent: "clients-lan"
+      provider: "synology-nas"
+      kind: "dhcp"
+
+device_states:
+  gateway-router: "ok"
+  switch-core: "ok"
+  synology-nas: "down"
+  clients-lan: "degraded"
+
+expected:
+  incident_count: 1
+  root_cause_device_id: "synology-nas"
+  root_cause_category: "server"
+  confidence_min: 0.90
+  key_phrase: "NAS offline"
+  symptoms: ["clients-lan"]

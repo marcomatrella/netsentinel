@@ -1,0 +1,66 @@
+name: "Scenario 6 — Switch Giù"
+description: "Lo switch principale è spento. Tutti i nodi collegati ad esso risultano irraggiungibili."
+
+topology:
+  vantage_point: "synology-nas"
+  devices:
+    - id: "synology-nas"
+      name: "Synology NAS"
+      kind: "nas"
+      roles: ["vantage_point"]
+    - id: "switch-core"
+      name: "Core Switch"
+      kind: "switch"
+    - id: "gateway-router"
+      name: "Router Gateway"
+      kind: "router"
+      roles: ["gateway"]
+    - id: "ap-livingroom"
+      name: "Access Point Salotto"
+      kind: "access_point"
+    - id: "home-server"
+      name: "Home Server Pi"
+      kind: "smart_hub"
+
+  links:
+    - id: "l1"
+      from: "synology-nas"
+      to: "switch-core"
+    - id: "l2"
+      from: "switch-core"
+      to: "gateway-router"
+    - id: "l3"
+      from: "switch-core"
+      to: "ap-livingroom"
+    - id: "l4"
+      from: "switch-core"
+      to: "home-server"
+
+  dependencies:
+    - id: "d1"
+      dependent: "gateway-router"
+      provider: "switch-core"
+      kind: "l2_path"
+    - id: "d2"
+      dependent: "ap-livingroom"
+      provider: "switch-core"
+      kind: "l2_path"
+    - id: "d3"
+      dependent: "home-server"
+      provider: "switch-core"
+      kind: "l2_path"
+
+device_states:
+  synology-nas: "ok"
+  switch-core: "down"
+  gateway-router: "down"
+  ap-livingroom: "down"
+  home-server: "down"
+
+expected:
+  incident_count: 1
+  root_cause_device_id: "switch-core"
+  root_cause_category: "network_device"
+  confidence_min: 0.90
+  key_phrase: "Switch principale non raggiungibile"
+  symptoms: ["gateway-router", "ap-livingroom", "home-server"]

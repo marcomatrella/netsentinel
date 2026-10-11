@@ -3,6 +3,7 @@
 from app.api.v1.checks import router as checks_router
 from app.api.v1.devices import router as devices_router
 from app.api.v1.events import router as events_router
+from app.api.v1.incidents import router as incidents_router
 from app.api.v1.observations import router as observations_router
 from fastapi import APIRouter
 
@@ -11,3 +12,4 @@ api_v1_router.include_router(devices_router)
 api_v1_router.include_router(checks_router)
 api_v1_router.include_router(observations_router)
 api_v1_router.include_router(events_router)
+api_v1_router.include_router(incidents_router)

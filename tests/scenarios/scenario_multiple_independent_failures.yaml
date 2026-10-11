@@ -1,0 +1,43 @@
+name: "Scenario Multiplo — Due Guasti Indipendenti Contemporanei"
+description: "Due rami indipendenti della rete si guastano contemporaneamente senza dipendere l'uno dall'altro."
+
+topology:
+  vantage_point: "switch-core"
+  devices:
+    - id: "switch-core"
+      name: "Core Switch"
+      kind: "switch"
+      roles: ["vantage_point"]
+    - id: "ap-livingroom"
+      name: "Access Point Salotto"
+      kind: "access_point"
+    - id: "home-server"
+      name: "Home Assistant Server"
+      kind: "server"
+
+  links:
+    - id: "l1"
+      from: "switch-core"
+      to: "ap-livingroom"
+    - id: "l2"
+      from: "switch-core"
+      to: "home-server"
+
+  dependencies:
+    - id: "d1"
+      dependent: "ap-livingroom"
+      provider: "switch-core"
+      kind: "l2_path"
+    - id: "d2"
+      dependent: "home-server"
+      provider: "switch-core"
+      kind: "l2_path"
+
+device_states:
+  switch-core: "ok"
+  ap-livingroom: "down"
+  home-server: "down"
+
+expected:
+  incident_count: 2
+  root_cause_device_ids: ["ap-livingroom", "home-server"]
