@@ -6,6 +6,38 @@ import networkx as nx
 from app.db.models import Dependency, Device, Link
 from app.schemas.entities import DependencyCreate
 
+DEVICE_HIERARCHY_RANK: dict[str, int] = {
+    "wan_gateway": 0,
+    "router": 1,
+    "firewall": 1,
+    "modem": 1,
+    "switch": 2,
+    "poe_injector": 3,
+    "access_point": 4,
+    "nas": 5,
+    "server": 5,
+    "smart_hub": 5,
+    "service": 5,
+    "ups": 6,
+    "printer": 7,
+    "camera": 7,
+    "nvr": 7,
+    "smart_plug": 7,
+    "sensor": 7,
+    "client": 8,
+    "custom": 7,
+}
+
+
+def _get_device_rank(dev: Device) -> int:
+    """Return structural hierarchy rank for a device (lower number = closer to upstream root)."""
+    roles = json.loads(dev.roles_json) if dev.roles_json else []
+    if "wan_provider" in roles:
+        return 0
+    if "gateway" in roles:
+        return 1
+    return DEVICE_HIERARCHY_RANK.get(dev.kind, 7)
+
 
 def deduce_dependencies_from_topology(
     devices: list[Device],
@@ -29,17 +61,18 @@ def deduce_dependencies_from_topology(
         if link.medium in physical_mediums:
             phys_g.add_edge(link.from_device_id, link.to_device_id, link=link)
 
-    # Calculate distance from vantage point
-    distances: dict[str, int] = {}
-    if vantage_point_id and vantage_point_id in phys_g:
-        try:
-            lengths = nx.single_source_shortest_path_length(phys_g, vantage_point_id)
-            distances = lengths
-        except Exception:
-            pass
-
-    def get_dist(dev_id: str) -> int:
-        return distances.get(dev_id, 999)
+    # Calculate distance to upstream network root (WAN or Gateway/Router)
+    root_nodes = [d.id for d in devices if _get_device_rank(d) <= 1]
+    root_distances: dict[str, int] = {}
+    for r_id in root_nodes:
+        if r_id in phys_g:
+            try:
+                lens = nx.single_source_shortest_path_length(phys_g, r_id)
+                for nid, dist in lens.items():
+                    if nid not in root_distances or dist < root_distances[nid]:
+                        root_distances[nid] = dist
+            except Exception:
+                pass
 
     # 1. Deduce from physical links (ethernet, poe, wifi, wan, power, logical)
     for link in links:
@@ -51,34 +84,40 @@ def deduce_dependencies_from_topology(
         if not src_dev or not dst_dev:
             continue
 
-        # Rule: Ethernet
+        # Rule: Ethernet (Downstream device depends on Upstream device)
         if link.medium == "ethernet":
-            d_src = get_dist(src_id)
-            d_dst = get_dist(dst_id)
-            if d_src > d_dst:
-                dep_id = f"dep-l2-{src_id}-{dst_id}"
-                reason = f"Dedotta perché '{src_dev.name}' è collegato via Ethernet a '{dst_dev.name}' che è più vicino al Vantage Point."
-                deduced_list.append(DependencyCreate(
-                    id=dep_id,
-                    dependent_id=src_id,
-                    provider_id=dst_id,
-                    kind="l2_path",
-                    strength="hard",
-                    source="inferred",
-                    reason=reason,
-                ))
-            elif d_dst > d_src:
-                dep_id = f"dep-l2-{dst_id}-{src_id}"
-                reason = f"Dedotta perché '{dst_dev.name}' è collegato via Ethernet a '{src_dev.name}' che è più vicino al Vantage Point."
-                deduced_list.append(DependencyCreate(
-                    id=dep_id,
-                    dependent_id=dst_id,
-                    provider_id=src_id,
-                    kind="l2_path",
-                    strength="hard",
-                    source="inferred",
-                    reason=reason,
-                ))
+            rank_src = _get_device_rank(src_dev)
+            rank_dst = _get_device_rank(dst_dev)
+
+            if rank_src > rank_dst:
+                # src is lower in hierarchy than dst (e.g. Switch vs Router, or NAS vs Switch)
+                dep_dev, prov_dev = src_dev, dst_dev
+            elif rank_dst > rank_src:
+                # dst is lower in hierarchy than src
+                dep_dev, prov_dev = dst_dev, src_dev
+            else:
+                # Equal rank (e.g. two switches): compare distance to network root (Gateway)
+                d_src_root = root_distances.get(src_id, 999)
+                d_dst_root = root_distances.get(dst_id, 999)
+                if d_src_root > d_dst_root:
+                    dep_dev, prov_dev = src_dev, dst_dev
+                elif d_dst_root > d_src_root:
+                    dep_dev, prov_dev = dst_dev, src_dev
+                else:
+                    # Fallback to link direction (from -> to)
+                    dep_dev, prov_dev = dst_dev, src_dev
+
+            dep_id = f"dep-l2-{dep_dev.id}-{prov_dev.id}"
+            reason = f"Dedotta perché '{dep_dev.name}' è collegato via Ethernet a '{prov_dev.name}' lungo il percorso verso il Gateway/Core."
+            deduced_list.append(DependencyCreate(
+                id=dep_id,
+                dependent_id=dep_dev.id,
+                provider_id=prov_dev.id,
+                kind="l2_path",
+                strength="hard",
+                source="inferred",
+                reason=reason,
+            ))
 
         # Rule: PoE (L2 path + power)
         elif link.medium == "poe":

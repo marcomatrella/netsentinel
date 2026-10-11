@@ -263,3 +263,40 @@ async def test_assign_network_roles_endpoint():
         assert len(dns_deps) == 1
         assert dns_deps[0]["provider_id"] == "nas"
 
+
+def test_cascading_router_switch_devices_dependency_direction():
+    """Verify that in a cascade of Router -> Switch -> Devices, Router does NOT depend on Switch."""
+    import json
+
+    devices = [
+        Device(id="router-gw", name="Router Gateway", kind="router", roles_json=json.dumps(["gateway"])),
+        Device(id="switch-netgear", name="Switch Netgear", kind="switch", roles_json=json.dumps([])),
+        Device(id="nas-storage", name="NAS Synology", kind="nas", roles_json=json.dumps(["vantage_point"])),
+        Device(id="pc-client", name="Workstation", kind="client", roles_json=json.dumps([])),
+    ]
+
+    links = [
+        Link(id="l1", from_device_id="router-gw", to_device_id="switch-netgear", medium="ethernet", poe=False),
+        Link(id="l2", from_device_id="switch-netgear", to_device_id="nas-storage", medium="ethernet", poe=False),
+        Link(id="l3", from_device_id="switch-netgear", to_device_id="pc-client", medium="ethernet", poe=False),
+    ]
+
+    # Even if vantage point is on the downstream NAS:
+    deduced = deduce_dependencies_from_topology(devices, links, vantage_point_id="nas-storage")
+    deduced_set = {(d.dependent_id, d.provider_id, d.kind) for d in deduced}
+
+    # 1. Switch MUST depend on Router for L2 path
+    assert ("switch-netgear", "router-gw", "l2_path") in deduced_set
+
+    # 2. Router MUST NOT depend on Switch!
+    assert ("router-gw", "switch-netgear", "l2_path") not in deduced_set
+
+    # 3. NAS and Client MUST depend on Switch for L2 path
+    assert ("nas-storage", "switch-netgear", "l2_path") in deduced_set
+    assert ("pc-client", "switch-netgear", "l2_path") in deduced_set
+
+    # 4. Switch MUST NOT depend on NAS or Client
+    assert ("switch-netgear", "nas-storage", "l2_path") not in deduced_set
+    assert ("switch-netgear", "pc-client", "l2_path") not in deduced_set
+
+
