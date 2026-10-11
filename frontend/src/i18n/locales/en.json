@@ -270,6 +270,8 @@
     "scan_subtitle": "Discovering active devices, router gateway, and servers on the local subnet...",
     "scan_button": "Scan Network",
     "rescan_button": "Rescan Network",
+    "subnet_label": "Subnet",
+    "subnet_placeholder": "e.g. 192.168.1.0/24",
     "scan_empty": "No devices discovered automatically on the local subnet.",
     "scan_empty_hint": "You can add your devices manually using the form on the left.",
     "add_device": "Add a Device",

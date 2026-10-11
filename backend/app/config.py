@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     # Frontend static files directory
     static_dir: str = "frontend/dist"
 
+    # Subnet override for discovery (e.g. '192.168.1.0/24')
+    subnet: str | None = None
+
     def resolve_paths(self) -> None:
         """Ensure directories exist and resolve absolute database path."""
         path = Path(self.data_dir).resolve()

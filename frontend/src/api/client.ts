@@ -306,8 +306,9 @@ export interface NetworkScanResult {
   devices: DiscoveredDeviceItem[];
 }
 
-export async function scanNetwork(): Promise<NetworkScanResult> {
-  const res = await fetch(`${API_BASE}/discovery/scan`);
+export async function scanNetwork(subnet?: string): Promise<NetworkScanResult> {
+  const url = subnet ? `${API_BASE}/discovery/scan?subnet=${encodeURIComponent(subnet)}` : `${API_BASE}/discovery/scan`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Errore durante la scansione della rete.');
   return res.json();
 }

@@ -42,6 +42,9 @@ services:
       - NETSENTINEL_DATA_DIR=/data
       - NETSENTINEL_PORT=8080
       - NETSENTINEL_SECRET_KEY=  # Optional: provide a 32-byte Fernet key or let NetSentinel generate one
+      # Target LAN subnet to scan (optional - auto-detected if omitted):
+      # Especially useful for Docker Desktop on macOS/Windows to scan the host LAN instead of Docker bridge
+      # - NETSENTINEL_SUBNET=192.168.1.0/24
       # - NETSENTINEL_HEARTBEAT_URL=https://hc-ping.com/your-uuid-here
 
     # Optional resource constraints (commented out by default because Synology DSM and

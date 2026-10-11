@@ -9,7 +9,8 @@ import struct
 import subprocess
 
 from app.collector.plugins.ping import PingCollector
-from fastapi import APIRouter
+from app.config import settings
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/discovery", tags=["Discovery"])
@@ -113,7 +114,6 @@ def _get_arp_table() -> list[dict[str, str]]:
             logger.debug("Failed reading /proc/net/arp: %s", e)
 
     try:
-        # Use -an to avoid DNS lookups
         out = subprocess.check_output(["arp", "-an"], text=True, timeout=1.5)
         for line in out.splitlines():
             m = re.search(r"\(([\d\.]+)\) at ([0-9a-fA-F:]+)", line)
@@ -140,7 +140,7 @@ async def _probe_port(ip: str, port: int, timeout: float = 0.3) -> bool:
         return False
 
 
-async def _ping_host(ip: str, timeout: float = 1.0) -> tuple[bool, float | None]:
+async def _ping_host(ip: str, timeout: float = 0.6) -> tuple[bool, float | None]:
     """Perform reachability ping using PingCollector."""
     try:
         collector = PingCollector()
@@ -155,30 +155,76 @@ async def _ping_host(ip: str, timeout: float = 1.0) -> tuple[bool, float | None]
     except Exception:
         pass
 
-    # Quick TCP fallback on common web/ssh/dns ports
+    # Quick TCP fallback on common ports
     for p in [80, 443, 22, 53]:
-        if await _probe_port(ip, p, timeout=0.3):
+        if await _probe_port(ip, p, timeout=0.2):
             return True, 5.0
 
     return False, None
 
 
 async def _resolve_hostname(ip: str) -> str | None:
-    """Reverse resolve hostname asynchronously with strict timeout."""
+    """Reverse resolve hostname asynchronously with strict timeout and clean formatting."""
     try:
         loop = asyncio.get_running_loop()
         name, _, _ = await asyncio.wait_for(
             loop.run_in_executor(None, socket.gethostbyaddr, ip),
             timeout=0.35,
         )
-        # Strip trailing .lan, .local, etc. if clean
-        if name and "." in name:
-            short = name.split(".")[0]
-            if len(short) > 2:
-                return short
+        if not name:
+            return None
+        # Strip common local domain extensions
+        for suffix in [".lan", ".local", ".home", ".internal", ".broadband"]:
+            if name.endswith(suffix):
+                name = name[:-len(suffix)]
+        # Filter out generic dashed IPs (e.g. 192-168-1-5 or host-872d7d60)
+        if re.match(r"^\d+-\d+-\d+-\d+$", name) or re.match(r"^host-[0-9a-fA-F]+$", name):
+            return None
         return name
     except Exception:
         return None
+
+
+async def _detect_physical_gateway() -> tuple[str, str] | None:
+    """Probes candidate home gateways to detect physical LAN when running in Docker bridge."""
+    candidates = [
+        "192.168.1.1",
+        "192.168.0.1",
+        "192.168.178.1",
+        "192.168.2.1",
+        "10.0.0.1",
+        "10.0.1.1",
+        "192.168.1.254",
+    ]
+    collector = PingCollector()
+
+    async def check(gw_ip: str) -> str | None:
+        try:
+            res = await collector.collect(gw_ip, params={"count": 1, "timeout_seconds": 0.4})
+            if res.observations and res.observations[0].status == "ok":
+                return gw_ip
+        except Exception:
+            pass
+        for port in [80, 443, 53, 8080]:
+            if await _probe_port(gw_ip, port, timeout=0.25):
+                return gw_ip
+        return None
+
+    results = await asyncio.gather(*[check(ip) for ip in candidates])
+    for r in results:
+        if r:
+            prefix = ".".join(r.split(".")[:3])
+            return r, f"{prefix}.0/24"
+    return None
+
+
+def _parse_subnet_prefix(sub: str) -> str:
+    """Extract 3-octet subnet prefix from CIDR or IP (e.g. '192.168.1.0/24' -> '192.168.1')."""
+    cleaned = sub.strip().split("/")[0]
+    parts = cleaned.split(".")
+    if len(parts) >= 3:
+        return ".".join(parts[:3])
+    return "192.168.1"
 
 
 async def _analyze_device(
@@ -193,14 +239,14 @@ async def _analyze_device(
         is_gw = bool(gateway_ip and ip == gateway_ip)
         is_local = (ip == local_ip)
 
-        # Reachability
-        reachable, rtt = await _ping_host(ip, timeout=0.8)
+        # Reachability test
+        reachable, rtt = await _ping_host(ip, timeout=0.6)
 
         # Port checks in parallel
         ports_to_check = [53, 80, 443, 5000, 8006, 8123, 8080, 3493]
         open_ports = set()
         port_results = await asyncio.gather(
-            *[_probe_port(ip, p, timeout=0.3) for p in ports_to_check],
+            *[_probe_port(ip, p, timeout=0.25) for p in ports_to_check],
             return_exceptions=True,
         )
         for p, result in zip(ports_to_check, port_results, strict=False):
@@ -209,55 +255,83 @@ async def _analyze_device(
 
         # Reverse DNS lookup
         hostname = await _resolve_hostname(ip)
+        h_lower = (hostname or "").lower()
 
         roles: list[str] = []
         if 53 in open_ports:
             roles.append("dns_resolver")
 
-        # Determine device kind and friendly name
-        if is_gw:
+        # Refined device classification
+        if is_gw or any(k in h_lower for k in ["router", "gateway", "udm", "fritz", "pfsense", "opnsense"]):
             kind = "router"
             roles.extend(["gateway", "dhcp_server"])
             if "dns_resolver" not in roles:
                 roles.append("dns_resolver")
-            name = hostname or "Router Gateway"
+            name = f"Router Gateway ({hostname})" if hostname else f"Router Gateway ({ip})"
             loc = "Ingresso / Rack"
+        elif any(k in h_lower for k in ["switch", "netgear", "cisco"]) or h_lower.startswith("sw-"):
+            kind = "switch"
+            name = f"Switch Netgear ({hostname})" if "netgear" in h_lower else f"Switch ({hostname or ip})"
+            loc = "Rete"
+        elif any(k in h_lower for k in ["synology", "qnap", "truenas", "unraid"]) or ("nas" in h_lower and "homepod" not in h_lower):
+            kind = "nas"
+            name = f"NAS Synology ({hostname})" if "synology" in h_lower else f"NAS Storage ({hostname or ip})"
+            loc = "Storage / Rack"
+        elif any(k in h_lower for k in ["u7pro", "unifi", "accesspoint", "eap", "wap"]):
+            kind = "access_point"
+            name = f"Access Point UniFi ({hostname})" if ("u7" in h_lower or "unifi" in h_lower) else f"Access Point ({hostname or ip})"
+            loc = "Wireless"
+        elif any(k in h_lower for k in ["homeassistant", "hass", "tado", "bridge", "netatmo", "hue", "shelly", "tapparella", "hub", "plug", "meross"]) or 8123 in open_ports:
+            kind = "smart_hub"
+            roles.append("service")
+            name = f"Home Assistant Hub" if ("homeassistant" in h_lower or "hass" in h_lower) else f"Smart Hub ({hostname or ip})"
+            loc = "Domotica"
+        elif any(k in h_lower for k in ["proxmox", "pve", "esxi", "server"]) or 8006 in open_ports:
+            kind = "server"
+            name = f"Server Proxmox VE ({hostname})" if "proxmox" in h_lower else f"Server ({hostname or ip})"
+            loc = "Server / Rack"
+        elif any(k in h_lower for k in ["ups", "apc", "eaton", "nut"]) or 3493 in open_ports:
+            kind = "ups"
+            roles.append("power_provider")
+            name = f"UPS Gruppo Continuità ({hostname or ip})"
+            loc = "Alimentazione"
+        elif any(k in h_lower for k in ["mbp", "macbook", "imac", "mac-mini"]):
+            kind = "server"
+            roles.append("vantage_point")
+            name = f"MacBook Pro NetSentinel ({hostname})"
+            loc = "Host NetSentinel"
+        elif "homepod" in h_lower:
+            kind = "client"
+            name = f"Apple HomePod ({hostname})"
+            loc = "Salotto"
+        elif any(k in h_lower for k in ["iphone", "ipad", "watch", "phone"]):
+            kind = "client"
+            name = hostname.replace("-", " ").title() if hostname else f"Client {ip}"
+            loc = "Mobile"
+        elif any(k in h_lower for k in ["tv", "lgwebos"]):
+            kind = "client"
+            name = f"Smart TV ({hostname or ip})"
+            loc = "Salotto"
+        elif any(k in h_lower for k in ["air-di", "z-fold", "galaxy", "pixel", "samsung", "dishwasher", "refrigerator"]):
+            kind = "client"
+            name = hostname.replace("-", " ").title() if hostname else f"Client {ip}"
+            loc = "Client"
         elif is_local:
-            # NetSentinel Host
-            if 5000 in open_ports:
-                kind = "nas"
-                name = hostname or "NAS Synology (Host NetSentinel)"
-            else:
-                kind = "server"
-                name = hostname or "Server NetSentinel (Host)"
+            kind = "server"
+            name = f"Server NetSentinel Host ({hostname or ip})"
             roles.append("vantage_point")
             loc = "Rack Salotto"
         elif 5000 in open_ports:
             kind = "nas"
-            name = hostname or f"NAS Storage ({ip})"
+            name = f"NAS Storage ({hostname or ip})"
             loc = "Storage / Rack"
-        elif 8006 in open_ports:
-            kind = "server"
-            name = hostname or f"Server Proxmox VE ({ip})"
-            loc = "Server / Rack"
-        elif 8123 in open_ports:
-            kind = "smart_hub"
-            name = hostname or "Home Assistant Hub"
-            roles.append("service")
-            loc = "Domotica"
-        elif 3493 in open_ports:
-            kind = "ups"
-            name = hostname or "UPS Gruppo Continuità"
-            roles.append("power_provider")
-            loc = "Alimentazione"
         elif 8080 in open_ports:
             kind = "access_point"
-            name = hostname or f"Access Point Wi-Fi ({ip})"
+            name = f"Access Point Wi-Fi ({hostname or ip})"
             loc = "Wireless"
         elif 80 in open_ports or 443 in open_ports:
-            # Could be switch, smart plug, or web device
             kind = "switch"
-            name = hostname or f"Switch / Web Device ({ip})"
+            name = f"Dispositivo Rete ({hostname or ip})"
             loc = "Rete"
         else:
             kind = "client"
@@ -273,7 +347,7 @@ async def _analyze_device(
             kind=kind,
             ip=ip,
             mac=mac,
-            roles=list(dict.fromkeys(roles)),  # deduplicate
+            roles=list(dict.fromkeys(roles)),
             location=loc,
             reachable=reachable,
             rtt_ms=rtt,
@@ -283,87 +357,135 @@ async def _analyze_device(
 
 
 @router.get("/scan", response_model=NetworkScanResponse, summary="Scansione automatica apparati di rete")
-async def scan_network() -> NetworkScanResponse:
-    """Scans the local network, discovers active devices via ARP table, routing, and concurrent reachability probes."""
+async def scan_network(
+    subnet: str | None = Query(default=None, description="Subnet da scansionare (es. 192.168.1.0/24)")
+) -> NetworkScanResponse:
+    """Scans the network, discovers active devices via concurrent ping sweeps and service analysis."""
     local_ip = _get_local_ip()
     gateway_ip = _get_default_gateway()
 
-    subnet = None
-    if local_ip and "." in local_ip:
+    target_subnet_str = subnet or settings.subnet
+    is_docker_bridge = local_ip.startswith("172.") or local_ip.startswith("127.") or local_ip.startswith("10.0.2.")
+
+    # Auto-detect physical LAN gateway when running inside Docker bridge
+    detected_gw = None
+    if not target_subnet_str and is_docker_bridge:
+        res = await _detect_physical_gateway()
+        if res:
+            detected_gw, target_subnet_str = res
+            gateway_ip = detected_gw
+            logger.info("Auto-detected physical LAN gateway %s and subnet %s from Docker bridge", gateway_ip, target_subnet_str)
+
+    if target_subnet_str:
+        prefix = _parse_subnet_prefix(target_subnet_str)
+        subnet_cidr = f"{prefix}.0/24"
+        if not gateway_ip or (is_docker_bridge and gateway_ip.startswith("172.")):
+            gateway_ip = detected_gw or f"{prefix}.1"
+    elif local_ip and "." in local_ip:
         prefix = ".".join(local_ip.split(".")[:3])
-        subnet = f"{prefix}.0/24"
+        subnet_cidr = f"{prefix}.0/24"
     else:
         prefix = "192.168.1"
-        subnet = "192.168.1.0/24"
+        subnet_cidr = "192.168.1.0/24"
 
-    # Collect IP candidates from Gateway, Local host, and ARP table
-    candidates: dict[str, str | None] = {}
+    # Fast ping sweep across target subnet
+    sweep_sem = asyncio.Semaphore(80)
+    collector = PingCollector()
+    alive_ips: dict[str, float | None] = {}
+
+    async def _sweep_ping(ip: str) -> None:
+        async with sweep_sem:
+            try:
+                res = await collector.collect(ip, params={"count": 1, "timeout_seconds": 0.5})
+                if res.observations and res.observations[0].status == "ok":
+                    rtt = res.observations[0].value
+                    alive_ips[ip] = float(rtt) if rtt is not None else None
+            except Exception:
+                pass
+
+    sweep_tasks = [_sweep_ping(f"{prefix}.{i}") for i in range(1, 255)]
+    await asyncio.gather(*sweep_tasks)
+
+    # Candidates dictionary (IP -> MAC)
+    candidates: dict[str, str | None] = {ip: None for ip in alive_ips}
 
     if gateway_ip:
         candidates[gateway_ip] = None
-    if local_ip and local_ip != "127.0.0.1":
-        candidates[local_ip] = None
 
-    # Retrieve ARP table entries
+    # Retrieve ARP table entries (useful if host network or local ARP cache has them)
     arp_entries = _get_arp_table()
     for entry in arp_entries:
         ip = entry["ip"]
         mac = entry.get("mac")
-        if ip not in candidates:
+        if ip.startswith(f"{prefix}."):
             candidates[ip] = mac
 
-    # If ARP table has few entries, probe common IPs on the subnet to populate
-    if len(candidates) < 4:
-        common_hosts = [1, 2, 3, 4, 10, 20, 50, 60, 70, 80, 100, 200, 254]
-        for host in common_hosts:
-            candidate_ip = f"{prefix}.{host}"
-            if candidate_ip not in candidates:
-                candidates[candidate_ip] = None
+    # Filter out internal Docker bridge IPs if we are scanning a physical subnet
+    if is_docker_bridge and not prefix.startswith("172."):
+        candidates.pop(local_ip, None)
+        if gateway_ip and gateway_ip.startswith("172."):
+            candidates.pop(gateway_ip, None)
 
-    semaphore = asyncio.Semaphore(15)
-    tasks = [
-        _analyze_device(ip, mac, gateway_ip, local_ip, semaphore)
+    # Analyze all candidate devices concurrently
+    analyze_sem = asyncio.Semaphore(25)
+    analyze_tasks = [
+        _analyze_device(ip, mac, gateway_ip, local_ip, analyze_sem)
         for ip, mac in candidates.items()
     ]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    results = await asyncio.gather(*analyze_tasks, return_exceptions=True)
 
     discovered: list[DiscoveredDevice] = []
     for r in results:
         if isinstance(r, DiscoveredDevice):
-            # Only keep devices that are reachable, or are gateway/local, or have a valid MAC
+            # Only keep devices that are reachable or gateway
             if r.reachable or r.is_gateway or r.is_vantage_point or (r.mac and r.mac != "(incomplete)"):
                 discovered.append(r)
 
-    # Sort logically: Gateway first, then Vantage Point, then Infrastructure (Switch/AP), then Servers, then Clients
+    # If running in Docker bridge and an MBP/host machine exists, mark it as vantage point candidate
+    if is_docker_bridge:
+        host_candidate = next((d for d in discovered if any(k in d.name.lower() for k in ["mbp", "macbook", "host", "nas", "synology"])), None)
+        if host_candidate and not any(d.is_vantage_point for d in discovered):
+            host_candidate.is_vantage_point = True
+            if "vantage_point" not in host_candidate.roles:
+                host_candidate.roles.append("vantage_point")
+
+    # Sort devices logically: Gateway -> Vantage Point -> Switch -> AP -> NAS -> Server -> UPS -> Smart Hub -> Clients
     def sort_key(d: DiscoveredDevice) -> tuple[int, str]:
         if d.is_gateway:
             return (0, d.ip)
         if d.is_vantage_point:
             return (1, d.ip)
-        order = {"switch": 2, "access_point": 3, "nas": 4, "server": 5, "ups": 6, "smart_hub": 7, "client": 8}
+        order = {
+            "switch": 2,
+            "access_point": 3,
+            "nas": 4,
+            "server": 5,
+            "ups": 6,
+            "smart_hub": 7,
+            "client": 8,
+        }
         return (order.get(d.kind, 9), d.ip)
 
     discovered.sort(key=sort_key)
 
-    # Upstream Internet WAN Node if gateway exists
-    if gateway_ip:
-        wan_node = DiscoveredDevice(
-            id="wan-internet-provider",
-            name="Internet WAN",
-            kind="wan_gateway",
-            ip="1.1.1.1",
-            mac=None,
-            roles=["wan_provider"],
-            location="Esterno / WAN",
-            reachable=True,
-            rtt_ms=None,
-            is_gateway=False,
-            is_vantage_point=False,
-        )
-        discovered.insert(0, wan_node)
+    # Upstream Internet WAN Node
+    wan_node = DiscoveredDevice(
+        id="wan-internet-provider",
+        name="Internet WAN",
+        kind="wan_gateway",
+        ip="1.1.1.1",
+        mac=None,
+        roles=["wan_provider"],
+        location="Esterno / WAN",
+        reachable=True,
+        rtt_ms=None,
+        is_gateway=False,
+        is_vantage_point=False,
+    )
+    discovered.insert(0, wan_node)
 
     return NetworkScanResponse(
-        subnet=subnet,
+        subnet=subnet_cidr,
         gateway_ip=gateway_ip,
         local_ip=local_ip,
         devices=discovered,

@@ -270,6 +270,8 @@
     "scan_subtitle": "Rilevamento apparati attivi, router gateway e server sulla sottorete locale...",
     "scan_button": "Scansiona Rete",
     "rescan_button": "Riscansiona Rete",
+    "subnet_label": "Sottorete",
+    "subnet_placeholder": "es. 192.168.1.0/24",
     "scan_empty": "Nessun apparato rilevato automaticamente sulla sottorete locale.",
     "scan_empty_hint": "Puoi aggiungere manualmente i tuoi apparati usando il modulo a sinistra.",
     "add_device": "Aggiungi un apparato",

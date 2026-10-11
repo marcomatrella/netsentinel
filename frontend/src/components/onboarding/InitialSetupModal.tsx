@@ -128,10 +128,11 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   };
 
   // Automatic network scan handler
-  const handleScanNetwork = async () => {
+  const handleScanNetwork = async (subnetToScan?: string) => {
     setIsScanning(true);
     try {
-      const data = await scanNetwork();
+      const targetSubnet = subnetToScan !== undefined ? subnetToScan : scanSubnet;
+      const data = await scanNetwork(targetSubnet ? targetSubnet.trim() : undefined);
       if (data.subnet) setScanSubnet(data.subnet);
       if (data.devices && data.devices.length > 0) {
         const scannedDevs: Device[] = data.devices.map((d) => ({
@@ -892,7 +893,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 {/* Right: Configured Devices List */}
                 <div className="col-span-7 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden">
                   <div>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-3 gap-2">
                       <div>
                         <h3 className="font-bold text-slate-200 text-sm">
                           {t('wizard.configured_devices', { count: devices.length })}
@@ -901,16 +902,31 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                           {t('wizard.configured_devices_desc')}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleScanNetwork}
-                        disabled={isScanning}
-                        className="px-2.5 py-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 rounded-lg text-xs font-medium transition flex items-center gap-1.5 disabled:opacity-50"
-                        title={t('wizard.rescan_button')}
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-                        <span>{isScanning ? t('wizard.scan_in_progress') : t('wizard.rescan_button')}</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-xs">
+                          <span className="text-slate-400 mr-1.5 text-[11px] font-medium">{t('wizard.subnet_label')}:</span>
+                          <input
+                            type="text"
+                            value={scanSubnet}
+                            onChange={(e) => setScanSubnet(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleScanNetwork(scanSubnet);
+                            }}
+                            placeholder={t('wizard.subnet_placeholder')}
+                            className="bg-transparent text-sky-300 font-mono text-xs w-28 focus:outline-none placeholder:text-slate-600"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleScanNetwork(scanSubnet)}
+                          disabled={isScanning}
+                          className="px-2.5 py-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 rounded-lg text-xs font-medium transition flex items-center gap-1.5 disabled:opacity-50"
+                          title={t('wizard.rescan_button')}
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
+                          <span className="hidden sm:inline">{isScanning ? t('wizard.scan_in_progress') : t('wizard.rescan_button')}</span>
+                        </button>
+                      </div>
                     </div>
 
                     {isScanning ? (
@@ -932,7 +948,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                         <p className="text-[11px] text-slate-500 max-w-xs">{t('wizard.scan_empty_hint')}</p>
                         <button
                           type="button"
-                          onClick={handleScanNetwork}
+                          onClick={() => handleScanNetwork(scanSubnet)}
                           className="mt-2 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5 shadow"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
