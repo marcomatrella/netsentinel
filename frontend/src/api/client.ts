@@ -285,3 +285,46 @@ export async function fetchNotificationLogs(limit: number = 20): Promise<any[]> 
   return res.json();
 }
 
+export interface DiscoveredDeviceItem {
+  id: string;
+  name: string;
+  kind: string;
+  ip: string;
+  mac?: string;
+  roles: string[];
+  location: string;
+  reachable: boolean;
+  rtt_ms?: number | null;
+  is_gateway: boolean;
+  is_vantage_point: boolean;
+}
+
+export interface NetworkScanResult {
+  subnet?: string;
+  gateway_ip?: string;
+  local_ip?: string;
+  devices: DiscoveredDeviceItem[];
+}
+
+export async function scanNetwork(): Promise<NetworkScanResult> {
+  const res = await fetch(`${API_BASE}/discovery/scan`);
+  if (!res.ok) throw new Error('Errore durante la scansione della rete.');
+  return res.json();
+}
+
+export async function quickPing(target: string, timeoutSeconds: number = 1.5): Promise<{
+  target: string;
+  reachable: boolean;
+  rtt_ms?: number | null;
+  message?: string;
+}> {
+  const res = await fetch(`${API_BASE}/discovery/ping`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target, timeout_seconds: timeoutSeconds }),
+  });
+  if (!res.ok) throw new Error('Errore durante il test di raggiungibilità ping.');
+  return res.json();
+}
+
+

@@ -20,9 +20,19 @@ import {
   Radio,
   FileCheck,
   Edit3,
+  AlertTriangle,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
+import { useTranslation } from '../../i18n/I18nContext';
 import { Device, DeviceKind, Link, LinkMedium, FullTopology } from '../../types';
-import { fetchTopologyTemplates, applyTopology, deduceDependencies } from '../../api/client';
+import {
+  fetchTopologyTemplates,
+  applyTopology,
+  deduceDependencies,
+  scanNetwork,
+  quickPing,
+} from '../../api/client';
 import { getLayoutedElements } from '../../utils/elkLayout';
 
 interface InitialSetupModalProps {
@@ -40,15 +50,15 @@ const DEVICE_CATEGORIES: Array<{
   defaultRoles: string[];
   defaultIp: string;
 }> = [
-  { kind: 'router', label: 'Router / Gateway', defaultName: 'Router Gateway', icon: RouterIcon, defaultRoles: ['dhcp_server', 'dns_resolver'], defaultIp: '192.168.1.1' },
+  { kind: 'router', label: 'Router / Gateway', defaultName: 'Router Gateway', icon: RouterIcon, defaultRoles: ['gateway', 'dhcp_server', 'dns_resolver'], defaultIp: '192.168.1.1' },
   { kind: 'switch', label: 'Switch di Rete', defaultName: 'Switch Core PoE', icon: Network, defaultRoles: [], defaultIp: '192.168.1.2' },
   { kind: 'access_point', label: 'Access Point Wi-Fi', defaultName: 'AP Wi-Fi Salotto', icon: Wifi, defaultRoles: [], defaultIp: '192.168.1.20' },
-  { kind: 'nas', label: 'NAS / Storage Server', defaultName: 'NAS Storage Casa', icon: HardDrive, defaultRoles: ['vantage_point'], defaultIp: '192.168.1.50' },
-  { kind: 'ups', label: 'UPS Gruppo Continuità', defaultName: 'UPS APC 1500VA', icon: Zap, defaultRoles: ['power_provider'], defaultIp: '192.168.1.10' },
+  { kind: 'nas', label: 'NAS / Storage Server', defaultName: 'NAS Storage', icon: HardDrive, defaultRoles: [], defaultIp: '192.168.1.50' },
+  { kind: 'ups', label: 'UPS Gruppo Continuità', defaultName: 'UPS Gruppo Continuità', icon: Zap, defaultRoles: ['power_provider'], defaultIp: '192.168.1.10' },
   { kind: 'server', label: 'Server / Hypervisor', defaultName: 'Server Proxmox VE', icon: Server, defaultRoles: [], defaultIp: '192.168.1.60' },
-  { kind: 'smart_hub', label: 'Server Domotico', defaultName: 'Home Assistant Hub', icon: Cpu, defaultRoles: [], defaultIp: '192.168.1.70' },
-  { kind: 'wan_gateway', label: 'Internet / WAN', defaultName: 'Linea Fibra Ottica', icon: Globe, defaultRoles: ['wan_provider'], defaultIp: '192.168.1.254' },
-  { kind: 'client', label: 'Client / TV / Workstation', defaultName: 'PC Workstation', icon: Smartphone, defaultRoles: [], defaultIp: '192.168.1.100' },
+  { kind: 'smart_hub', label: 'Server Domotico', defaultName: 'Home Assistant Hub', icon: Cpu, defaultRoles: ['service'], defaultIp: '192.168.1.70' },
+  { kind: 'wan_gateway', label: 'Internet / WAN Upstream', defaultName: 'Internet WAN', icon: Globe, defaultRoles: ['wan_provider'], defaultIp: '1.1.1.1' },
+  { kind: 'client', label: 'Client / Workstation', defaultName: 'PC Workstation', icon: Smartphone, defaultRoles: [], defaultIp: '192.168.1.100' },
 ];
 
 export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
@@ -57,6 +67,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   onTopologyApplied,
   onStartManualDrawing,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'guided' | 'templates' | 'canvas'>('guided');
   const [guidedStep, setGuidedStep] = useState<number>(1);
 
@@ -65,14 +76,23 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   const [links, setLinks] = useState<Link[]>([]);
   const [vantagePointId, setVantagePointId] = useState<string>('');
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
-  const [dnsServerId, setDnsServerId] = useState<string>('router-gw');
-  const [dhcpServerId, setDhcpServerId] = useState<string>('router-gw');
+  const [dnsServerId, setDnsServerId] = useState<string>('');
+  const [dhcpServerId, setDhcpServerId] = useState<string>('');
+
+  // Scanning & Reachability state
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [scanSubnet, setScanSubnet] = useState<string>('');
+  const [reachabilityMap, setReachabilityMap] = useState<
+    Record<string, { reachable: boolean; checking: boolean; rtt_ms?: number | null }>
+  >({});
 
   // Add device form state
   const [newKind, setNewKind] = useState<DeviceKind>('switch');
   const [newName, setNewName] = useState<string>('');
   const [newIp, setNewIp] = useState<string>('');
   const [newLocation, setNewLocation] = useState<string>('Casa');
+  const [isDnsServer, setIsDnsServer] = useState<boolean>(false);
+  const [isDhcpServer, setIsDhcpServer] = useState<boolean>(false);
 
   // Add link form state
   const [linkFrom, setLinkFrom] = useState<string>('');
@@ -86,66 +106,82 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   const [loadingTemplates, setLoadingTemplates] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
+  // Reachability check helper
+  const checkDeviceReachability = async (deviceId: string, ip?: string) => {
+    if (!ip || ip.trim() === '') return;
+    setReachabilityMap((prev) => ({
+      ...prev,
+      [deviceId]: { reachable: true, checking: true },
+    }));
+    try {
+      const res = await quickPing(ip.trim(), 1.5);
+      setReachabilityMap((prev) => ({
+        ...prev,
+        [deviceId]: { reachable: res.reachable, checking: false, rtt_ms: res.rtt_ms },
+      }));
+    } catch {
+      setReachabilityMap((prev) => ({
+        ...prev,
+        [deviceId]: { reachable: false, checking: false },
+      }));
+    }
+  };
+
+  // Automatic network scan handler
+  const handleScanNetwork = async () => {
+    setIsScanning(true);
+    try {
+      const data = await scanNetwork();
+      if (data.subnet) setScanSubnet(data.subnet);
+      if (data.devices && data.devices.length > 0) {
+        const scannedDevs: Device[] = data.devices.map((d) => ({
+          id: d.id,
+          name: d.name,
+          kind: d.kind as DeviceKind,
+          location: d.location || 'LAN',
+          criticality: d.kind === 'router' || d.is_gateway ? 5 : d.kind === 'switch' ? 4 : 3,
+          addresses: { ip: d.ip, mac: d.mac },
+          tags: [],
+          roles: d.roles,
+          status: 'ok',
+          status_since: new Date().toISOString(),
+          interfaces: [],
+        }));
+        setDevices(scannedDevs);
+
+        // Pre-fill reachability from scan results
+        const rMap: Record<string, { reachable: boolean; checking: boolean; rtt_ms?: number | null }> = {};
+        data.devices.forEach((d) => {
+          rMap[d.id] = { reachable: d.reachable, checking: false, rtt_ms: d.rtt_ms };
+        });
+        setReachabilityMap(rMap);
+
+        // Auto-select vantage point, primary dns, and dhcp
+        const vp =
+          scannedDevs.find((d) => d.roles.includes('vantage_point')) ||
+          scannedDevs.find((d) => d.kind === 'nas' || d.kind === 'server') ||
+          scannedDevs[0];
+        if (vp) setVantagePointId(vp.id);
+
+        const dns = scannedDevs.find((d) => d.roles.includes('dns_resolver')) || scannedDevs.find((d) => d.kind === 'router');
+        if (dns) setDnsServerId(dns.id);
+
+        const dhcp = scannedDevs.find((d) => d.roles.includes('dhcp_server')) || scannedDevs.find((d) => d.kind === 'router');
+        if (dhcp) setDhcpServerId(dhcp.id);
+      }
+    } catch (err) {
+      console.error('Errore durante la scansione di rete:', err);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadTemplates();
-      // Initialize with typical base devices if empty
+      // Scan network automatically on first opening if device list is empty
       if (devices.length === 0) {
-        setDevices([
-          {
-            id: 'wan-provider',
-            name: 'Internet Fibra WAN',
-            kind: 'wan_gateway',
-            location: 'Ingresso',
-            criticality: 5,
-            addresses: { ip: '192.168.1.254' },
-            tags: [],
-            roles: ['wan_provider'],
-            status: 'ok',
-            status_since: new Date().toISOString(),
-            interfaces: [],
-          },
-          {
-            id: 'router-gw',
-            name: 'Router Gateway',
-            kind: 'router',
-            location: 'Rack Salotto',
-            criticality: 5,
-            addresses: { ip: '192.168.1.1' },
-            tags: [],
-            roles: ['dhcp_server', 'dns_resolver'],
-            status: 'ok',
-            status_since: new Date().toISOString(),
-            interfaces: [],
-          },
-          {
-            id: 'switch-core',
-            name: 'Switch Core PoE',
-            kind: 'switch',
-            location: 'Rack Salotto',
-            criticality: 4,
-            addresses: { ip: '192.168.1.2' },
-            tags: [],
-            roles: [],
-            status: 'ok',
-            status_since: new Date().toISOString(),
-            interfaces: [],
-          },
-          {
-            id: 'nas-storage',
-            name: 'NAS Storage (Host NetSentinel)',
-            kind: 'nas',
-            location: 'Rack Salotto',
-            criticality: 4,
-            addresses: { ip: '192.168.1.50' },
-            tags: [],
-            roles: ['vantage_point'],
-            status: 'ok',
-            status_since: new Date().toISOString(),
-            interfaces: [],
-          },
-        ]);
-        setVantagePointId('nas-storage');
+        handleScanNetwork();
       }
     }
   }, [isOpen]);
@@ -168,21 +204,32 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   const handleAddDevice = () => {
     if (editingDeviceId) {
       setDevices((prev) =>
-        prev.map((d) =>
-          d.id === editingDeviceId
-            ? {
-                ...d,
-                name: newName.trim() || d.name,
-                kind: newKind,
-                location: newLocation.trim() || 'Casa',
-                addresses: { ip: newIp.trim() || undefined },
-              }
-            : d
-        )
+        prev.map((d) => {
+          if (d.id === editingDeviceId) {
+            const updatedRoles = (d.roles || []).filter((r) => r !== 'dns_resolver' && r !== 'dhcp_server');
+            if (isDnsServer) updatedRoles.push('dns_resolver');
+            if (isDhcpServer) updatedRoles.push('dhcp_server');
+            const updatedIp = newIp.trim() || d.addresses?.ip;
+            if (updatedIp && updatedIp !== d.addresses?.ip) {
+              checkDeviceReachability(d.id, updatedIp);
+            }
+            return {
+              ...d,
+              name: newName.trim() || d.name,
+              kind: newKind,
+              location: newLocation.trim() || d.location || 'Casa',
+              addresses: { ...d.addresses, ip: updatedIp },
+              roles: updatedRoles,
+            };
+          }
+          return d;
+        })
       );
       setEditingDeviceId(null);
       setNewName('');
       setNewIp('');
+      setIsDnsServer(false);
+      setIsDhcpServer(false);
       return;
     }
 
@@ -198,6 +245,10 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
     const devIp = newIp.trim() || cat.defaultIp;
 
+    const initialRoles: string[] = [...cat.defaultRoles];
+    if (isDnsServer && !initialRoles.includes('dns_resolver')) initialRoles.push('dns_resolver');
+    if (isDhcpServer && !initialRoles.includes('dhcp_server')) initialRoles.push('dhcp_server');
+
     const newDev: Device = {
       id: devId,
       name: devName,
@@ -206,7 +257,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       criticality: 3,
       addresses: { ip: devIp },
       tags: [],
-      roles: [...cat.defaultRoles],
+      roles: initialRoles,
       status: 'unknown',
       status_since: new Date().toISOString(),
       interfaces: [],
@@ -216,9 +267,14 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     if (!vantagePointId && newDev.roles.includes('vantage_point')) {
       setVantagePointId(newDev.id);
     }
+    if (devIp) {
+      checkDeviceReachability(newDev.id, devIp);
+    }
 
     setNewName('');
     setNewIp('');
+    setIsDnsServer(false);
+    setIsDhcpServer(false);
   };
 
   const handleStartEdit = (dev: Device) => {
@@ -227,6 +283,8 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     setNewIp(dev.addresses?.ip || '');
     setNewKind(dev.kind);
     setNewLocation(dev.location || 'Casa');
+    setIsDnsServer(dev.roles.includes('dns_resolver'));
+    setIsDhcpServer(dev.roles.includes('dhcp_server'));
   };
 
   const handleRemoveDevice = (id: string) => {
@@ -401,14 +459,12 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       const configuredDevices: Device[] = devices.map((d) => {
         const rolesSet = new Set(d.roles || []);
 
-        if (dnsServerId) {
-          if (d.id === dnsServerId) rolesSet.add('dns_resolver');
-          else rolesSet.delete('dns_resolver');
+        if (dnsServerId && d.id === dnsServerId) {
+          rolesSet.add('dns_resolver');
         }
 
-        if (dhcpServerId) {
-          if (d.id === dhcpServerId) rolesSet.add('dhcp_server');
-          else rolesSet.delete('dhcp_server');
+        if (dhcpServerId && d.id === dhcpServerId) {
+          rolesSet.add('dhcp_server');
         }
 
         if (d.id === vp) {
@@ -578,9 +634,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               <Shield className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="font-extrabold text-white text-xl tracking-tight">Benvenuto in NetSentinel! 🛡️</h1>
+              <h1 className="font-extrabold text-white text-xl tracking-tight">{t('wizard.title')}</h1>
               <p className="text-xs text-slate-300 mt-0.5">
-                Nessuna rete configurata. Inizia progettando i tuoi apparati e le loro interconnessioni.
+                {t('wizard.subtitle')}
               </p>
             </div>
           </div>
@@ -594,7 +650,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Configurazione Guidata</span>
+              <span>{t('wizard.tab_guided')}</span>
             </button>
             <button
               onClick={() => setActiveTab('templates')}
@@ -603,7 +659,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Modelli Predefiniti</span>
+              <span>{t('wizard.tab_templates')}</span>
             </button>
             <button
               onClick={() => {
@@ -613,7 +669,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               className="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>Disegna su Tela</span>
+              <span>{t('wizard.tab_canvas')}</span>
             </button>
           </div>
         </div>
@@ -631,7 +687,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                   }`}
                 >
                   <span className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px]">1</span>
-                  <span>1. Apparati di Rete ({devices.length})</span>
+                  <span>{t('wizard.step_1', { count: devices.length })}</span>
                 </button>
                 <ArrowRight className="w-3 h-3 text-slate-600" />
                 <button
@@ -641,7 +697,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                   }`}
                 >
                   <span className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px]">2</span>
-                  <span>2. Interconnessioni & Porte ({links.length})</span>
+                  <span>{t('wizard.step_2', { count: links.length })}</span>
                 </button>
                 <ArrowRight className="w-3 h-3 text-slate-600" />
                 <button
@@ -651,7 +707,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                   }`}
                 >
                   <span className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px]">3</span>
-                  <span>3. Vantage Point & Salva</span>
+                  <span>{t('wizard.step_3')}</span>
                 </button>
               </div>
 
@@ -660,7 +716,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                   onClick={handleAutoSuggestLinks}
                   className="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 rounded-lg font-medium transition flex items-center gap-1 text-[11px]"
                 >
-                  <Sparkles className="w-3 h-3" /> Suggerisci collegamenti tipici
+                  <Sparkles className="w-3 h-3" /> {t('wizard.suggest_links')}
                 </button>
               )}
             </div>
@@ -670,26 +726,26 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               <div className="flex-1 overflow-hidden grid grid-cols-12 p-6 gap-6">
                 {/* Left: Device Adder Form */}
                 <div className="col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
-                  <div className="space-y-3.5 text-xs">
+                  <div className="space-y-3 text-xs">
                     <h3 className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
                       {editingDeviceId ? (
                         <>
-                          <Edit3 className="w-4 h-4 text-emerald-400" /> Modifica apparato
+                          <Edit3 className="w-4 h-4 text-emerald-400" /> {t('wizard.edit_device')}
                         </>
                       ) : (
                         <>
-                          <Plus className="w-4 h-4 text-sky-400" /> Aggiungi un apparato
+                          <Plus className="w-4 h-4 text-sky-400" /> {t('wizard.add_device')}
                         </>
                       )}
                     </h3>
                     <p className="text-[11px] text-slate-400">
                       {editingDeviceId
-                        ? 'Modifica i parametri, incluso indirizzo IP, nome o posizione:'
-                        : "Scegli il tipo di apparato, assegna un nome e l'indirizzo IP locale:"}
+                        ? t('wizard.edit_device_desc')
+                        : t('wizard.add_device_desc')}
                     </p>
 
                     {/* Kinds Grid */}
-                    <div className="grid grid-cols-3 gap-1.5 max-h-44 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-1">
                       {DEVICE_CATEGORIES.map((cat) => {
                         const Icon = cat.icon;
                         const isSel = newKind === cat.kind;
@@ -701,6 +757,13 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                               setNewKind(cat.kind);
                               if (!newName) setNewName(cat.defaultName);
                               if (!newIp) setNewIp(cat.defaultIp);
+                              if (cat.kind === 'router') {
+                                setIsDnsServer(true);
+                                setIsDhcpServer(true);
+                              } else if (['switch', 'access_point', 'wan_gateway', 'client'].includes(cat.kind)) {
+                                setIsDnsServer(false);
+                                setIsDhcpServer(false);
+                              }
                             }}
                             className={`p-2 rounded-xl border text-left flex flex-col items-center justify-center gap-1 transition ${
                               isSel
@@ -716,36 +779,78 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-slate-400 font-medium mb-1">Nome Dispositivo:</label>
+                      <label className="block text-slate-400 font-medium mb-1">{t('wizard.device_name')}</label>
                       <input
                         type="text"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
-                        placeholder="es. Switch Salotto PoE"
+                        placeholder={t('wizard.device_name_placeholder')}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-slate-400 font-medium mb-1">Indirizzo IP:</label>
+                        <label className="block text-slate-400 font-medium mb-1">{t('wizard.ip_address')}</label>
                         <input
                           type="text"
                           value={newIp}
                           onChange={(e) => setNewIp(e.target.value)}
-                          placeholder="es. 192.168.1.10"
+                          placeholder={t('wizard.ip_placeholder')}
                           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:outline-none focus:border-sky-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-400 font-medium mb-1">Posizione / Stanza:</label>
+                        <label className="block text-slate-400 font-medium mb-1">{t('wizard.location')}</label>
                         <input
                           type="text"
                           value={newLocation}
                           onChange={(e) => setNewLocation(e.target.value)}
-                          placeholder="es. Rack, Salotto"
+                          placeholder={t('wizard.location_placeholder')}
                           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-sky-500"
                         />
+                      </div>
+                    </div>
+
+                    {/* Roles Checkboxes: DNS and DHCP Server */}
+                    <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+                      <span className="block text-[11px] font-medium text-slate-300">
+                        Ruoli & Servizi di Rete:
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label
+                          className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition text-xs ${
+                            isDnsServer
+                              ? 'bg-sky-600/20 border-sky-500 text-sky-200'
+                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isDnsServer}
+                            onChange={(e) => setIsDnsServer(e.target.checked)}
+                            className="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
+                          />
+                          <Shield className={`w-3.5 h-3.5 ${isDnsServer ? 'text-sky-400' : 'text-slate-500'}`} />
+                          <span className="font-medium text-[11px] leading-tight">{t('wizard.dns_server_role')}</span>
+                        </label>
+
+                        <label
+                          className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition text-xs ${
+                            isDhcpServer
+                              ? 'bg-teal-600/20 border-teal-500 text-teal-200'
+                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isDhcpServer}
+                            onChange={(e) => setIsDhcpServer(e.target.checked)}
+                            className="rounded bg-slate-900 border-slate-700 text-teal-500 focus:ring-0"
+                          />
+                          <Server className={`w-3.5 h-3.5 ${isDhcpServer ? 'text-teal-400' : 'text-slate-500'}`} />
+                          <span className="font-medium text-[11px] leading-tight">{t('wizard.dhcp_server_role')}</span>
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -757,7 +862,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                         onClick={handleAddDevice}
                         className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-1.5 shadow text-xs"
                       >
-                        <Check className="w-4 h-4" /> Salva Modifiche
+                        <Check className="w-4 h-4" /> {t('wizard.save_changes')}
                       </button>
                       <button
                         type="button"
@@ -765,19 +870,21 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                           setEditingDeviceId(null);
                           setNewName('');
                           setNewIp('');
+                          setIsDnsServer(false);
+                          setIsDhcpServer(false);
                         }}
                         className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition text-xs"
                       >
-                        Annulla
+                        {t('common.cancel')}
                       </button>
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={handleAddDevice}
-                      className="w-full mt-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-1.5 shadow"
+                      className="w-full mt-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-1.5 shadow text-xs font-semibold"
                     >
-                      <Plus className="w-4 h-4" /> Aggiungi alla Lista
+                      <Plus className="w-4 h-4" /> {t('wizard.add_to_list')}
                     </button>
                   )}
                 </div>
@@ -785,68 +892,158 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 {/* Right: Configured Devices List */}
                 <div className="col-span-7 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-bold text-slate-200 text-sm">Apparati Configurati ({devices.length})</h3>
-                      <span className="text-[11px] text-slate-400">Tutti i nodi che verranno posizionati sul canvas</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="font-bold text-slate-200 text-sm">
+                          {t('wizard.configured_devices', { count: devices.length })}
+                        </h3>
+                        <span className="text-[11px] text-slate-400">
+                          {t('wizard.configured_devices_desc')}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleScanNetwork}
+                        disabled={isScanning}
+                        className="px-2.5 py-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 rounded-lg text-xs font-medium transition flex items-center gap-1.5 disabled:opacity-50"
+                        title={t('wizard.rescan_button')}
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
+                        <span>{isScanning ? t('wizard.scan_in_progress') : t('wizard.rescan_button')}</span>
+                      </button>
                     </div>
 
-                    <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
-                      {devices.map((d) => {
-                        const cat = DEVICE_CATEGORIES.find((c) => c.kind === d.kind) || DEVICE_CATEGORIES[0];
-                        const Icon = cat.icon;
-                        const isVp = d.id === vantagePointId || d.roles.includes('vantage_point');
-                        return (
-                          <div
-                            key={d.id}
-                            className={`p-2.5 bg-slate-900 border rounded-xl flex items-center justify-between text-xs transition ${
-                              editingDeviceId === d.id ? 'border-sky-500 bg-sky-950/20' : 'border-slate-800 hover:border-slate-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 overflow-hidden">
-                              <div className="p-2 rounded-lg bg-slate-800 text-sky-400">
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <div className="overflow-hidden">
-                                <div className="font-semibold text-slate-200 truncate flex items-center gap-1.5">
-                                  <span>{d.name}</span>
-                                  {isVp && (
-                                    <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-mono">
-                                      Vantage Point
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                  <span className="font-mono text-sky-400">{d.addresses?.ip || 'Nessun IP'}</span>
-                                  <span>•</span>
-                                  <span>{d.location}</span>
-                                  <span>•</span>
-                                  <span className="uppercase font-mono text-[9px] text-slate-500">{d.kind}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleStartEdit(d)}
-                                className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded-lg transition"
-                                title="Modifica IP o parametri apparato"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveDevice(d.id)}
-                                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
-                                title="Rimuovi apparato"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                    {isScanning ? (
+                      <div className="flex flex-col items-center justify-center p-12 text-center space-y-3 bg-slate-900/40 rounded-xl border border-slate-800">
+                        <div className="relative">
+                          <div className="w-12 h-12 rounded-full border-2 border-sky-500/30 border-t-sky-400 animate-spin" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Radio className="w-5 h-5 text-sky-400 animate-pulse" />
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-200 text-sm">{t('wizard.scan_in_progress')}</h4>
+                          <p className="text-xs text-slate-400 max-w-sm mt-1">{t('wizard.scan_subtitle')}</p>
+                        </div>
+                      </div>
+                    ) : devices.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center p-10 text-center space-y-2 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
+                        <p className="text-xs text-slate-300 font-medium">{t('wizard.scan_empty')}</p>
+                        <p className="text-[11px] text-slate-500 max-w-xs">{t('wizard.scan_empty_hint')}</p>
+                        <button
+                          type="button"
+                          onClick={handleScanNetwork}
+                          className="mt-2 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5 shadow"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>{t('wizard.scan_button')}</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+                        {devices.map((d) => {
+                          const cat = DEVICE_CATEGORIES.find((c) => c.kind === d.kind) || DEVICE_CATEGORIES[0];
+                          const Icon = cat.icon;
+                          const isVp = d.id === vantagePointId || d.roles.includes('vantage_point');
+                          const reach = reachabilityMap[d.id];
+                          const isUnreachable = reach && !reach.checking && !reach.reachable;
+                          const isChecking = reach?.checking;
+
+                          return (
+                            <div
+                              key={d.id}
+                              className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
+                                editingDeviceId === d.id
+                                  ? 'border-sky-500 bg-sky-950/20'
+                                  : isUnreachable
+                                  ? 'border-amber-500/80 bg-amber-950/20 shadow-sm shadow-amber-500/10'
+                                  : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 overflow-hidden">
+                                <div
+                                  className={`p-2 rounded-lg ${
+                                    isUnreachable ? 'bg-amber-900/40 text-amber-400' : 'bg-slate-800 text-sky-400'
+                                  }`}
+                                >
+                                  <Icon className="w-4 h-4" />
+                                </div>
+                                <div className="overflow-hidden">
+                                  <div className="font-semibold text-slate-200 truncate flex items-center gap-1.5">
+                                    <span>{d.name}</span>
+                                    {isUnreachable && (
+                                      <div
+                                        className="flex items-center text-amber-400 cursor-help"
+                                        title={t('wizard.ping_unreachable_warning')}
+                                      >
+                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                      </div>
+                                    )}
+                                    {isChecking && (
+                                      <span className="flex items-center" title={t('wizard.ping_checking')}>
+                                        <Loader2 className="w-3 h-3 animate-spin text-sky-400" />
+                                      </span>
+                                    )}
+                                    {isVp && (
+                                      <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-mono">
+                                        {t('wizard.vantage_point_badge')}
+                                      </span>
+                                    )}
+                                    {d.roles.includes('dns_resolver') && (
+                                      <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[9px] font-mono">
+                                        {t('wizard.dns_badge')}
+                                      </span>
+                                    )}
+                                    {d.roles.includes('dhcp_server') && (
+                                      <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[9px] font-mono">
+                                        {t('wizard.dhcp_badge')}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                    <span
+                                      className={`font-mono ${
+                                        isUnreachable ? 'text-amber-400 font-semibold' : 'text-sky-400'
+                                      }`}
+                                    >
+                                      {d.addresses?.ip || 'Nessun IP'}
+                                    </span>
+                                    {reach?.reachable && reach.rtt_ms !== null && reach.rtt_ms !== undefined && (
+                                      <span className="text-[10px] text-emerald-400 font-mono">
+                                        ({reach.rtt_ms.toFixed(1)} ms)
+                                      </span>
+                                    )}
+                                    <span>•</span>
+                                    <span>{d.location}</span>
+                                    <span>•</span>
+                                    <span className="uppercase font-mono text-[9px] text-slate-500">{d.kind}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(d)}
+                                  className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded-lg transition"
+                                  title={t('common.edit')}
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveDevice(d.id)}
+                                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                                  title={t('common.delete')}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-3 border-t border-slate-800 flex justify-end">
@@ -857,7 +1054,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                       }}
                       className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition flex items-center gap-1.5 shadow"
                     >
-                      <span>Prosegui ai Collegamenti</span>
+                      <span>{t('wizard.proceed_to_links')}</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>

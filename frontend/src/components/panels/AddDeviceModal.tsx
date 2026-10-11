@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Plus,
@@ -24,10 +24,13 @@ import {
   Activity,
   CheckCircle2,
   Palette as PaletteIcon,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
+import { useTranslation } from '../../i18n/I18nContext';
 import { Device, DeviceKind } from '../../types';
 import { PRESET_COLORS, getDefaultColorForKind, getColorConfig } from '../../constants/colors';
-import { createCheck } from '../../api/client';
+import { createCheck, quickPing } from '../../api/client';
 
 interface AddDeviceModalProps {
   isOpen: boolean;
@@ -68,6 +71,7 @@ const DEVICE_KINDS: Array<{
 ];
 
 export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose, onAddDevice }) => {
+  const { t } = useTranslation();
   const [kind, setKind] = useState<DeviceKind>('switch');
   const [name, setName] = useState<string>('');
   const [ip, setIp] = useState<string>('');
@@ -80,6 +84,35 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose,
   const [isVantagePoint, setIsVantagePoint] = useState<boolean>(false);
   const [isDhcpServer, setIsDhcpServer] = useState<boolean>(false);
   const [isDnsResolver, setIsDnsResolver] = useState<boolean>(false);
+
+  // Ping reachability probe state
+  const [pingChecking, setPingChecking] = useState<boolean>(false);
+  const [pingReachable, setPingReachable] = useState<boolean | null>(null);
+  const [pingRtt, setPingRtt] = useState<number | null>(null);
+
+  // Debounce ping check when IP changes
+  useEffect(() => {
+    const clean = ip.trim();
+    if (!clean || clean.length < 7 || !clean.includes('.')) {
+      setPingReachable(null);
+      setPingRtt(null);
+      setPingChecking(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setPingChecking(true);
+      try {
+        const res = await quickPing(clean, 1.5);
+        setPingReachable(res.reachable);
+        setPingRtt(res.rtt_ms ?? null);
+      } catch {
+        setPingReachable(false);
+      } finally {
+        setPingChecking(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [ip]);
 
   if (!isOpen) return null;
 
@@ -100,6 +133,18 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose,
         setCustomHealthUrl('http://' + (ip || cfg.placeholderIp) + ':8123');
       } else {
         setCustomHealthUrl('');
+      }
+
+      // Automatically configure DNS and DHCP roles based on device kind
+      if (selectedKind === 'router') {
+        setIsDhcpServer(true);
+        setIsDnsResolver(true);
+      } else if (selectedKind === 'service') {
+        setIsDnsResolver(true);
+        setIsDhcpServer(false);
+      } else {
+        setIsDhcpServer(false);
+        setIsDnsResolver(false);
       }
     }
   };
@@ -288,14 +333,47 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose,
               />
             </div>
             <div>
-              <label className="block font-medium text-slate-300 mb-1">Indirizzo IP primario:</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-medium text-slate-300">Indirizzo IP primario:</label>
+                {pingChecking && (
+                  <span className="flex items-center gap-1 text-[10px] text-sky-400" title={t('wizard.ping_checking')}>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Verifica...</span>
+                  </span>
+                )}
+                {!pingChecking && pingReachable === true && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>{pingRtt !== null ? `${pingRtt.toFixed(1)} ms` : 'OK'}</span>
+                  </span>
+                )}
+                {!pingChecking && pingReachable === false && (
+                  <span
+                    className="flex items-center gap-1 text-[10px] text-amber-400 cursor-help"
+                    title={t('wizard.ping_unreachable_warning')}
+                  >
+                    <AlertTriangle className="w-3 h-3 animate-pulse" />
+                    <span>Non risponde</span>
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 placeholder={currentKindConfig.placeholderIp}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 font-mono focus:outline-none focus:border-sky-500"
+                className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 font-mono focus:outline-none transition ${
+                  pingReachable === false
+                    ? 'border-amber-500/80 bg-amber-950/20 focus:border-amber-400'
+                    : 'border-slate-700 focus:border-sky-500'
+                }`}
               />
+              {!pingChecking && pingReachable === false && (
+                <p className="text-[10px] text-amber-400/90 mt-1 leading-tight flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  <span>{t('wizard.ping_unreachable_warning')}</span>
+                </p>
+              )}
             </div>
           </div>
 
