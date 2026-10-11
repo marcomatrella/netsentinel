@@ -8,6 +8,7 @@ import {
   Mail,
   Maximize2,
   RefreshCw,
+  ScrollText,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 
@@ -16,6 +17,7 @@ interface HeaderMenuDropdownProps {
   onOpenRolesModal: () => void;
   onOpenWizard: () => void;
   onOpenNotificationModal: () => void;
+  onOpenLogs?: () => void;
   onOpenKiosk: () => void;
   onRefresh: () => void;
 }
@@ -25,6 +27,7 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
   onOpenRolesModal,
   onOpenWizard,
   onOpenNotificationModal,
+  onOpenLogs,
   onOpenKiosk,
   onRefresh,
 }) => {
@@ -178,6 +181,17 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
             <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {t('menu.section_tools')}
             </div>
+
+            {/* Registro Eventi & Log */}
+            {onOpenLogs && (
+              <button
+                onClick={() => handleAction(onOpenLogs)}
+                className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-center gap-2.5 text-slate-700 dark:text-slate-200 group"
+              >
+                <ScrollText className="w-4 h-4 text-sky-500 group-hover:scale-110 transition-transform" />
+                <span className="font-medium">{t('header.event_logs')}</span>
+              </button>
+            )}
 
             {/* Fullscreen / Kiosk */}
             <button

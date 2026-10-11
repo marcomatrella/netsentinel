@@ -40,6 +40,7 @@
     "menu_tools": "Menú",
     "kiosk_mode": "Pantalla completa",
     "refresh": "Actualizar datos",
+    "event_logs": "Registros",
     "vantage_point": "Punto de observación: {{name}}",
     "no_vantage_point": "Ningún punto de observación configurado",
     "lang_name": "Español"
@@ -150,6 +151,23 @@
       "smart_hub": "Hub Domótico",
       "client": "Cliente / PC"
     }
+  },
+  "events": {
+    "modal_title": "Registro de Eventos y Diagnóstico de Red",
+    "modal_desc": "Historial explicativo de cortes, alarmas, cambios de estado y recuperaciones con reproducción en Máquina del Tiempo.",
+    "events_count": "eventos",
+    "filter_all": "Todos",
+    "filter_crit": "Críticos y Desconectados",
+    "filter_warn": "Avisos e Inestabilidad",
+    "filter_info": "Recuperaciones e Info",
+    "search_placeholder": "Buscar texto, IP, código de error...",
+    "all_devices": "Todos los dispositivos",
+    "no_events": "No se encontraron eventos coincidentes",
+    "no_events_desc": "Ningún evento coincide con los criterios seleccionados.",
+    "jump_to_canvas": "Examinar en el mapa",
+    "show_tech_details": "Mostrar telemetría técnica",
+    "hide_tech_details": "Ocultar telemetría técnica",
+    "actionable_prefix": "Acción recomendada:"
   }
 }
 

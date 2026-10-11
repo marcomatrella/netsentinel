@@ -1,6 +1,6 @@
 /** NetSentinel REST API client */
 
-import { Device, FullTopology, Incident, Check } from '../types';
+import { Device, FullTopology, Incident, Check, EventItem } from '../types';
 
 const API_BASE = '/api/v1';
 
@@ -97,8 +97,24 @@ export async function fetchObservations(deviceId?: string, limit: number = 50): 
   return res.json();
 }
 
-export async function fetchEvents(deviceId?: string, limit: number = 50): Promise<any[]> {
-  const url = deviceId ? `${API_BASE}/events?device_id=${deviceId}&limit=${limit}` : `${API_BASE}/events?limit=${limit}`;
+export async function fetchEvents(
+  filterOrDeviceId?: string | { deviceId?: string; eventType?: string; severity?: string; search?: string; limit?: number },
+  limit: number = 100
+): Promise<EventItem[]> {
+  let url = `${API_BASE}/events`;
+  if (typeof filterOrDeviceId === 'string') {
+    url += `?device_id=${encodeURIComponent(filterOrDeviceId)}&limit=${limit}`;
+  } else if (filterOrDeviceId && typeof filterOrDeviceId === 'object') {
+    const params = new URLSearchParams();
+    if (filterOrDeviceId.deviceId) params.append('device_id', filterOrDeviceId.deviceId);
+    if (filterOrDeviceId.eventType) params.append('event_type', filterOrDeviceId.eventType);
+    if (filterOrDeviceId.severity) params.append('severity', filterOrDeviceId.severity);
+    if (filterOrDeviceId.search) params.append('search', filterOrDeviceId.search);
+    params.append('limit', String(filterOrDeviceId.limit || limit));
+    url += `?${params.toString()}`;
+  } else {
+    url += `?limit=${limit}`;
+  }
   const res = await fetch(url);
   if (!res.ok) throw new Error('Errore caricamento eventi.');
   return res.json();

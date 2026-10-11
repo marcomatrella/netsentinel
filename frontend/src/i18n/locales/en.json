@@ -40,6 +40,7 @@
     "menu_tools": "Menu",
     "kiosk_mode": "Fullscreen Kiosk",
     "refresh": "Refresh Data",
+    "event_logs": "Logs",
     "vantage_point": "Vantage Point: {{name}}",
     "no_vantage_point": "No Vantage Point configured",
     "lang_name": "English"
@@ -150,6 +151,23 @@
       "smart_hub": "Smart Hub / IoT",
       "client": "Client / PC"
     }
+  },
+  "events": {
+    "modal_title": "Network Event Log & Diagnostics",
+    "modal_desc": "Human-readable history of network outages, alarms, state changes and recoveries with Time Machine playback.",
+    "events_count": "events",
+    "filter_all": "All",
+    "filter_crit": "Critical & Down",
+    "filter_warn": "Warnings & Flap",
+    "filter_info": "Recoveries & Info",
+    "search_placeholder": "Search text, IP, error code...",
+    "all_devices": "All devices",
+    "no_events": "No matching events found",
+    "no_events_desc": "No events match the selected criteria.",
+    "jump_to_canvas": "Inspect on canvas",
+    "show_tech_details": "Show technical telemetry",
+    "hide_tech_details": "Hide technical telemetry",
+    "actionable_prefix": "Recommended Action:"
   }
 }
 

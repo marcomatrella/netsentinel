@@ -40,6 +40,7 @@
     "menu_tools": "Menu",
     "kiosk_mode": "Schermo Intero",
     "refresh": "Aggiorna Dati",
+    "event_logs": "Log",
     "vantage_point": "Vantage Point: {{name}}",
     "no_vantage_point": "Nessun Vantage Point configurato",
     "lang_name": "Italiano"
@@ -150,6 +151,23 @@
       "smart_hub": "Smart Hub / Domotica",
       "client": "Client / PC"
     }
+  },
+  "events": {
+    "modal_title": "Registro Eventi & Diagnostica di Rete",
+    "modal_desc": "Cronologia parlante di guasti, allarmi, cambi di stato e ripristini con navigazione temporale sulla plancia.",
+    "events_count": "eventi",
+    "filter_all": "Tutti",
+    "filter_crit": "Critici & Offline",
+    "filter_warn": "Avvisi & Flap",
+    "filter_info": "Ripristini & Info",
+    "search_placeholder": "Cerca per testo, IP, codice errore...",
+    "all_devices": "Tutti gli apparati",
+    "no_events": "Nessun evento corrispondente",
+    "no_events_desc": "Non sono stati trovati eventi per i filtri selezionati.",
+    "jump_to_canvas": "Esamina sulla plancia",
+    "show_tech_details": "Mostra telemetria tecnica",
+    "hide_tech_details": "Nascondi telemetria tecnica",
+    "actionable_prefix": "Azione consigliata:"
   }
 }
 

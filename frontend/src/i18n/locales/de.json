@@ -40,6 +40,7 @@
     "menu_tools": "Menü",
     "kiosk_mode": "Vollbildmodus",
     "refresh": "Daten aktualisieren",
+    "event_logs": "Protokoll",
     "vantage_point": "Beobachtungspunkt: {{name}}",
     "no_vantage_point": "Kein Beobachtungspunkt konfiguriert",
     "lang_name": "Deutsch"
@@ -150,6 +151,23 @@
       "smart_hub": "Smart-Home-Hub",
       "client": "Client / PC"
     }
+  },
+  "events": {
+    "modal_title": "Ereignisprotokoll & Netzwerkdiagnose",
+    "modal_desc": "Verständlicher Verlauf von Netzwerkausfällen, Warnungen, Statusänderungen und Wiederherstellungen mit Zeitmaschinen-Wiedergabe.",
+    "events_count": "Ereignisse",
+    "filter_all": "Alle",
+    "filter_crit": "Kritisch & Offline",
+    "filter_warn": "Warnungen & Flapping",
+    "filter_info": "Wiederherstellung & Info",
+    "search_placeholder": "Text, IP, Fehlercode suchen...",
+    "all_devices": "Alle Geräte",
+    "no_events": "Keine passenden Ereignisse gefunden",
+    "no_events_desc": "Keine Ereignisse entsprechen den ausgewählten Kriterien.",
+    "jump_to_canvas": "Auf der Karte untersuchen",
+    "show_tech_details": "Technische Telemetrie anzeigen",
+    "hide_tech_details": "Technische Telemetrie ausblenden",
+    "actionable_prefix": "Empfohlene Maßnahme:"
   }
 }
 

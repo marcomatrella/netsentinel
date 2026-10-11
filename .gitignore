@@ -233,3 +233,5 @@ secret.key
 .env
 .env.*
 !.env.example
+Screenshot*.png
+

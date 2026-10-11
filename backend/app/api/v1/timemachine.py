@@ -1,10 +1,11 @@
 """Time Machine historical playback and state snapshot API."""
 
+import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from app.db.models import Device, Incident, Observation
+from app.db.models import Device, Event, Incident, Observation
 from app.db.session import get_db
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import desc, select
@@ -76,6 +77,16 @@ async def get_historical_snapshot(
 
         inc_data = None
         if active_incident:
+            impacted_list = json.loads(active_incident.impacted_json) if active_incident.impacted_json else []
+            evidence_list = json.loads(active_incident.evidence_json) if active_incident.evidence_json else []
+            recommendations_list = json.loads(active_incident.recommendations_json) if active_incident.recommendations_json else []
+            timeline_list = json.loads(active_incident.timeline_json) if active_incident.timeline_json else []
+
+            # If device is impacted and wasn't marked down, mark status as affected
+            for hd in historical_devices:
+                if hd["id"] in impacted_list and hd["status"] == "ok":
+                    hd["status"] = "affected"
+
             inc_data = {
                 "id": active_incident.id,
                 "status": active_incident.status,
@@ -83,14 +94,51 @@ async def get_historical_snapshot(
                 "root_cause_category": active_incident.root_cause_category,
                 "confidence": active_incident.confidence,
                 "summary": active_incident.summary,
+                "impacted": impacted_list,
+                "evidence": evidence_list,
+                "recommendations": recommendations_list,
+                "timeline": timeline_list,
                 "started_at": active_incident.started_at.isoformat(),
                 "resolved_at": active_incident.resolved_at.isoformat() if active_incident.resolved_at else None,
             }
+
+        # 4. Fetch discrete events around target_time
+        events_stmt = (
+            select(Event, Device)
+            .outerjoin(Device, Event.device_id == Device.id)
+            .where(Event.ts <= t_clean)
+            .order_by(desc(Event.ts))
+            .limit(10)
+        )
+        ev_res = await db.execute(events_stmt)
+        events_rows = ev_res.all()
+        events_around = []
+        for ev, dev in events_rows:
+            dev_ip = None
+            if dev and dev.addresses_json:
+                try:
+                    dev_ip = json.loads(dev.addresses_json).get("ip")
+                except Exception:
+                    pass
+            events_around.append({
+                "id": ev.id,
+                "ts": ev.ts.isoformat(),
+                "device_id": ev.device_id,
+                "device_name": dev.name if dev else None,
+                "device_ip": dev_ip,
+                "device_kind": dev.kind if dev else None,
+                "event_type": ev.event_type,
+                "severity": ev.severity,
+                "title": ev.title,
+                "message": ev.message,
+                "details": json.loads(ev.details_json) if ev.details_json else {},
+            })
 
         return {
             "target_time": t_clean.isoformat(),
             "active_incident": inc_data,
             "devices": historical_devices,
+            "events_around": events_around,
         }
     except Exception as e:
         logger.warning("Errore durante il recupero dello snapshot storico: %s", e)

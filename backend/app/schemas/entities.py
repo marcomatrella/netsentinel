@@ -174,6 +174,9 @@ class EventRead(BaseModel):
     id: int
     ts: datetime
     device_id: str | None = None
+    device_name: str | None = None
+    device_ip: str | None = None
+    device_kind: str | None = None
     check_id: str | None = None
     event_type: str
     severity: str

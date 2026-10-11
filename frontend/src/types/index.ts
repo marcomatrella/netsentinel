@@ -168,3 +168,19 @@ export interface FullTopology {
   layout?: CanvasLayout;
 }
 
+export interface EventItem {
+  id: number;
+  ts: string;
+  device_id?: string;
+  device_name?: string;
+  device_ip?: string;
+  device_kind?: DeviceKind;
+  check_id?: string;
+  event_type: string;
+  severity: 'crit' | 'warn' | 'info' | string;
+  title: string;
+  message: string;
+  details: Record<string, any>;
+}
+
+

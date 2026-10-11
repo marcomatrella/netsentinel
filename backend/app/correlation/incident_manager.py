@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from app.db.models import Incident, utcnow
+from app.db.models import Event, Incident, utcnow
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -92,6 +92,21 @@ class IncidentManager:
                 alternative_hypotheses_json=json.dumps(alternative_hypotheses),
             )
             session.add(incident)
+            ev_inc = Event(
+                ts=now,
+                device_id=root_cause_device_id,
+                event_type="incident_opened",
+                severity="crit",
+                title=f"Incidente Aperto: {root_cause_device_id or 'Rete'}",
+                message=summary,
+                details_json=json.dumps({
+                    "incident_id": inc_id,
+                    "confidence": confidence,
+                    "category": root_cause_category,
+                    "impacted": impacted,
+                }),
+            )
+            session.add(ev_inc)
             logger.info("Creato nuovo incidente: %s (Causa radice: %s)", inc_id, root_cause_device_id)
         else:
             # Update existing incident
@@ -104,6 +119,20 @@ class IncidentManager:
                     "message": f"Causa radice aggiornata da '{incident.root_cause_device_id}' a '{root_cause_device_id}'.",
                     "device_id": root_cause_device_id,
                 })
+                ev_shift = Event(
+                    ts=now,
+                    device_id=root_cause_device_id,
+                    event_type="root_cause_shift",
+                    severity="warn",
+                    title="Causa Radice Aggiornata",
+                    message=f"La causa radice dell'incidente è passata a '{root_cause_device_id}'.",
+                    details_json=json.dumps({
+                        "incident_id": incident.id,
+                        "old_root_cause": incident.root_cause_device_id,
+                        "new_root_cause": root_cause_device_id,
+                    }),
+                )
+                session.add(ev_shift)
                 incident.root_cause_device_id = root_cause_device_id
                 incident.root_cause_category = root_cause_category
 
@@ -148,6 +177,20 @@ class IncidentManager:
             "message": f"Tutti gli apparati e servizi sono rientrati. Durata totale incidente: {duration_s} secondi.",
         })
         incident.timeline_json = json.dumps(timeline)
+
+        ev_res = Event(
+            ts=now,
+            device_id=incident.root_cause_device_id,
+            event_type="incident_resolved",
+            severity="info",
+            title="Incidente Risolto",
+            message=f"Tutti gli apparati e servizi sono rientrati. Durata totale incidente: {duration_s} secondi.",
+            details_json=json.dumps({
+                "incident_id": incident.id,
+                "duration_seconds": duration_s,
+            }),
+        )
+        session.add(ev_res)
 
         await session.commit()
         await session.refresh(incident)
