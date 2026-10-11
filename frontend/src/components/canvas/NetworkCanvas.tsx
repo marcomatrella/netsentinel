@@ -322,6 +322,40 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     [onAddDeviceDrop]
   );
 
+  // Configure OS-native tooltips on ReactFlow controls and strip browser default title attributes
+  React.useEffect(() => {
+    if (!reactFlowWrapper.current) return;
+    const container = reactFlowWrapper.current;
+
+    const setupTooltips = () => {
+      const zoomIn = container.querySelector<HTMLElement>('.react-flow__controls-zoomin');
+      const zoomOut = container.querySelector<HTMLElement>('.react-flow__controls-zoomout');
+      const fitView = container.querySelector<HTMLElement>('.react-flow__controls-fitview');
+      const interactive = container.querySelector<HTMLElement>('.react-flow__controls-interactive');
+
+      if (zoomIn) {
+        zoomIn.setAttribute('data-tooltip', t('canvas.zoom_in'));
+        zoomIn.removeAttribute('title');
+      }
+      if (zoomOut) {
+        zoomOut.setAttribute('data-tooltip', t('canvas.zoom_out'));
+        zoomOut.removeAttribute('title');
+      }
+      if (fitView) {
+        fitView.setAttribute('data-tooltip', t('canvas.fit_view'));
+        fitView.removeAttribute('title');
+      }
+      if (interactive) {
+        interactive.setAttribute('data-tooltip', t('canvas.lock'));
+        interactive.removeAttribute('title');
+      }
+    };
+
+    setupTooltips();
+    const timer = setTimeout(setupTooltips, 100);
+    return () => clearTimeout(timer);
+  }, [t]);
+
   return (
     <div
       ref={reactFlowWrapper}

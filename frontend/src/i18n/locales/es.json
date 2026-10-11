@@ -181,7 +181,12 @@
     "retry": "Reintentar",
     "empty_title": "Ningún dispositivo configurado",
     "empty_desc": "Para comenzar a monitorear y visualizar las interconexiones, agregue dispositivos o cargue una plantilla.",
-    "start_setup": "Iniciar Configuración de Red"
+    "start_setup": "Iniciar Configuración de Red",
+    "zoom_in": "Acercar (Zoom in)",
+    "zoom_out": "Alejar (Zoom out)",
+    "fit_view": "Ajustar vista al lienzo",
+    "lock": "Bloquear/Desbloquear interacción",
+    "auto_layout": "Diseño automático (ELK)"
   },
   "timemachine": {
     "title": "Máquina del Tiempo",

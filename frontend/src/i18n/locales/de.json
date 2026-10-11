@@ -181,7 +181,12 @@
     "retry": "Wiederholen",
     "empty_title": "Keine Geräte konfiguriert",
     "empty_desc": "Fügen Sie Ihre Geräte hinzu oder laden Sie eine Vorlage, um mit der Überwachung zu beginnen.",
-    "start_setup": "Netzwerkkonfiguration starten"
+    "start_setup": "Netzwerkkonfiguration starten",
+    "zoom_in": "Vergrößern (Zoom in)",
+    "zoom_out": "Verkleinern (Zoom out)",
+    "fit_view": "Ansicht anpassen",
+    "lock": "Interaktion sperren/entsperren",
+    "auto_layout": "Auto-Layout (ELK)"
   },
   "timemachine": {
     "title": "Zeitmaschine",

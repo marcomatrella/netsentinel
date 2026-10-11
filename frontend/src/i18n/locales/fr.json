@@ -181,7 +181,12 @@
     "retry": "Réessayer",
     "empty_title": "Aucun équipement configuré",
     "empty_desc": "Pour commencer la surveillance et visualiser les interconnexions, ajoutez vos équipements ou chargez un modèle réseau.",
-    "start_setup": "Démarrer la configuration réseau"
+    "start_setup": "Démarrer la configuration réseau",
+    "zoom_in": "Zoom avant (Zoom in)",
+    "zoom_out": "Zoom arrière (Zoom out)",
+    "fit_view": "Ajuster la vue au canevas",
+    "lock": "Verrouiller/Déverrouiller l'interaction",
+    "auto_layout": "Organisation automatique (ELK)"
   },
   "timemachine": {
     "title": "Machine Temporelle",
