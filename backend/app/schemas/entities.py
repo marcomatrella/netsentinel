@@ -55,6 +55,7 @@ class DeviceRead(DeviceBase):
     status: str
     status_since: datetime
     last_seen: datetime | None = None
+    rtt_ms: float | None = None
     interfaces: list[InterfaceBase] = Field(default_factory=list)
 
 

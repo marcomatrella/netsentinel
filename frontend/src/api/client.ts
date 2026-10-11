@@ -124,3 +124,45 @@ export function setupSSEStream(onDiff: (data: any) => void): () => void {
     eventSource.close();
   };
 }
+
+export async function updateDevice(deviceId: string, payload: any): Promise<Device> {
+  const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Errore durante l\'aggiornamento dell\'apparato.');
+  return res.json();
+}
+
+export async function createDevice(payload: any): Promise<Device> {
+  const res = await fetch(`${API_BASE}/devices`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Errore durante la creazione dell\'apparato.');
+  return res.json();
+}
+
+export async function deleteDevice(deviceId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Errore durante l\'eliminazione dell\'apparato.');
+}
+
+export async function assignNetworkRoles(payload: {
+  dns_server_id?: string;
+  dhcp_server_id?: string;
+  gateway_id?: string;
+  vantage_point_id?: string;
+}): Promise<FullTopology> {
+  const res = await fetch(`${API_BASE}/topology/assign-roles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Errore durante l\'assegnazione dei ruoli di rete.');
+  return res.json();
+}

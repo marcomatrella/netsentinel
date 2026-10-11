@@ -211,3 +211,55 @@ async def test_topology_templates_endpoint():
         assert len(hl["links"]) >= 8
         assert hl["vantage_point_id"] == "nas-synology"
 
+
+@pytest.mark.asyncio
+async def test_assign_network_roles_endpoint():
+    """Verify POST /topology/assign-roles successfully reallocates DNS/DHCP roles and deduces dependencies."""
+    await init_db()
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        apply_payload = {
+            "vantage_point_id": "nas",
+            "description": "Role transfer test",
+            "devices": [
+                {"id": "router", "name": "Router", "kind": "router", "roles": ["gateway", "dhcp_server", "dns_resolver"], "addresses": {"ip": "192.168.1.1"}},
+                {"id": "nas", "name": "NAS AdGuard", "kind": "nas", "roles": ["vantage_point"], "addresses": {"ip": "192.168.1.50"}},
+                {"id": "client1", "name": "PC", "kind": "client", "roles": [], "addresses": {"ip": "192.168.1.100"}},
+            ],
+            "links": [
+                {"id": "l1", "from": "router", "to": "nas", "medium": "ethernet"},
+                {"id": "l2", "from": "router", "to": "client1", "medium": "ethernet"},
+            ],
+            "dependencies": [],
+            "layout": {"nodes": [], "edges": [], "groups": []},
+        }
+        await client.post("/api/v1/topology/apply", json=apply_payload)
+
+        # Reassign DNS and DHCP to NAS (e.g. AdGuard Home container)
+        roles_payload = {
+            "dns_server_id": "nas",
+            "dhcp_server_id": "nas",
+            "gateway_id": "router",
+            "vantage_point_id": "nas",
+        }
+        res = await client.post("/api/v1/topology/assign-roles", json=roles_payload)
+        assert res.status_code == 200
+        topo = res.json()
+
+        # Check that NAS now has dns_resolver and dhcp_server
+        nas_dev = next(d for d in topo["devices"] if d["id"] == "nas")
+        assert "dns_resolver" in nas_dev["roles"]
+        assert "dhcp_server" in nas_dev["roles"]
+
+        # Check that Router no longer has dns_resolver or dhcp_server
+        router_dev = next(d for d in topo["devices"] if d["id"] == "router")
+        assert "dns_resolver" not in router_dev["roles"]
+        assert "dhcp_server" not in router_dev["roles"]
+        assert "gateway" in router_dev["roles"]
+
+        # Verify dependencies: client depends on NAS for dns and dhcp
+        dns_deps = [d for d in topo["dependencies"] if d["kind"] == "dns" and d["dependent_id"] == "client1"]
+        assert len(dns_deps) == 1
+        assert dns_deps[0]["provider_id"] == "nas"
+

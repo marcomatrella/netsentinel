@@ -5,7 +5,7 @@ import json
 import logging
 from collections.abc import AsyncGenerator
 
-from app.db.models import Device, Incident, Link, utcnow
+from app.db.models import Device, Incident, Link, Observation, utcnow
 from app.db.session import AsyncSessionLocal
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -24,14 +24,49 @@ async def event_generator() -> AsyncGenerator[str, None]:
                 async with AsyncSessionLocal() as session:
                     # Query current devices status
                     dev_res = await session.execute(select(Device.id, Device.status, Device.status_since))
+                    db_devs = dev_res.all()
+
+                    # Query latest observation RTT for each device
+                    rtt_map: dict[str, float] = {}
+                    for d_row in db_devs:
+                        obs_res = await session.execute(
+                            select(Observation.value)
+                            .where(Observation.device_id == d_row[0], Observation.status == "ok", Observation.value.isnot(None))
+                            .order_by(desc(Observation.ts))
+                            .limit(1)
+                        )
+                        val = obs_res.scalar_one_or_none()
+                        if val is not None:
+                            rtt_map[d_row[0]] = round(val, 1)
+
                     devs = [
-                        {"id": r[0], "status": r[1], "status_since": r[2].isoformat() if r[2] else None}
-                        for r in dev_res.all()
+                        {
+                            "id": r[0],
+                            "status": r[1],
+                            "status_since": r[2].isoformat() if r[2] else None,
+                            "rtt_ms": rtt_map.get(r[0]),
+                        }
+                        for r in db_devs
                     ]
 
-                    # Query links status
-                    lnk_res = await session.execute(select(Link.id, Link.status))
-                    links = [{"id": r[0], "status": r[1]} for r in lnk_res.all()]
+                    # Deduce live link statuses
+                    dev_status_map = {r[0]: r[1] for r in db_devs}
+                    lnk_res = await session.execute(select(Link.id, Link.from_device_id, Link.to_device_id))
+                    links = []
+                    for l_row in lnk_res.all():
+                        s_status = dev_status_map.get(l_row[1], "unknown")
+                        d_status = dev_status_map.get(l_row[2], "unknown")
+                        if s_status == "down" or d_status == "down":
+                            l_st = "down"
+                        elif s_status == "unreachable" or d_status == "unreachable":
+                            l_st = "unreachable"
+                        elif s_status in ["degraded", "flapping"] or d_status in ["degraded", "flapping"]:
+                            l_st = "degraded"
+                        elif s_status == "ok" and d_status == "ok":
+                            l_st = "ok"
+                        else:
+                            l_st = "unverified"
+                        links.append({"id": l_row[0], "status": l_st})
 
                     # Query active incident
                     inc_res = await session.execute(

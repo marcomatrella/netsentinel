@@ -64,6 +64,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           ip: d.addresses?.ip,
           status: d.status,
           roles: d.roles,
+          rtt_ms: d.rtt_ms,
           isRootCause: isRoot,
           isImpacted: isImpacted,
           isVantagePoint: d.roles?.includes('vantage_point'),

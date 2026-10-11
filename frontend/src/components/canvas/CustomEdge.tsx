@@ -119,20 +119,43 @@ export const CustomEdge = memo(({
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
-          className={`flex items-center gap-1 bg-slate-900/90 border px-1.5 py-0.5 rounded-full text-[10px] text-slate-300 shadow cursor-pointer transition ${
-            edgeData.isFaultPath
-              ? 'border-rose-500/80 text-rose-300'
-              : 'border-slate-700/80 hover:border-sky-400 hover:text-white'
+          className={`flex items-center gap-1.5 bg-slate-900/90 border px-2 py-0.5 rounded-full text-[10px] text-slate-300 shadow cursor-pointer transition ${
+            edgeData.isFaultPath || status === 'down'
+              ? 'border-rose-500/80 text-rose-300 shadow-rose-950/40'
+              : status === 'ok'
+              ? 'border-emerald-600/60 hover:border-emerald-400 hover:text-white'
+              : 'border-slate-700/80 text-slate-400'
           }`}
           title={`Link ${medium.toUpperCase()} — Stato: ${status.toUpperCase()} (${edgeData.statusSource || 'dedotto'})`}
         >
           {medium === 'poe' && <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />}
           {medium === 'power' && <Zap className="w-3 h-3 text-yellow-400" />}
           {medium === 'wifi' && <Wifi className="w-3 h-3 text-cyan-400" />}
-          {edgeData.isFaultPath && <ShieldAlert className="w-3 h-3 text-rose-400 animate-bounce" />}
-          <span className="font-mono text-[9px] uppercase">{medium}</span>
+          {(edgeData.isFaultPath || status === 'down') && <ShieldAlert className="w-3 h-3 text-rose-400 animate-bounce" />}
+          
+          <span className="font-mono text-[9px] uppercase font-bold">{medium}</span>
+
+          {status === 'ok' && !edgeData.isFaultPath && (
+            <span className="text-[8px] text-emerald-400 font-medium flex items-center gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Attivo
+            </span>
+          )}
+          {status === 'unverified' && (
+            <span className="text-[8px] text-slate-400 font-medium flex items-center gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+              Attesa check
+            </span>
+          )}
+          {(status === 'down' || edgeData.isFaultPath) && (
+            <span className="text-[8px] text-rose-400 font-medium flex items-center gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              KO
+            </span>
+          )}
+
           {(edgeData.fromPort || edgeData.toPort) && (
-            <span className="text-slate-400 text-[8px]">
+            <span className="text-slate-400 text-[8px] border-l border-slate-700 pl-1">
               {edgeData.fromPort ? `p${edgeData.fromPort}` : ''}
               {edgeData.fromPort && edgeData.toPort ? '→' : ''}
               {edgeData.toPort ? `p${edgeData.toPort}` : ''}

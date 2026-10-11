@@ -64,6 +64,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   const [devices, setDevices] = useState<Device[]>([]);
   const [links, setLinks] = useState<Link[]>([]);
   const [vantagePointId, setVantagePointId] = useState<string>('');
+  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  const [dnsServerId, setDnsServerId] = useState<string>('router-gw');
+  const [dhcpServerId, setDhcpServerId] = useState<string>('router-gw');
 
   // Add device form state
   const [newKind, setNewKind] = useState<DeviceKind>('switch');
@@ -163,6 +166,26 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
   // Add custom device to guided list
   const handleAddDevice = () => {
+    if (editingDeviceId) {
+      setDevices((prev) =>
+        prev.map((d) =>
+          d.id === editingDeviceId
+            ? {
+                ...d,
+                name: newName.trim() || d.name,
+                kind: newKind,
+                location: newLocation.trim() || 'Casa',
+                addresses: { ip: newIp.trim() || undefined },
+              }
+            : d
+        )
+      );
+      setEditingDeviceId(null);
+      setNewName('');
+      setNewIp('');
+      return;
+    }
+
     const cat = DEVICE_CATEGORIES.find((c) => c.kind === newKind) || DEVICE_CATEGORIES[0];
     const devName = newName.trim() || cat.defaultName;
     const devId =
@@ -184,7 +207,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       addresses: { ip: devIp },
       tags: [],
       roles: [...cat.defaultRoles],
-      status: 'ok',
+      status: 'unknown',
       status_since: new Date().toISOString(),
       interfaces: [],
     };
@@ -198,10 +221,19 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     setNewIp('');
   };
 
+  const handleStartEdit = (dev: Device) => {
+    setEditingDeviceId(dev.id);
+    setNewName(dev.name);
+    setNewIp(dev.addresses?.ip || '');
+    setNewKind(dev.kind);
+    setNewLocation(dev.location || 'Casa');
+  };
+
   const handleRemoveDevice = (id: string) => {
     setDevices((prev) => prev.filter((d) => d.id !== id));
     setLinks((prev) => prev.filter((l) => l.from_device_id !== id && l.to_device_id !== id));
     if (vantagePointId === id) setVantagePointId('');
+    if (editingDeviceId === id) setEditingDeviceId(null);
   };
 
   // Add custom link
@@ -365,15 +397,41 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     const vp = vantagePointId || devices[0].id;
     setSubmitting(true);
     try {
+      // Map configured roles based on user choices for DNS, DHCP, and Vantage Point
+      const configuredDevices: Device[] = devices.map((d) => {
+        const rolesSet = new Set(d.roles || []);
+
+        if (dnsServerId) {
+          if (d.id === dnsServerId) rolesSet.add('dns_resolver');
+          else rolesSet.delete('dns_resolver');
+        }
+
+        if (dhcpServerId) {
+          if (d.id === dhcpServerId) rolesSet.add('dhcp_server');
+          else rolesSet.delete('dhcp_server');
+        }
+
+        if (d.id === vp) {
+          rolesSet.add('vantage_point');
+        } else {
+          rolesSet.delete('vantage_point');
+        }
+
+        return {
+          ...d,
+          roles: Array.from(rolesSet),
+        };
+      });
+
       // Deduce dependencies
       const deducedDeps = await deduceDependencies({
         vantage_point_id: vp,
-        devices: devices.map((d) => ({ id: d.id, name: d.name, kind: d.kind, roles: d.roles })),
+        devices: configuredDevices.map((d) => ({ id: d.id, name: d.name, kind: d.kind, roles: d.roles })),
         links: links.map((l) => ({ id: l.id, from: l.from_device_id, to: l.to_device_id, medium: l.medium, poe: l.poe })),
       });
 
       // Generate ELK auto-layout nodes
-      const rfNodes = devices.map((d, idx) => ({
+      const rfNodes = configuredDevices.map((d, idx) => ({
         id: d.id,
         type: 'customNode',
         position: { x: 100 + (idx % 3) * 260, y: 100 + Math.floor(idx / 3) * 180 },
@@ -398,11 +456,10 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
         updated_at: new Date().toISOString(),
       };
 
-
       await applyTopology({
         vantage_point_id: vp,
         description: 'Configurazione iniziale guidata NetSentinel',
-        devices,
+        devices: configuredDevices,
         links,
         dependencies: deducedDeps,
         layout: savedLayout,
@@ -410,7 +467,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
       onTopologyApplied({
         vantage_point_id: vp,
-        devices,
+        devices: configuredDevices,
         links,
         dependencies: deducedDeps,
         layout: savedLayout,
@@ -615,10 +672,20 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 <div className="col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
                   <div className="space-y-3.5 text-xs">
                     <h3 className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
-                      <Plus className="w-4 h-4 text-sky-400" /> Aggiungi un apparato
+                      {editingDeviceId ? (
+                        <>
+                          <Edit3 className="w-4 h-4 text-emerald-400" /> Modifica apparato
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 text-sky-400" /> Aggiungi un apparato
+                        </>
+                      )}
                     </h3>
                     <p className="text-[11px] text-slate-400">
-                      Scegli il tipo di apparato, assegna un nome e l'indirizzo IP locale:
+                      {editingDeviceId
+                        ? 'Modifica i parametri, incluso indirizzo IP, nome o posizione:'
+                        : "Scegli il tipo di apparato, assegna un nome e l'indirizzo IP locale:"}
                     </p>
 
                     {/* Kinds Grid */}
@@ -683,13 +750,36 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleAddDevice}
-                    className="w-full mt-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-1.5 shadow"
-                  >
-                    <Plus className="w-4 h-4" /> Aggiungi alla Lista
-                  </button>
+                  {editingDeviceId ? (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={handleAddDevice}
+                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-1.5 shadow text-xs"
+                      >
+                        <Check className="w-4 h-4" /> Salva Modifiche
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingDeviceId(null);
+                          setNewName('');
+                          setNewIp('');
+                        }}
+                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition text-xs"
+                      >
+                        Annulla
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleAddDevice}
+                      className="w-full mt-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-1.5 shadow"
+                    >
+                      <Plus className="w-4 h-4" /> Aggiungi alla Lista
+                    </button>
+                  )}
                 </div>
 
                 {/* Right: Configured Devices List */}
@@ -708,7 +798,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                         return (
                           <div
                             key={d.id}
-                            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-xs hover:border-slate-700 transition"
+                            className={`p-2.5 bg-slate-900 border rounded-xl flex items-center justify-between text-xs transition ${
+                              editingDeviceId === d.id ? 'border-sky-500 bg-sky-950/20' : 'border-slate-800 hover:border-slate-700'
+                            }`}
                           >
                             <div className="flex items-center gap-2.5 overflow-hidden">
                               <div className="p-2 rounded-lg bg-slate-800 text-sky-400">
@@ -733,13 +825,24 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                               </div>
                             </div>
 
-                            <button
-                              onClick={() => handleRemoveDevice(d.id)}
-                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
-                              title="Rimuovi apparato"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEdit(d)}
+                                className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded-lg transition"
+                                title="Modifica IP o parametri apparato"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveDevice(d.id)}
+                                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                                title="Rimuovi apparato"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -925,38 +1028,96 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               </div>
             )}
 
-            {/* Step 3: Vantage Point and Launch */}
+            {/* Step 3: Vantage Point and Network Roles */}
             {guidedStep === 3 && (
               <div className="flex-1 p-6 flex flex-col justify-between max-w-2xl mx-auto w-full">
                 <div className="space-y-4">
-                  <h3 className="font-bold text-slate-100 text-base">3. Dove è in esecuzione NetSentinel? (Vantage Point)</h3>
+                  <h3 className="font-bold text-slate-100 text-base">3. Ruoli di Rete e Vantage Point</h3>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    Il monitor ha una prospettiva precisa nella rete. Se il nodo che ospita NetSentinel resta isolato o perde l'alimentazione, il sistema riconosce immediatamente il proprio isolamento.
+                    Specifica quale apparato svolge ciascun ruolo critico. Puoi assegnare DNS e DHCP al tuo Router, oppure al tuo NAS (se usi AdGuard Home, Pi-hole o container dedicati).
                   </p>
 
-                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-3">
-                    <label className="block text-xs font-semibold text-slate-300">
-                      Seleziona l'apparato ospitante (es. NAS Synology, Server Proxmox, Raspberry Pi):
-                    </label>
-                    <select
-                      value={vantagePointId}
-                      onChange={(e) => setVantagePointId(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-sky-500 font-medium"
-                    >
-                      {devices.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} ({d.addresses?.ip || 'IP N/D'}) — [{d.kind}]
-                        </option>
-                      ))}
-                    </select>
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Host di NetSentinel (Vantage Point):
+                      </label>
+                      <p className="text-[11px] text-slate-400 mb-1.5">
+                        L'apparato fisico/virtuale da cui partono i controlli e i ping di rete:
+                      </p>
+                      <select
+                        value={vantagePointId}
+                        onChange={(e) => setVantagePointId(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-sky-500 font-medium"
+                      >
+                        {devices.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} ({d.addresses?.ip || 'IP N/D'}) — [{d.kind}]
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/80">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">
+                          Server DNS Primario:
+                        </label>
+                        <p className="text-[11px] text-slate-400 mb-1.5">
+                          AdGuard Home, Pi-hole o Router:
+                        </p>
+                        <select
+                          value={dnsServerId}
+                          onChange={(e) => setDnsServerId(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-sky-500 font-medium"
+                        >
+                          {devices.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name} ({d.addresses?.ip || 'IP N/D'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">
+                          Server DHCP (Assegnazione IP):
+                        </label>
+                        <p className="text-[11px] text-slate-400 mb-1.5">
+                          Router, NAS o Server DHCP:
+                        </p>
+                        <select
+                          value={dhcpServerId}
+                          onChange={(e) => setDhcpServerId(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-sky-500 font-medium"
+                        >
+                          {devices.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name} ({d.addresses?.ip || 'IP N/D'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
                     <h4 className="font-semibold text-sky-400">Riepilogo Configurazione Pronta:</h4>
                     <div className="text-slate-300">• {devices.length} apparati di rete monitorati</div>
                     <div className="text-slate-300">• {links.length} collegamenti fisici/logici stabiliti</div>
-                    <div className="text-slate-300">• Motore di deduzione automatica delle dipendenze: ATTIVO</div>
-                    <div className="text-slate-300">• Auto-layout gerarchico e progressioni live: ATTIVI</div>
+                    <div className="text-slate-300">
+                      • Server DNS configurato su:{' '}
+                      <span className="text-sky-300 font-semibold">
+                        {devices.find((d) => d.id === dnsServerId)?.name || dnsServerId}
+                      </span>
+                    </div>
+                    <div className="text-slate-300">
+                      • Server DHCP configurato su:{' '}
+                      <span className="text-amber-300 font-semibold">
+                        {devices.find((d) => d.id === dhcpServerId)?.name || dhcpServerId}
+                      </span>
+                    </div>
+                    <div className="text-slate-300">• Motore di deduzione dipendenze e progressioni live: ATTIVI</div>
                   </div>
                 </div>
 

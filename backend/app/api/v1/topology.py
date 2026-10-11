@@ -3,9 +3,9 @@
 import json
 from typing import Any
 
-from app.api.v1.devices import _to_device_read
+from app.api.v1.devices import _to_device_read, ensure_device_checks
 from app.config import settings
-from app.db.models import CanvasLayout, ConfigVersion, Dependency, Device, Link, utcnow
+from app.db.models import CanvasLayout, ConfigVersion, Dependency, Device, Link, Observation, utcnow
 from app.db.session import get_db
 from app.schemas.config_yaml import NetSentinelConfigYaml
 from app.schemas.entities import (
@@ -19,7 +19,7 @@ from app.schemas.entities import (
 from app.topology.deduction import deduce_dependencies_from_topology
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -49,30 +49,74 @@ class TopologyApplyRequest(BaseModel):
     layout: CanvasLayoutSave
 
 
+class AssignNetworkRolesRequest(BaseModel):
+    dns_server_id: str | None = None
+    dhcp_server_id: str | None = None
+    gateway_id: str | None = None
+    vantage_point_id: str | None = None
+
+
 @router.get("", response_model=TopologyFullResponse, summary="Ottieni la topologia completa e il layout della tela")
 async def get_full_topology(db: AsyncSession = Depends(get_db)) -> TopologyFullResponse:
-    """Retrieve all devices, links, dependencies, and persisted canvas layout."""
+    """Retrieve all devices with latest RTT, dynamically deduced links, and dependencies."""
     dev_res = await db.execute(select(Device).options(selectinload(Device.interfaces)))
-    devices = [_to_device_read(d) for d in dev_res.scalars().all()]
+    db_devices = dev_res.scalars().all()
+
+    # Query latest observation RTT for each device
+    rtt_map: dict[str, float] = {}
+    for d in db_devices:
+        obs_res = await db.execute(
+            select(Observation.value)
+            .where(Observation.device_id == d.id, Observation.status == "ok", Observation.value.isnot(None))
+            .order_by(desc(Observation.ts))
+            .limit(1)
+        )
+        val = obs_res.scalar_one_or_none()
+        if val is not None:
+            rtt_map[d.id] = round(val, 1)
+
+    devices = [_to_device_read(d, rtt_ms=rtt_map.get(d.id)) for d in db_devices]
+    dev_status_map = {d.id: d.status for d in db_devices}
 
     link_res = await db.execute(select(Link))
-    links = [
-        LinkRead(
-            id=lnk.id,
-            from_device_id=lnk.from_device_id,
-            from_port=lnk.from_port,
-            to_device_id=lnk.to_device_id,
-            to_port=lnk.to_port,
-            medium=lnk.medium,
-            poe=lnk.poe,
-            cable_notes=lnk.cable_notes,
-            status=lnk.status,
-            status_source=lnk.status_source,
-            throughput_bps=lnk.throughput_bps,
-            updated_at=lnk.updated_at,
+    links: list[LinkRead] = []
+    for lnk in link_res.scalars().all():
+        src_status = dev_status_map.get(lnk.from_device_id, "unknown")
+        dst_status = dev_status_map.get(lnk.to_device_id, "unknown")
+
+        # Dynamically deduce live link status based on endpoint health
+        if src_status == "down" or dst_status == "down":
+            live_status = "down"
+            live_source = "endpoint_down"
+        elif src_status == "unreachable" or dst_status == "unreachable":
+            live_status = "unreachable"
+            live_source = "endpoint_unreachable"
+        elif src_status in ["degraded", "flapping"] or dst_status in ["degraded", "flapping"]:
+            live_status = "degraded"
+            live_source = "endpoint_degraded"
+        elif src_status == "ok" and dst_status == "ok":
+            live_status = "ok"
+            live_source = "ping_verified"
+        else:
+            live_status = "unverified"
+            live_source = "awaiting_verification"
+
+        links.append(
+            LinkRead(
+                id=lnk.id,
+                from_device_id=lnk.from_device_id,
+                from_port=lnk.from_port,
+                to_device_id=lnk.to_device_id,
+                to_port=lnk.to_port,
+                medium=lnk.medium,
+                poe=lnk.poe,
+                cable_notes=lnk.cable_notes,
+                status=live_status,
+                status_source=live_source,
+                throughput_bps=lnk.throughput_bps,
+                updated_at=lnk.updated_at,
+            )
         )
-        for lnk in link_res.scalars().all()
-    ]
 
     dep_res = await db.execute(select(Dependency))
     dependencies = [
@@ -231,6 +275,18 @@ async def apply_topology(payload: TopologyApplyRequest, db: AsyncSession = Depen
     layout_record.groups_json = json.dumps(payload.layout.groups)
     layout_record.updated_at = utcnow()
 
+    # 4b. Ensure active checks are provisioned for all devices
+    for d_data in payload.devices:
+        addrs = d_data.get("addresses") or {}
+        roles = d_data.get("roles") or []
+        await ensure_device_checks(
+            db,
+            d_data["id"],
+            d_data.get("name", d_data["id"]),
+            addrs,
+            roles,
+        )
+
     # 5. Record version snapshot
     snapshot_yaml = NetSentinelConfigYaml(
         vantage_point=payload.vantage_point_id,
@@ -275,6 +331,94 @@ async def apply_topology(payload: TopologyApplyRequest, db: AsyncSession = Depen
 
     await db.commit()
     return {"status": "applied", "version_id": version_record.id, "message": "Topologia applicata e salvata."}
+
+
+@router.post("/assign-roles", response_model=TopologyFullResponse, summary="Riassegna ruoli di rete chiave (DNS, DHCP, Gateway, Vantage Point)")
+async def assign_network_roles(
+    payload: AssignNetworkRolesRequest,
+    db: AsyncSession = Depends(get_db),
+) -> TopologyFullResponse:
+    """Assign or re-delegate core network roles (DNS resolver, DHCP server, Gateway, Vantage Point)."""
+    dev_res = await db.execute(select(Device).options(selectinload(Device.interfaces)))
+    devices = dev_res.scalars().all()
+
+    for dev in devices:
+        roles = json.loads(dev.roles_json) if dev.roles_json else []
+        modified = False
+
+        # DNS resolver role
+        if payload.dns_server_id is not None:
+            if dev.id == payload.dns_server_id and "dns_resolver" not in roles:
+                roles.append("dns_resolver")
+                modified = True
+            elif dev.id != payload.dns_server_id and "dns_resolver" in roles:
+                roles.remove("dns_resolver")
+                modified = True
+
+        # DHCP server role
+        if payload.dhcp_server_id is not None:
+            if dev.id == payload.dhcp_server_id and "dhcp_server" not in roles:
+                roles.append("dhcp_server")
+                modified = True
+            elif dev.id != payload.dhcp_server_id and "dhcp_server" in roles:
+                roles.remove("dhcp_server")
+                modified = True
+
+        # Gateway role
+        if payload.gateway_id is not None:
+            if dev.id == payload.gateway_id and "gateway" not in roles:
+                roles.append("gateway")
+                modified = True
+            elif dev.id != payload.gateway_id and "gateway" in roles:
+                roles.remove("gateway")
+                modified = True
+
+        # Vantage Point role
+        if payload.vantage_point_id is not None:
+            if dev.id == payload.vantage_point_id and "vantage_point" not in roles:
+                roles.append("vantage_point")
+                modified = True
+            elif dev.id != payload.vantage_point_id and "vantage_point" in roles:
+                roles.remove("vantage_point")
+                modified = True
+
+        if modified:
+            dev.roles_json = json.dumps(roles)
+            addrs = json.loads(dev.addresses_json) if dev.addresses_json else {}
+            await ensure_device_checks(db, dev.id, dev.name, addrs, roles)
+
+    await db.flush()
+
+    # Re-deduce dependencies with updated roles
+    link_res = await db.execute(select(Link))
+    links = link_res.scalars().all()
+    vp = payload.vantage_point_id or settings.vantage_point_id or (devices[0].id if devices else "vp")
+
+    deduced = deduce_dependencies_from_topology(
+        devices=devices,
+        links=links,
+        vantage_point_id=vp,
+    )
+
+    curr_deps = await db.execute(select(Dependency))
+    for cd in curr_deps.scalars().all():
+        await db.delete(cd)
+    await db.flush()
+
+    for dep_create in deduced:
+        dep = Dependency(
+            id=dep_create.id,
+            dependent_id=dep_create.dependent_id,
+            provider_id=dep_create.provider_id,
+            kind=dep_create.kind,
+            strength=dep_create.strength,
+            source=dep_create.source,
+            reason=dep_create.reason,
+        )
+        db.add(dep)
+
+    await db.commit()
+    return await get_full_topology(db)
 
 
 @router.get("/export/yaml", summary="Esporta la topologia in formato netsentinel.yaml")

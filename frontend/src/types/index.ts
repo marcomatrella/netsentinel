@@ -65,6 +65,7 @@ export interface Device {
   status: DeviceStatus;
   status_since: string;
   last_seen?: string;
+  rtt_ms?: number;
   interfaces: DeviceInterface[];
 }
 

@@ -15,6 +15,7 @@ import {
   Undo2,
   CheckCircle2,
   Sparkles,
+  Network,
 } from 'lucide-react';
 
 import { Device, Link, FullTopology, Incident } from './types';
@@ -24,6 +25,7 @@ import {
   fetchHistoricalSnapshot,
   applyTopology,
   deduceDependencies,
+  updateDevice,
   setupSSEStream,
 } from './api/client';
 import { NetworkCanvas } from './components/canvas/NetworkCanvas';
@@ -34,6 +36,7 @@ import { LinkDetailPanel } from './components/panels/LinkDetailPanel';
 import { WizardModal } from './components/wizard/WizardModal';
 import { InitialSetupModal } from './components/onboarding/InitialSetupModal';
 import { AddDeviceModal } from './components/panels/AddDeviceModal';
+import { NetworkRolesModal } from './components/panels/NetworkRolesModal';
 import { TimeMachineSlider } from './components/timemachine/TimeMachineSlider';
 
 export const App: React.FC = () => {
@@ -47,6 +50,7 @@ export const App: React.FC = () => {
   const [isWizardOpen, setIsWizardOpen] = useState<boolean>(false);
   const [isInitialSetupOpen, setIsInitialSetupOpen] = useState<boolean>(false);
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState<boolean>(false);
+  const [isRolesModalOpen, setIsRolesModalOpen] = useState<boolean>(false);
   const [isKioskMode, setIsKioskMode] = useState<boolean>(false);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
   const [isHistoricalMode, setIsHistoricalMode] = useState<boolean>(false);
@@ -87,15 +91,28 @@ export const App: React.FC = () => {
     // Connect Server-Sent Events (SSE) for incremental real-time streaming
     const cleanupSSE = setupSSEStream((diff) => {
       if (isHistoricalMode) return; // Don't overwrite if user is scrubbing time machine
-      if (diff.devices && topology) {
+      if (diff.devices) {
         setTopology((prev) => {
           if (!prev) return prev;
           const statusMap = new Map(diff.devices.map((d: any) => [d.id, d.status]));
+          const rttMap = new Map(diff.devices.map((d: any) => [d.id, d.rtt_ms]));
           const updatedDevices = prev.devices.map((dev) => ({
             ...dev,
             status: (statusMap.get(dev.id) as any) || dev.status,
+            rtt_ms: rttMap.has(dev.id) ? (rttMap.get(dev.id) as any) : dev.rtt_ms,
           }));
           return { ...prev, devices: updatedDevices };
+        });
+      }
+      if (diff.links) {
+        setTopology((prev) => {
+          if (!prev) return prev;
+          const linkStatusMap = new Map(diff.links.map((l: any) => [l.id, l.status]));
+          const updatedLinks = prev.links.map((lnk) => ({
+            ...lnk,
+            status: (linkStatusMap.get(lnk.id) as any) || lnk.status,
+          }));
+          return { ...prev, links: updatedLinks };
         });
       }
       if (diff.active_incident !== undefined) {
@@ -134,6 +151,24 @@ export const App: React.FC = () => {
       ...topology,
       devices: [...topology.devices, newDev],
     });
+  };
+
+  // Update device in topology
+  const handleUpdateDevice = async (deviceId: string, updatedData: Partial<Device>) => {
+    if (!topology) return;
+    try {
+      const updated = await updateDevice(deviceId, updatedData);
+      setTopology((prev) => {
+        if (!prev) return prev;
+        const newDevs = prev.devices.map((d) => (d.id === deviceId ? { ...d, ...updated } : d));
+        return { ...prev, devices: newDevs };
+      });
+      setSelectedDevice((prev) => (prev && prev.id === deviceId ? { ...prev, ...updated } : prev));
+      await loadData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Errore aggiornamento apparato: ' + err.message);
+    }
   };
 
   // Delete device from topology in edit mode
@@ -297,6 +332,16 @@ export const App: React.FC = () => {
             >
               <Sparkles className="w-3.5 h-3.5 text-sky-400" />
               <span>Configurazione Apparati</span>
+            </button>
+
+            {/* Network Roles (DNS & DHCP) */}
+            <button
+              onClick={() => setIsRolesModalOpen(true)}
+              className="px-3 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 hover:border-cyan-500/50 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
+              title="Configura chi eroga i servizi DNS (AdGuard Home/Pi-hole) e DHCP"
+            >
+              <Network className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Servizi DNS & DHCP</span>
             </button>
 
             {/* Wizard button */}
@@ -492,6 +537,7 @@ export const App: React.FC = () => {
               if (d) setSelectedDevice(d);
             }}
             onDeleteDevice={isEditMode ? handleDeleteDevice : undefined}
+            onUpdateDevice={handleUpdateDevice}
           />
         )}
 
@@ -528,6 +574,20 @@ export const App: React.FC = () => {
           isOpen={isAddDeviceOpen}
           onClose={() => setIsAddDeviceOpen(false)}
           onAddDevice={handleAddDevice}
+        />
+      )}
+
+      {/* Network Roles Modal (DNS & DHCP) */}
+      {isRolesModalOpen && topology && (
+        <NetworkRolesModal
+          isOpen={isRolesModalOpen}
+          onClose={() => setIsRolesModalOpen(false)}
+          devices={topology.devices}
+          vantagePointId={topology.vantage_point_id}
+          onRolesAssigned={(updatedTopo) => {
+            setTopology(updatedTopo);
+            loadData();
+          }}
         />
       )}
 
