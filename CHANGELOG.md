@@ -7,6 +7,18 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 ## [Unreleased]
 
 ### Aggiunto
+- **Milestone M3**:
+  - Frontend completo in React 18 + TypeScript + TailwindCSS + `@xyflow/react` + `elkjs` servito come Single-Page App dal backend FastAPI.
+  - Tela di rete interattiva (`NetworkCanvas`) con nodi personalizzati (`CustomNode`) e collegamenti tipizzati (`CustomEdge`).
+  - Auto-layout gerarchico a strati con ELK.js per organizzazione automatica dei nodi e rispetto dei flussi di rete.
+  - Tavolozza nodi tipizzati (`Palette`) per inserimento apparati via drag-and-drop.
+  - Pannello laterale di dettaglio apparato (`DeviceDetailPanel`) e collegamento (`LinkDetailPanel`) con esecuzione manuale dei controlli ed elenco eventi.
+  - Banner di incidente (`IncidentBanner`) con root cause evidenziata, confidenza, raccomandazioni e presa in carico ("Presa in carico").
+  - Slider della Macchina del Tempo (`TimeMachineSlider`) per navigare e riprodurre lo storico di stato.
+  - Wizard di configurazione iniziale a 8 passi riprendibile (`WizardModal`).
+  - Motore backend di deduzione automatica delle dipendenze (`backend/app/topology/deduction.py`) implementante le regole della Tabella 4.6.
+  - Endpoint di simulazione guasti dry-run (`POST /api/v1/simulate/failure`) e gestione completa della topologia (`/api/v1/topology`).
+  - Suite di test M3 con verifica della deduzione topologica, endpoint e simulazione (28 test superati).
 - **Milestone M2**:
   - Modello del grafo di rete su NetworkX (`TopologyGraph`) con orientamento rispetto al Vantage Point, calcolo percorsi di hop e dipendenze transitive.
   - Motore di correlazione topologica (`CorrelationEngine`) implementante l'algoritmo in 7 fasi (Sezione 6.3): distinzione tra cause radice e sintomi (`UNREACHABLE` e `AFFECTED`), evidenze positive e negative, confidenza.

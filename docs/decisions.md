@@ -18,3 +18,5 @@ Convenzione: una riga riassuntiva per decisione, seguita da eventuale contesto c
 - **ADR-013**: Storage storico compresso a due livelli: osservazioni grezze con retention breve (7 giorni) e campioni aggregati orari (min/avg/max/p95) per 90 giorni con job di aggregazione notturna.
 - **ADR-014**: Supporto nativo ping ICMP tramite socket raw con fallback automatico su TCP connect SYN/probe se privo di capability `NET_RAW`.
 - **ADR-015**: Esportazione e importazione della configurazione in YAML formattato e validato tramite Pydantic con redazione automatica dei segreti se non cifrati.
+- **ADR-016**: Deduzione automatica delle dipendenze architetturali (Sezione 4.6 della specifica) direttamente dalla tela grafica, basata sui ruoli dei nodi, medium dei link (PoE, ethernet, wan) e distanza L2 dal vantage point.
+- **ADR-017**: Motore di simulazione del guasto (dry-run) che riutilizza in memoria il motore di correlazione topologica senza alterare lo stato del database né emettere notifiche esterne.
