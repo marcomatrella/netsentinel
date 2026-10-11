@@ -61,9 +61,35 @@ async def get_historical_snapshot(
             )
             last_obs = obs_res.scalar_one_or_none()
 
-            status = last_obs.status if last_obs else d.status
+            # Determine exact device status at target_time by checking the last device_state_change event
+            ev_status_res = await db.execute(
+                select(Event)
+                .where(Event.device_id == d.id)
+                .where(Event.event_type == "device_state_change")
+                .where(Event.ts <= t_clean)
+                .order_by(desc(Event.ts))
+                .limit(1)
+            )
+            last_ev = ev_status_res.scalar_one_or_none()
+
+            if last_ev and last_ev.details_json:
+                try:
+                    ev_details = json.loads(last_ev.details_json)
+                    status = ev_details.get("new_status") or "ok"
+                except Exception:
+                    status = last_obs.status if last_obs else d.status
+            elif last_obs:
+                # Fallback: if last observation was crit, mark as down
+                status = "down" if last_obs.status in ["crit", "down"] else ("degraded" if last_obs.status == "warn" else "ok")
+            else:
+                status = d.status
+
             # If an incident was active and this device is root cause:
             if active_incident and active_incident.root_cause_device_id == d.id:
+                status = "down"
+
+            # Normalize raw observation status
+            if status == "crit":
                 status = "down"
 
             historical_devices.append({

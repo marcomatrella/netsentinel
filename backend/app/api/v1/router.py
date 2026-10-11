@@ -9,6 +9,7 @@ from app.api.v1.incidents import router as incidents_router
 from app.api.v1.maintenance import router as maintenance_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.observations import router as observations_router
+from app.api.v1.settings import router as settings_router
 from app.api.v1.simulate import router as simulate_router
 from app.api.v1.stream import router as stream_router
 from app.api.v1.timemachine import router as timemachine_router
@@ -29,3 +30,4 @@ api_v1_router.include_router(notifications_router)
 api_v1_router.include_router(heartbeat_router)
 api_v1_router.include_router(stream_router)
 api_v1_router.include_router(timemachine_router)
+api_v1_router.include_router(settings_router)

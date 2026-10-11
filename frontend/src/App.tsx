@@ -29,6 +29,7 @@ import {
   deduceDependencies,
   updateDevice,
   setupSSEStream,
+  fetchSettings,
 } from './api/client';
 import { NetworkCanvas } from './components/canvas/NetworkCanvas';
 import { Palette } from './components/canvas/Palette';
@@ -41,6 +42,7 @@ import { AddDeviceModal } from './components/panels/AddDeviceModal';
 import { NetworkRolesModal } from './components/panels/NetworkRolesModal';
 import { NotificationSettingsModal } from './components/notifications/NotificationSettingsModal';
 import { EventLogsModal } from './components/events/EventLogsModal';
+import { SystemSettingsModal } from './components/modals/SystemSettingsModal';
 import { HeaderMenuDropdown } from './components/navigation/HeaderMenuDropdown';
 import { LanguageSwitcher } from './components/navigation/LanguageSwitcher';
 import { ThemeSwitcher } from './components/navigation/ThemeSwitcher';
@@ -61,6 +63,8 @@ export const App: React.FC = () => {
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState<boolean>(false);
   const [isRolesModalOpen, setIsRolesModalOpen] = useState<boolean>(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [retentionPeriod, setRetentionPeriod] = useState<string>('24h');
   const [isEventLogsOpen, setIsEventLogsOpen] = useState<boolean>(false);
   const [isKioskMode, setIsKioskMode] = useState<boolean>(false);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
@@ -76,13 +80,17 @@ export const App: React.FC = () => {
   // Load topology and incidents
   const loadData = useCallback(async () => {
     try {
-      const [topoData, incData] = await Promise.all([
+      const [topoData, incData, settingsData] = await Promise.all([
         fetchTopology(),
         fetchIncidents('open'),
+        fetchSettings().catch(() => ({ retention_period: '24h', settings: {} })),
       ]);
       setTopology(topoData);
       setIncidents(incData);
       setActiveIncident(incData.length > 0 ? incData[0] : null);
+      if (settingsData?.retention_period) {
+        setRetentionPeriod(settingsData.retention_period);
+      }
       setIsHistoricalMode(false);
       setError(null);
 
@@ -500,6 +508,7 @@ export const App: React.FC = () => {
               onOpenRolesModal={() => setIsRolesModalOpen(true)}
               onOpenWizard={() => setIsWizardOpen(true)}
               onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
+              onOpenSettings={() => setIsSettingsOpen(true)}
               onOpenLogs={() => setIsEventLogsOpen(true)}
               onOpenKiosk={() => setIsKioskMode(true)}
               onRefresh={() => loadData()}
@@ -650,20 +659,23 @@ export const App: React.FC = () => {
 
           {/* Bottom Floating Time Machine Slider (Visible in Live/Normal Mode) */}
           {!isEditMode && topology && topology.devices.length > 0 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
-              <TimeMachineSlider
-                onTimeChange={(targetDate) => handleTimeTravel(targetDate)}
-                onLiveMode={() => {
-                  setIsHistoricalMode(false);
-                  setHistoricalTime(null);
-                  setHistoricalErrorSummary(null);
-                  loadData();
-                }}
-                onOpenLogs={() => setIsEventLogsOpen(true)}
-                isLive={!isHistoricalMode}
-                externalTargetTime={historicalTime}
-                errorAtTime={historicalErrorSummary}
-              />
+            <div className="absolute bottom-5 left-4 right-4 md:left-8 md:right-8 z-20 pointer-events-auto flex justify-center">
+              <div className="w-full max-w-5xl">
+                <TimeMachineSlider
+                  onTimeChange={(targetDate) => handleTimeTravel(targetDate)}
+                  onLiveMode={() => {
+                    setIsHistoricalMode(false);
+                    setHistoricalTime(null);
+                    setHistoricalErrorSummary(null);
+                    loadData();
+                  }}
+                  onOpenLogs={() => setIsEventLogsOpen(true)}
+                  isLive={!isHistoricalMode}
+                  externalTargetTime={historicalTime}
+                  errorAtTime={historicalErrorSummary}
+                  retentionPeriod={retentionPeriod}
+                />
+              </div>
             </div>
           )}
         </main>
@@ -756,6 +768,16 @@ export const App: React.FC = () => {
           onClose={() => setIsNotificationModalOpen(false)}
         />
       )}
+
+      {/* System Settings & Retention Modal */}
+      <SystemSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentRetention={retentionPeriod}
+        onRetentionChanged={(newRet) => {
+          setRetentionPeriod(newRet);
+        }}
+      />
 
       {/* Event Logs & Diagnostics Modal */}
       <EventLogsModal

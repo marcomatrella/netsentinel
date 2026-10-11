@@ -67,6 +67,8 @@
     "email_notifications": "Email Notifications (SMTP)",
     "email_notifications_desc": "Configure mail server, recipients and verify with HTML test",
     "section_tools": "View & Controls",
+    "system_settings": "System Settings & Retention",
+    "system_settings_desc": "Configure data retention policy and historical preferences",
     "toggle_edit_mode": "Switch to Edit Mode",
     "toggle_live_view": "Return to LIVE View",
     "fullscreen": "Fullscreen / Kiosk Mode",
@@ -181,7 +183,24 @@
     "retry": "Retry",
     "empty_title": "No devices configured",
     "empty_desc": "To start monitoring and visualising interconnection progressions, add your devices or load a pre-configured network template.",
-    "start_setup": "Start Network Setup"
+    "start_setup": "Start Network Setup",
+    "zoom_in": "Zoom in",
+    "zoom_out": "Zoom out",
+    "fit_view": "Fit view to canvas",
+    "lock": "Lock/Unlock interactivity",
+    "auto_layout": "Auto-Layout (ELK)"
+  },
+  "settings": {
+    "modal_title": "System Settings",
+    "modal_desc": "Data retention policy and configuration preferences",
+    "retention_label": "Data Retention Policy",
+    "retention_desc": "Defines how long historical data is preserved and the time range scrubbable in the Time Machine.",
+    "retention_24h": "24 Hours (Default)",
+    "retention_48h": "48 Hours (2 Days)",
+    "retention_5d": "5 Days",
+    "retention_10d": "10 Days",
+    "retention_30d": "30 Days (1 Month)",
+    "save_btn": "Save Settings"
   },
   "timemachine": {
     "title": "Time Machine",
@@ -190,7 +209,11 @@
     "logs_tooltip": "Open event log to see what happened",
     "return_live": "Return to Live",
     "now": "Now",
-    "range_24h": "-24h"
+    "range_24h": "-24h",
+    "range_48h": "-48h",
+    "range_5d": "-5d",
+    "range_10d": "-10d",
+    "range_30d": "-30d"
   },
   "events": {
     "modal_title": "Network Event Log & Diagnostics",

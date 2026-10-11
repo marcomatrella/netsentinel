@@ -67,6 +67,8 @@
     "email_notifications": "Notifiche Email (SMTP)",
     "email_notifications_desc": "Imposta server di posta, destinatari e verifica con test HTML",
     "section_tools": "Visualizzazione & Controlli",
+    "system_settings": "Impostazioni Sistema & Retention",
+    "system_settings_desc": "Configura la retention dei dati e le preferenze storiche",
     "toggle_edit_mode": "Passa a Modalità Modifica",
     "toggle_live_view": "Torna a Vista Operativa LIVE",
     "fullscreen": "Modalità Kiosk / Schermo Intero",
@@ -181,7 +183,24 @@
     "retry": "Riprova",
     "empty_title": "Nessun apparato configurato",
     "empty_desc": "Per iniziare a monitorare e visualizzare le progressioni di interconnessione, aggiungi i tuoi apparati o carica un modello di rete preconfigurato.",
-    "start_setup": "Avvia Configurazione Rete"
+    "start_setup": "Avvia Configurazione Rete",
+    "zoom_in": "Ingrandisci (Zoom in)",
+    "zoom_out": "Rimpicciolisci (Zoom out)",
+    "fit_view": "Adatta vista alla tela",
+    "lock": "Blocca/Sblocca interazione",
+    "auto_layout": "Auto-Layout (ELK)"
+  },
+  "settings": {
+    "modal_title": "Impostazioni di Sistema",
+    "modal_desc": "Configurazione della conservazione dei dati e preferenze",
+    "retention_label": "Politica di Conservazione Dati (Retention)",
+    "retention_desc": "Definisce per quanto tempo conservare lo storico dei dati e l'intervallo temporale esplorabile con la Macchina del Tempo.",
+    "retention_24h": "24 Ore (Predefinito)",
+    "retention_48h": "48 Ore (2 Giorni)",
+    "retention_5d": "5 Giorni",
+    "retention_10d": "10 Giorni",
+    "retention_30d": "30 Giorni (1 Mese)",
+    "save_btn": "Salva Impostazioni"
   },
   "timemachine": {
     "title": "Macchina del Tempo",
@@ -190,7 +209,11 @@
     "logs_tooltip": "Apri il registro eventi per vedere cosa è accaduto",
     "return_live": "Torna al Live",
     "now": "Ora",
-    "range_24h": "-24h"
+    "range_24h": "-24h",
+    "range_48h": "-48h",
+    "range_5d": "-5gg",
+    "range_10d": "-10gg",
+    "range_30d": "-30gg"
   },
   "events": {
     "modal_title": "Registro Eventi & Diagnostica di Rete",

@@ -328,4 +328,20 @@ export async function quickPing(target: string, timeoutSeconds: number = 1.5): P
   return res.json();
 }
 
+export async function fetchSettings(): Promise<{ retention_period: string; settings: Record<string, any> }> {
+  const res = await fetch(`${API_BASE}/settings`);
+  if (!res.ok) throw new Error('Impossibile caricare le impostazioni.');
+  return res.json();
+}
+
+export async function updateRetentionSetting(retention_period: string): Promise<{ retention_period: string; status: string }> {
+  const res = await fetch(`${API_BASE}/settings/retention`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ retention_period }),
+  });
+  if (!res.ok) throw new Error('Impossibile aggiornare la retention.');
+  return res.json();
+}
+
 

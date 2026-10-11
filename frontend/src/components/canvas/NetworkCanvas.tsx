@@ -20,6 +20,7 @@ import { Device, Link, Incident, CanvasLayout } from '../../types';
 import { getLayoutedElements } from '../../utils/elkLayout';
 import { useTheme } from '../../theme/ThemeContext';
 import { getDeviceColorId, getDefaultColorForKind } from '../../constants/colors';
+import { useTranslation } from '../../i18n/I18nContext';
 
 interface NetworkCanvasProps {
   devices: Device[];
@@ -48,6 +49,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   const nodeTypes = useMemo(() => ({ customNode: CustomNode as any }), []);
   const edgeTypes = useMemo(() => ({ customEdge: CustomEdge as any }), []);
@@ -333,9 +335,9 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           <button
             onClick={handleAutoLayout}
             className="px-3 py-1.5 bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white rounded-lg text-xs font-medium shadow-lg backdrop-blur-sm transition flex items-center gap-1.5"
-            title="Organizza automaticamente nodi e livelli"
+            title={t('canvas.auto_layout')}
           >
-            <span>✨ Auto-Layout (ELK)</span>
+            <span>✨ {t('canvas.auto_layout')}</span>
           </button>
         </div>
       )}
@@ -353,7 +355,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: 0.28 }}
         minZoom={0.2}
         maxZoom={2.5}
         nodesDraggable={isEditMode}
@@ -365,7 +367,11 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           size={1}
           color={theme === 'dark' ? '#334155' : '#cbd5e1'}
         />
-        <Controls className="!bg-white dark:!bg-slate-900 !border-slate-200 dark:!border-slate-800 !text-slate-700 dark:!text-slate-300 [&>button]:!bg-slate-50 dark:[&>button]:!bg-slate-850 [&>button]:!border-slate-200 dark:[&>button]:!border-slate-700" />
+        <Controls
+          className="!bg-white dark:!bg-slate-900 !border-slate-200 dark:!border-slate-800 !text-slate-700 dark:!text-slate-300 [&>button]:!w-8 [&>button]:!h-8 [&>button]:!bg-slate-50 dark:[&>button]:!bg-slate-850 [&>button]:!border-slate-200 dark:[&>button]:!border-slate-700 hover:[&>button]:!bg-slate-200 dark:hover:[&>button]:!bg-slate-750 [&>button]:transition-all [&>button]:shadow-sm"
+          aria-label={t('canvas.fit_view')}
+          position="bottom-left"
+        />
         <MiniMap
           nodeColor={() => '#38bdf8'}
           maskColor={theme === 'dark' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.7)'}

@@ -9,6 +9,7 @@ import {
   Maximize2,
   RefreshCw,
   ScrollText,
+  Settings,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 
@@ -17,6 +18,7 @@ interface HeaderMenuDropdownProps {
   onOpenRolesModal: () => void;
   onOpenWizard: () => void;
   onOpenNotificationModal: () => void;
+  onOpenSettings: () => void;
   onOpenLogs?: () => void;
   onOpenKiosk: () => void;
   onRefresh: () => void;
@@ -27,6 +29,7 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
   onOpenRolesModal,
   onOpenWizard,
   onOpenNotificationModal,
+  onOpenSettings,
   onOpenLogs,
   onOpenKiosk,
   onRefresh,
@@ -192,6 +195,24 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
                 <span className="font-medium">{t('header.event_logs')}</span>
               </button>
             )}
+
+            {/* Impostazioni Sistema & Retention */}
+            <button
+              onClick={() => handleAction(onOpenSettings)}
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group"
+            >
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                <Settings className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                  {t('menu.system_settings')}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {t('menu.system_settings_desc')}
+                </div>
+              </div>
+            </button>
 
             {/* Fullscreen / Kiosk */}
             <button
