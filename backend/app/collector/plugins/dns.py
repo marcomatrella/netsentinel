@@ -171,7 +171,7 @@ class DnsCollector(BaseCollector):
             rtt_ms = round((time.time() - t0) * 1000.0, 2)
             rcode, _ = parse_dns_response(data, query_id)
             return ("ok", rtt_ms, rcode)
-        except (TimeoutError, socket.timeout):
+        except TimeoutError:
             return ("timeout", None, -1)
         except Exception:
             return ("error", None, -1)

@@ -1,7 +1,7 @@
 """Checks REST API endpoints."""
 
-from datetime import datetime
 import json
+from datetime import datetime
 from typing import Any
 
 from app.collector.plugins import registry

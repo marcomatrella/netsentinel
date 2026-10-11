@@ -2,42 +2,49 @@
 
 # 🛡️ NetSentinel
 
-**Monitoraggio Intelligente per Home Lab con Correlazione Eventi Basata su Topologia di Rete**
+**Intelligent Home Lab & Small Network Monitoring with Topology-Aware Root Cause Analysis**
 
-[![CI](https://github.com/marcomatrella/netsentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/marcomatrella/netsentinel/actions)
+[![CI](https://github.com/marcomatrella/netsentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/marcomatrella/netsentinel/actions/workflows/ci.yml)
+[![CD](https://github.com/marcomatrella/netsentinel/actions/workflows/cd.yml/badge.svg)](https://github.com/marcomatrella/netsentinel/actions/workflows/cd.yml)
+[![Docker](https://img.shields.io/badge/Docker-Multi--Arch-2496ED.svg?logo=docker&logoColor=white)](https://github.com/marcomatrella/netsentinel/pkgs/container/netsentinel)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18+-61DAFB.svg?logo=react&logoColor=black)](https://react.dev)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://docker.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Languages](https://img.shields.io/badge/i18n-IT%20%7C%20EN%20%7C%20FR%20%7C%20DE%20%7C%20ES-success.svg)](#-internationalization--languages)
 
-*NetSentinel non ti dice solo che "X è giù": correla gli apparati in base alla topologia fisica e logica della tua rete e ti dice **esattamente dove sta il problema, perché, da quando e cosa fare**.*
+*NetSentinel doesn't just flood you with "Device X is down" alerts. It understands the physical and logical topology of your network and tells you **exactly what failed, why, when, and what action to take**.*
 
 </div>
 
 ---
 
-## 💡 Perché NetSentinel?
+## 💡 Why NetSentinel?
 
-Nei sistemi di monitoraggio convenzionali (Zabbix, Nagios, Uptime Kuma), il guasto di un apparato infrastrutturale a monte (come lo switch di centro stella o il router) scatena una cascata incontrollata di allarmi separati: *"NAS offline"*, *"AP offline"*, *"Server domotico offline"*, *"DNS offline"*, *"DHCP offline"*.
+In conventional monitoring solutions (Zabbix, Nagios, Uptime Kuma), the failure of an upstream infrastructure device (such as a core switch or main router) triggers an uncontrollable cascade of independent alerts: *"NAS offline"*, *"AP offline"*, *"Home Assistant offline"*, *"DNS resolver down"*, *"DHCP server unreachable"*.
 
-**NetSentinel risolve questo problema alla radice:**
-1. **Distingue la causa dai sintomi**: riconosce che l'Access Point è solo `UNREACHABLE` a causa dello switch `DOWN`, generando **un solo avviso per incidente** anziché una raffica.
-2. **Configurazione Disegnando la Rete (Stile draw.io)**: trascina nodi e collegamenti su una tela interattiva. Il sistema **deduce automaticamente le dipendenze** architetturali (alimentazione PoE, percorsi L2, gateway L3, DNS, DHCP).
-3. **Punto di Osservazione (Vantage Point)**: sa che gira da un punto preciso della LAN (es. il NAS) e distingue se è la rete ad avere problemi o se è il vantage point stesso a trovarsi isolato.
-4. **Leggero e NAS-Friendly**: database SQLite in modalità WAL, metriche aggregate in batch asincroni, retention breve per i dati grezzi. Utilizzo CPU < 3% e RAM < 200MB.
-5. **Dead-Man's Switch**: integra un watchdog che avvisa tramite Healthchecks.io se è NetSentinel stesso a bloccarsi o a perdere alimentazione.
+**NetSentinel tackles this problem at the root:**
+
+1. **Distinguishes Root Cause from Symptoms**: Identifies that downstream Access Points and Servers are simply `UNREACHABLE` because the intermediate Switch is `DOWN`. It consolidates the issue into **a single actionable incident** instead of a notification storm.
+2. **Interactive Draw.io-Style Canvas**: Drag-and-drop hardware nodes and cables on a modern central canvas. The system **automatically deduces dependencies** (PoE power, Layer 2 paths, Layer 3 gateway, DNS, DHCP).
+3. **19 Hardware Categories & 12 Visual Accents**: Dedicated templates for Routers, Firewalls (pfSense/OPNsense), Managed PoE Switches, Access Points, NAS, Hypervisors (Proxmox), Home Assistant, IP Cameras (RTSP), NVRs, Network Printers, Smart Plugs/PDUs, UPS, Fiber Modems/ONTs, and IoT Sensors.
+4. **Vantage Point Awareness**: NetSentinel knows its physical location on the LAN (e.g. your Synology NAS or server) and discriminates whether the network has failed or if the vantage point itself has become isolated.
+5. **Time Machine (Historical Playback)**: Rewind time across the last 30 days to visually replay how an incident propagated through your topology.
+6. **Ultra-Lightweight & NAS-Friendly**: SQLite in WAL mode, batched asynchronous metrics, CPU usage < 3% and RAM footprint < 200MB.
+7. **Dead-Man's Switch**: Integrates an external watchdog (e.g. Healthchecks.io) to alert you if NetSentinel itself freezes, loses power, or goes dark.
 
 ---
 
-## 🏗️ Architettura
+## 🏗️ Architecture
 
 ```
 +-------------------------------------------------------------------------------+
 |                             NetSentinel Frontend                              |
 |   React 18 + xyflow (React Flow) + ELK.js Auto-Layout + Server-Sent Events    |
-|   - Tela Grafica Interattiva (draw.io-style)   - Macchina del Tempo (30gg)   |
-|   - Modalità Operativa / Sola Lettura          - Modalità Kiosk a Tutto Schermo|
+|   - Draw.io-style Interactive Canvas           - Time Machine Historical Play |
+|   - Operational Live View & Edit Mode          - Fullscreen Kiosk Mode        |
+|   - Multi-Language Dropdown (IT/EN/FR/DE/ES)   - Dark & Light Themes          |
+|   - Human-Readable Event Logs & Diagnostics    - Custom Checks & Timed Toasts |
 +---------------------------------------+---------------------------------------+
                                         | (REST API v1 + SSE Stream)
 +---------------------------------------v---------------------------------------+
@@ -45,30 +52,34 @@ Nei sistemi di monitoraggio convenzionali (Zabbix, Nagios, Uptime Kuma), il guas
 |   FastAPI + Asyncio + Pydantic v2 + SQLAlchemy 2 + SQLite WAL                 |
 |                                                                               |
 |  +------------------+  +-------------------+  +----------------------------+  |
-|  | Scheduler Async  |  | Macchina a Stati  |  | Correlazione Topologica    |  |
-|  | Jitter & Batch   |->| Isteresi & Flap   |->| Grafo NetworkX (7 Fasi)   |  |
+|  | Async Scheduler  |  | State Machine     |  | Topological Correlation    |  |
+|  | Jitter & Batch   |->| Hysteresis & Flap |->| NetworkX Graph (7 Phases)  |  |
 |  +------------------+  +-------------------+  +----------------------------+  |
 |                                                             |                 |
 |  +------------------+  +-------------------+  +-------------v--------------+  |
-|  | Dead-Man Switch  |  | Watchdog Interno  |  | Coda Persistente Notifiche |  |
-|  | Healthchecks.io  |<-| Verifica DB/Loop  |  | SMTP, ntfy, Webhook, HA   |  |
+|  | Dead-Man Switch  |  | Internal Watchdog |  | Persistent Alert Queue     |  |
+|  | Healthchecks.io  |<-| Loop & DB Health  |  | SMTP, ntfy, Webhook, HA    |  |
 |  +------------------+  +-------------------+  +----------------------------+  |
 +---------------------------------------+---------------------------------------+
                                         |
 +---------------------------------------v---------------------------------------+
-|                            Collector & Plugin                                 |
-|   Ping ICMP (raw)   - UniFi Controller & PoE   - Synology DSM Storage/SMART   |
-|   TCP Port Check    - NUT UPS Daemon (TCP 3493) - AdGuard Home DNS Stats      |
-|   HTTP/S Check      - SNMP v1/v2c (UDP 161)    - Home Assistant Smart Plugs   |
-|   DNS Direct UDP    - Generic HTTP/JSONPath                                   |
+|                         Collector & Protocol Plugins                          |
+|   Ping ICMP (Raw socket)  - UniFi Controller & PoE   - Synology DSM Storage   |
+|   TCP Port Poller         - NUT UPS Daemon (TCP 3493) - AdGuard Home DNS Stats |
+|   HTTP/S Healthchecks     - SNMP v1/v2c (UDP 161)    - Home Assistant API     |
+|   DNS Direct UDP Resolver - Generic HTTP JSONPath                             |
 +-------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 🚀 Avvio Rapido con Docker Compose
+## 🚀 Quickstart with Docker
 
-NetSentinel viene distribuito come un singolo container Docker multi-stage contenente sia il frontend React compilato che il backend FastAPI ad alte prestazioni.
+NetSentinel is packaged as a single lightweight multi-arch Docker image containing both the compiled React frontend and the FastAPI backend.
+
+### Option 1: Docker Compose (Recommended)
+
+Create a `docker-compose.yml` file:
 
 ```yaml
 version: "3.8"
@@ -80,13 +91,13 @@ services:
     restart: unless-stopped
     network_mode: host
     cap_add:
-      - NET_RAW  # Per ping ICMP diretti senza root
+      - NET_RAW  # Required for raw ICMP pings without root privileges
     environment:
       - NETSENTINEL_HOST=0.0.0.0
       - NETSENTINEL_PORT=8080
       - NETSENTINEL_DATA_DIR=/data
-      - NETSENTINEL_SECRET_KEY=tua_chiave_fernet_opzionale
-      - NETSENTINEL_HEARTBEAT_URL=https://hc-ping.com/tuo-uuid-healthchecks
+      - NETSENTINEL_SECRET_KEY=optional_fernet_encryption_key
+      - NETSENTINEL_HEARTBEAT_URL=https://hc-ping.com/your-uuid-here
       - TZ=Europe/Rome
     volumes:
       - ./data:/data
@@ -97,86 +108,145 @@ services:
           memory: 300M
 ```
 
-Avvia il servizio:
+Start the container:
 ```bash
 docker compose up -d
 ```
 
-Apri il browser su:
+Open your browser at:
 ```
 http://localhost:8080/
 ```
 
----
-
-## 🎨 Il Wizard Interattivo
-
-La configurazione si effettua attraverso un wizard guidato a 8 passi:
-
-1. **Fonti Dati**: Aggiungi le integrazioni locali (UniFi, Synology DSM, AdGuard Home, NUT, Home Assistant) con test istantaneo della connessione.
-2. **Tela di Progetto**: Trascina i nodi dalla palette (Internet, Router, Switch, AP, NAS, UPS, Client) e collegali con cavi tipizzati (Ethernet, PoE, Wi-Fi, Power, Logical). Il pulsante **Auto-Layout (ELK.js)** organizza la rete in livelli gerarchici puliti.
-3. **Revisione Dipendenze**: Visualizza le relazioni dedotte automaticamente dal disegno (Tabella 4.6 della specifica) con possibilità di override manuale.
-4. **Controlli**: Configura intervalli, timeout e soglie per ogni apparato.
-5. **Vantage Point & Dead-Man's Switch**: Seleziona il nodo su cui gira NetSentinel e configura il webhook Healthchecks.io.
-6. **Notifiche**: Configura SMTP con mail di prova, orari di silenzio (quiet hours) e bypass per guasti critici.
-7. **Simulazione Guasti (Dry-Run)**: Fai clic su un nodo o cavo e visualizza in anteprima quali apparati diventerebbero sintomi e quale diagnosi verrebbe emessa, senza inviare alcun allarme reale.
-8. **Riepilogo & Salva**: Salva nel database SQLite ed esporta il backup in `netsentinel.yaml`.
-
----
-
-## 🔍 Le 14 Regole di Diagnosi
-
-NetSentinel include una libreria dichiarativa YAML (`default_rules.yaml`) per diagnosticare i problemi tipici di un home lab:
-
-| Regola | Categoria | Descrizione |
-|---|---|---|
-| **01** | WAN | Connessione Internet interrotta (ONT/ISP), gateway locale OK |
-| **02** | Gateway | Router / Firewall principale offline o congelato |
-| **03** | Hardware | Riavvio AP (reboot watchdog, crash o aggiornamento) |
-| **04** | Power / Cavo | Perdita alimentazione PoE o disconnessione cavo AP |
-| **05** | Cablaggio | Link flapping frequente o crimpatura degradata |
-| **06** | Switch | Switch di centro stella offline (tutti i nodi a valle isolati) |
-| **07** | Server | NAS offline con caduta dei servizi DNS e DHCP |
-| **08** | Servizio | Risoluzione DNS locale degradata o upstream SERVFAIL |
-| **09** | Servizio | Pool DHCP saturo o server non rispondente |
-| **10** | Power | UPS su batteria per blackout elettrico della rete |
-| **11** | Vantage Point | Isolamento locale dell'host su cui gira il monitor |
-| **12** | Storage | Volume RAID degradato o peggioramento parametri S.M.A.R.T. |
-| **13** | Applicativo | Host raggiungibile via IP ma servizio web/API bloccato |
-| **14** | Manutenzione | Aggiornamento firmware programmato con ripristino |
-
----
-
-## 📚 Documentazione Dettagliata
-
-- [Architettura del Sistema](docs/architecture.md)
-- [Algoritmo di Correlazione e Deduplica](docs/correlation.md)
-- [Guida allo Sviluppo di Plugin e Collector](docs/plugins.md)
-- [Deployment su NAS (Synology, TrueNAS, unRAID, QNAP)](docs/setup-nas.md)
-- [Dead-Man's Switch e Watchdog](docs/heartbeat.md)
-- [Modello di Sicurezza e Crittografia](docs/security.md)
-- [Registro delle Decisioni Architetturali (ADR)](docs/decisions.md)
-- [Piano di Progetto per Milestone](docs/plan.md)
-
----
-
-## 🧪 Test e Qualità del Codice
-
-La suite di test automatizzati include test unitari, test di scenario basati su topologie reali e benchmark di prestazioni:
+### Option 2: Docker Run
 
 ```bash
-# Esecuzione della suite completa (46 test)
-uv run pytest
-
-# Linter e formattazione con Ruff
-uv run ruff check .
-
-# Type checking statico
-uv run mypy
+docker run -d \
+  --name netsentinel \
+  --restart unless-stopped \
+  --network host \
+  --cap-add NET_RAW \
+  -v $(pwd)/data:/data \
+  -e NETSENTINEL_PORT=8080 \
+  -e TZ=Europe/Rome \
+  ghcr.io/marcomatrella/netsentinel:latest
 ```
 
 ---
 
-## 📄 Licenza
+## ✨ Features & Capabilities
 
-Distribuito sotto licenza **MIT**. Consulta il file [LICENSE](LICENSE) per ulteriori informazioni.
+### 🎨 Interactive Topology Canvas
+* **Live Operational Mode**: Read-only monitoring view where nodes are locked to prevent accidental movement. Displays live RTT ping latency, operational status rings, and animated link pulses.
+* **Edit Mode**: One-click top bar button unlocks node dragging, canvas panning, connection handles, node deletion, and custom positioning.
+* **Auto-Layout (ELK.js)**: Automatically organizes complex messy networks into clean hierarchical tiers (WAN → Gateway → Core Switches → Access Points & Servers → Clients).
+* **12 Visual Color Accents**: Distinguish boxes at a glance (e.g. Amber for NAS, Violet for Proxmox/VMs, Rose for Firewalls, Orange for UPS, Teal for APs) without overriding health status borders.
+* **Custom Checks & Real-Time Diagnostics**: Add specific TCP port checks, HTTP healthcheck URLs, or ICMP pings per device. Executing a test triggers an informative timed toast with actual latency and response metrics.
+
+### 🌐 Internationalization & Languages
+Full multi-language support available directly from the header dropdown menu:
+* 🇮🇹 **Italiano**
+* 🇬🇧 **English**
+* 🇫🇷 **Français**
+* 🇩🇪 **Deutsch**
+* 🇪🇸 **Español**
+
+### 📋 Event Logs & Diagnostic Narrative
+* Human-readable, searchable log of all network events, outages, flaps, and recoveries.
+* **"Inspect on Canvas"**: Instantly jumps to the corresponding device on the topology map.
+* Filter by severity (Critical, Warning, Informational) or search by device name and IP.
+
+### ⏰ Time Machine
+* Travel back in time using an interactive slider.
+* Reconstructs the exact state of your network at any given moment in the past 30 days to diagnose intermittent failures.
+
+### 🔔 Alerting & Notifications
+* **Consolidated Incident Reports**: Sends one clean HTML summary per incident, not a storm of individual device down emails.
+* **Supported Channels**: SMTP Email, ntfy, Webhooks, Home Assistant notifications.
+* **Quiet Hours**: Mute non-critical notifications at night while allowing critical core failures to pass through.
+* **WAN Blackout Queue**: If your internet connection drops, notifications are safely queued on disk and dispatched immediately upon WAN recovery.
+
+---
+
+## 🔍 The 14 Built-In Diagnosis Rules
+
+NetSentinel ships with a declarative YAML rule engine (`default_rules.yaml`):
+
+| Rule | Category | Description |
+|---|---|---|
+| **01** | WAN | Internet upstream connection lost (ONT/ISP), local gateway healthy |
+| **02** | Gateway | Main router / firewall offline or unresponsive |
+| **03** | Hardware | Access point reboot detected (uptime reset, crash, or firmware update) |
+| **04** | Power / Cable | PoE power loss or Ethernet cable disconnection on AP |
+| **05** | Cabling | High-frequency link flapping or degraded cable crimp |
+| **06** | Switch | Core network switch offline (all downstream nodes isolated) |
+| **07** | Server | NAS offline with simultaneous loss of DNS/DHCP services |
+| **08** | Service | Local DNS resolution degraded or upstream SERVFAIL |
+| **09** | Service | DHCP lease pool exhausted or server not offering IP addresses |
+| **10** | Power | UPS operating on battery power due to mains outage |
+| **11** | Vantage Point | Local host running NetSentinel isolated from the LAN |
+| **12** | Storage | RAID storage pool degraded or failing S.M.A.R.T. disk attributes |
+| **13** | Application | Host reachable via ping but specific HTTP/API service locked up |
+| **14** | Maintenance | Scheduled firmware upgrade with planned recovery window |
+
+---
+
+## 🔌 Hardware & Protocol Plugins
+
+NetSentinel includes built-in collectors with zero external dependencies:
+
+* **Ping ICMP**: Native raw socket implementation with sub-millisecond precision and packet-loss calculation.
+* **TCP Port**: Connection verification on custom ports (e.g. Proxmox 8006, DSM 5000, RTSP 554, NUT 3493, IPP 631).
+* **HTTP / JSONPath**: REST API and web healthcheck verification with response-time tracking.
+* **Direct DNS**: Low-level UDP DNS query builder and parser to verify resolver latency and record resolution.
+* **Synology DSM**: Native REST API client for storage pool health, disk drive status, temperature, and DSM version.
+* **UniFi Controller**: UniFi API integration for Access Point status, PoE port delivery, and client counts.
+* **NUT (Network UPS Tools)**: Direct TCP client (port 3493) monitoring UPS battery charge, load, and grid status.
+* **SNMP v1/v2c**: Pure Python UDP SNMP packet builder and parser for network interface statistics.
+* **AdGuard Home & Home Assistant**: Native API integrations for DNS block rates and smart plug power metrics.
+
+---
+
+## ⚙️ Configuration Reference
+
+| Environment Variable | Default | Description |
+|---|---|---|
+| `NETSENTINEL_HOST` | `0.0.0.0` | Binding host address |
+| `NETSENTINEL_PORT` | `8080` | Web server listening port |
+| `NETSENTINEL_DATA_DIR` | `/data` | Directory where SQLite DB and backups are stored |
+| `NETSENTINEL_SECRET_KEY` | *(auto-generated)* | 32-byte Fernet key used to encrypt passwords & API tokens in DB |
+| `NETSENTINEL_HEARTBEAT_URL` | `None` | External watchdog URL (e.g. Healthchecks.io ping URL) |
+| `NETSENTINEL_LOG_LEVEL` | `INFO` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `TZ` | `UTC` | Local timezone (e.g. `Europe/Rome`, `America/New_York`) |
+
+---
+
+## 🛠️ Development & Testing
+
+NetSentinel uses [uv](https://github.com/astral-sh/uv) for lightning-fast Python package management and [Vite](https://vitejs.dev) for frontend builds.
+
+```bash
+# Clone the repository
+git clone https://github.com/marcomatrella/netsentinel.git
+cd netsentinel
+
+# Set up Python virtual environment and install dev dependencies
+uv sync --all-extras --dev
+
+# Run unit tests, scenario correlations, and benchmarks (50 tests)
+uv run pytest
+
+# Run code style and linter checks
+uv run ruff check .
+
+# Frontend development
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
