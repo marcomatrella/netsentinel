@@ -1,7 +1,9 @@
 [project]
 name = "netsentinel"
 version = "0.1.0"
-description = "Add your description here"
+description = "Self-hosted network monitoring with topological correlation and root-cause analysis"
+readme = "README.md"
+license = "MIT"
 authors = [
     { name = "Marco Matrella", email = "marco.matrella.91@gmail.com" }
 ]
