@@ -72,6 +72,12 @@ In conventional monitoring solutions (Zabbix, Nagios, Uptime Kuma), the failure 
 ```
 
 ---
+## Quick Demo
+
+https://github.com/user-attachments/assets/6393e4e6-a0b3-46d2-9ae5-577531e9370f
+
+
+---
 
 ## 🚀 Quickstart with Docker
 
