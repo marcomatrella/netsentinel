@@ -150,12 +150,19 @@
     "subtitle": "Auf Arbeitsfläche ziehen, um Geräte hinzuzufügen",
     "categories": {
       "router": "Router / Gateway",
+      "firewall": "Netzwerk-Firewall",
       "switch": "Netzwerk-Switch",
       "access_point": "WLAN-Access-Point",
       "nas": "NAS / Speicher",
-      "server": "Server / Docker",
+      "server": "Server / Hypervisor",
       "ups": "USV-Batterie",
       "smart_hub": "Smart-Home-Hub",
+      "camera": "IP-Kamera",
+      "nvr": "NVR / Videoüberwachung",
+      "printer": "Netzwerkdrucker",
+      "smart_plug": "Smarte Steckdose / PDU",
+      "modem": "Glasfaser-Modem / ONT",
+      "sensor": "IoT-Sensor / Umwelt",
       "client": "Client / PC"
     }
   },

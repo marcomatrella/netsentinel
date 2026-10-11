@@ -19,6 +19,7 @@ import { CustomEdge } from './CustomEdge';
 import { Device, Link, Incident, CanvasLayout } from '../../types';
 import { getLayoutedElements } from '../../utils/elkLayout';
 import { useTheme } from '../../theme/ThemeContext';
+import { getDeviceColorId, getDefaultColorForKind } from '../../constants/colors';
 
 interface NetworkCanvasProps {
   devices: Device[];
@@ -68,6 +69,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         isImpacted: isImpacted,
         isVantagePoint: d.roles?.includes('vantage_point'),
         isEditMode: isEditMode,
+        color: getDeviceColorId(d.tags),
       };
     },
     [activeIncident, isEditMode]
@@ -304,7 +306,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         location: 'Casa',
         criticality: 3,
         addresses: { ip: `192.168.1.${Math.floor(10 + Math.random() * 200)}` },
-        tags: [],
+        tags: [`color:${getDefaultColorForKind(kind)}`],
         roles,
         status: 'ok',
         status_since: new Date().toISOString(),

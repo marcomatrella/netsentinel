@@ -16,9 +16,13 @@ import {
   Globe,
   Zap,
   Radio,
+  Plus,
+  Trash2,
+  Palette as PaletteIcon,
 } from 'lucide-react';
 import { Check, Device, Dependency, DeviceKind } from '../../types';
-import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice } from '../../api/client';
+import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck } from '../../api/client';
+import { PRESET_COLORS, getDeviceColorId, setDeviceColorTag, getColorConfig } from '../../constants/colors';
 
 interface DeviceDetailPanelProps {
   device: Device | null;
@@ -33,16 +37,23 @@ interface DeviceDetailPanelProps {
 
 const DEVICE_KINDS: Array<{ kind: DeviceKind; label: string }> = [
   { kind: 'router', label: 'Router / Gateway' },
-  { kind: 'switch', label: 'Switch di Rete' },
+  { kind: 'firewall', label: 'Firewall (pfSense/OPNsense)' },
+  { kind: 'switch', label: 'Switch di Rete (Managed/PoE)' },
   { kind: 'access_point', label: 'Access Point Wi-Fi' },
   { kind: 'nas', label: 'NAS / Storage Server' },
-  { kind: 'server', label: 'Server / Hypervisor' },
-  { kind: 'smart_hub', label: 'Server Domotico (HA)' },
+  { kind: 'server', label: 'Server / Hypervisor (Proxmox)' },
+  { kind: 'smart_hub', label: 'Server Domotico (Home Assistant)' },
+  { kind: 'camera', label: 'Telecamera IP (RTSP/ONVIF)' },
+  { kind: 'nvr', label: 'NVR / Videosorveglianza' },
+  { kind: 'printer', label: 'Stampante di Rete' },
+  { kind: 'smart_plug', label: 'Presa Smart / PDU Gestita' },
   { kind: 'ups', label: 'UPS Gruppo Continuità' },
+  { kind: 'modem', label: 'Modem Fibra / ONT' },
+  { kind: 'sensor', label: 'Sensore IoT / Ambiente' },
   { kind: 'poe_injector', label: 'Iniettore PoE' },
-  { kind: 'client', label: 'Client / TV / Telecamera' },
+  { kind: 'service', label: 'Servizio di Rete (DNS/AdGuard)' },
+  { kind: 'client', label: 'Client / TV / Workstation' },
   { kind: 'wan_gateway', label: 'Internet WAN Upstream' },
-  { kind: 'service', label: 'Servizio di Rete' },
   { kind: 'custom', label: 'Personalizzato' },
 ];
 
@@ -182,7 +193,17 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const [editCriticality, setEditCriticality] = useState<number>(3);
   const [editRoles, setEditRoles] = useState<string[]>([]);
   const [editNotes, setEditNotes] = useState<string>('');
+  const [editColor, setEditColor] = useState<string>('slate');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  // Custom check creation state
+  const [showAddCheck, setShowAddCheck] = useState<boolean>(false);
+  const [newCheckType, setNewCheckType] = useState<string>('tcp_port');
+  const [newCheckName, setNewCheckName] = useState<string>('');
+  const [newCheckPort, setNewCheckPort] = useState<string>('80');
+  const [newCheckUrl, setNewCheckUrl] = useState<string>('');
+  const [newCheckInterval, setNewCheckInterval] = useState<number>(30);
+  const [isCreatingCheck, setIsCreatingCheck] = useState<boolean>(false);
 
   useEffect(() => {
     if (device) {
@@ -197,7 +218,9 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
       setEditCriticality(device.criticality || 3);
       setEditRoles(device.roles || []);
       setEditNotes(device.notes || '');
+      setEditColor(getDeviceColorId(device.tags));
       setIsEditing(false);
+      setShowAddCheck(false);
     }
   }, [device]);
 
@@ -269,6 +292,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const handleSaveEdit = async () => {
     setIsSaving(true);
     try {
+      const newTags = setDeviceColorTag(device.tags || [], editColor);
       const payload: Partial<Device> = {
         name: editName.trim() || device.name,
         kind: editKind,
@@ -280,6 +304,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
         },
         roles: editRoles,
         notes: editNotes.trim() || undefined,
+        tags: newTags,
       };
 
       if (onUpdateDevice) {
@@ -293,6 +318,77 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
       alert('Errore durante il salvataggio: ' + (err.message || 'Verifica il backend.'));
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleCreateCheck = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!device) return;
+    setIsCreatingCheck(true);
+    try {
+      const checkId = `chk-${device.id}-${newCheckType}-${Date.now().toString(36)}`;
+      let params: Record<string, any> = {};
+      let autoName = newCheckName.trim();
+      const ip = device.addresses?.ip || '127.0.0.1';
+
+      if (newCheckType === 'ping') {
+        params = { target: ip, count: 3 };
+        if (!autoName) autoName = `Ping ICMP (${ip})`;
+      } else if (newCheckType === 'tcp_port') {
+        const port = Number(newCheckPort) || 80;
+        params = { target: ip, port };
+        if (!autoName) autoName = `Porta TCP ${port}`;
+      } else if (newCheckType === 'http') {
+        const url = newCheckUrl.trim() || `http://${ip}/`;
+        params = { url };
+        if (!autoName) autoName = `HTTP ${url.replace(/^https?:\/\//, '')}`;
+      } else if (newCheckType === 'synology_dsm') {
+        const port = Number(newCheckPort) || 5000;
+        params = { host: ip, port };
+        if (!autoName) autoName = `Synology DSM (${port})`;
+      } else if (newCheckType === 'nut') {
+        const port = Number(newCheckPort) || 3493;
+        params = { host: ip, port };
+        if (!autoName) autoName = `UPS NUT (${port})`;
+      } else if (newCheckType === 'dns') {
+        params = { server: ip, query_name: 'google.com', record_type: 'A' };
+        if (!autoName) autoName = `Query Risoluzione DNS`;
+      }
+
+      await createCheck({
+        id: checkId,
+        device_id: device.id,
+        type: newCheckType,
+        name: autoName,
+        params,
+        interval_seconds: newCheckInterval,
+        timeout_seconds: 5.0,
+      });
+
+      const updated = await fetchDeviceChecks(device.id);
+      setChecks(updated);
+      setShowAddCheck(false);
+      setNewCheckName('');
+      setNewCheckPort('80');
+      setNewCheckUrl('');
+
+      // Immediately run the check so user sees the result in toast!
+      handleRunCheck(checkId);
+    } catch (err: any) {
+      alert('Errore creazione controllo: ' + (err.message || 'Verifica parametri.'));
+    } finally {
+      setIsCreatingCheck(false);
+    }
+  };
+
+  const handleDeleteCheck = async (checkId: string) => {
+    if (!window.confirm('Vuoi rimuovere questo controllo?')) return;
+    try {
+      await deleteCheck(checkId);
+      const updated = await fetchDeviceChecks(device.id);
+      setChecks(updated);
+    } catch (err: any) {
+      alert('Errore eliminazione controllo: ' + (err.message || 'Verifica il backend.'));
     }
   };
 
@@ -460,6 +556,40 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
               </div>
             </div>
 
+            {/* Color Swatch Picker */}
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700 dark:text-slate-300 font-medium text-xs flex items-center gap-1.5">
+                  <PaletteIcon className="w-3.5 h-3.5 text-sky-500" />
+                  Colore Box Canvas:
+                </span>
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  {getColorConfig(editColor).name}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {PRESET_COLORS.map((c) => {
+                  const isPicked = editColor === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setEditColor(c.id)}
+                      title={c.name}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] transition ${
+                        isPicked
+                          ? 'bg-sky-500/20 border-sky-500 text-sky-700 dark:text-sky-300 ring-1 ring-sky-500 font-semibold'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400'
+                      }`}
+                    >
+                      <span className={`w-2.5 h-2.5 rounded-full ${c.dotClass} shrink-0`} />
+                      <span>{c.name.split(' ')[0]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Ubicazione / Rack / Stanza:</label>
               <input
@@ -603,6 +733,13 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                     <span className="text-amber-400 font-semibold">{device.criticality} / 5</span>
                   </div>
                   <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Colore Box Canvas:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2.5 h-2.5 rounded-full ${getColorConfig(getDeviceColorId(device.tags)).dotClass}`} />
+                      <span className="text-slate-200 font-medium">{getColorConfig(getDeviceColorId(device.tags)).name}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
                     <span className="text-slate-400">Stato da:</span>
                     <span className="text-slate-200">{new Date(device.status_since).toLocaleTimeString()}</span>
                   </div>
@@ -674,38 +811,174 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
             )}
 
             {activeTab === 'checks' && (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Controlli Attivi ({checks.length})
+                  </span>
+                  <button
+                    onClick={() => setShowAddCheck(!showAddCheck)}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/30 rounded-lg text-xs font-semibold transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{showAddCheck ? 'Chiudi' : 'Aggiungi Controllo'}</span>
+                  </button>
+                </div>
+
+                {showAddCheck && (
+                  <form onSubmit={handleCreateCheck} className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-sky-500/30 space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/60 pb-1.5">
+                      <span className="font-semibold text-xs text-sky-600 dark:text-sky-300">Nuovo Controllo Personalizzato</span>
+                      <button type="button" onClick={() => setShowAddCheck(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Tipo di Test:</label>
+                        <select
+                          value={newCheckType}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setNewCheckType(val);
+                            if (val === 'ping') setNewCheckName(`Ping ICMP`);
+                            else if (val === 'tcp_port') setNewCheckName(`Porta TCP ${newCheckPort || 80}`);
+                            else if (val === 'http') setNewCheckName(`Healthcheck Web`);
+                            else if (val === 'synology_dsm') setNewCheckName(`Stato Synology DSM`);
+                            else if (val === 'nut') setNewCheckName(`Demone UPS NUT`);
+                            else if (val === 'dns') setNewCheckName(`Risoluzione DNS`);
+                          }}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                        >
+                          <option value="tcp_port">Porta TCP Specifica</option>
+                          <option value="ping">Ping ICMP (Latenza)</option>
+                          <option value="http">Healthcheck URL HTTP</option>
+                          <option value="synology_dsm">Synology DSM (Storage)</option>
+                          <option value="nut">UPS NUT (Batteria/Alim)</option>
+                          <option value="dns">Query DNS Server</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Nome Controllo:</label>
+                        <input
+                          type="text"
+                          value={newCheckName}
+                          onChange={(e) => setNewCheckName(e.target.value)}
+                          placeholder="es. Porta 8006, Ping, Web GUI"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+
+                    {(newCheckType === 'tcp_port' || newCheckType === 'synology_dsm' || newCheckType === 'nut') && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            Porta TCP Target:
+                          </label>
+                          <input
+                            type="number"
+                            value={newCheckPort}
+                            onChange={(e) => setNewCheckPort(e.target.value)}
+                            placeholder={newCheckType === 'synology_dsm' ? '5000' : newCheckType === 'nut' ? '3493' : '80'}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            Intervallo (secondi):
+                          </label>
+                          <input
+                            type="number"
+                            value={newCheckInterval}
+                            onChange={(e) => setNewCheckInterval(Number(e.target.value))}
+                            min={5}
+                            max={3600}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {newCheckType === 'http' && (
+                      <div>
+                        <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                          URL Completo (Heartbeat/Healthcheck):
+                        </label>
+                        <input
+                          type="text"
+                          value={newCheckUrl}
+                          onChange={(e) => setNewCheckUrl(e.target.value)}
+                          placeholder={`http://${device.addresses?.ip || '192.168.1.1'}:80/`}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-1 border-t border-slate-200 dark:border-slate-700/60">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCheck(false)}
+                        className="px-2.5 py-1 text-xs rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+                      >
+                        Annulla
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isCreatingCheck}
+                        className="px-3 py-1 text-xs rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold shadow transition flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{isCreatingCheck ? 'Aggiunta...' : 'Aggiungi e Testa Subito'}</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Checks List */}
                 {checks.length === 0 ? (
                   <div className="text-center text-slate-500 py-6">
                     Nessun controllo attivo configurato per questo apparato.
                   </div>
                 ) : (
                   checks.map((chk) => (
-                    <div key={chk.id} className="p-3 bg-slate-800/60 rounded-lg border border-slate-700/60 space-y-2">
+                    <div key={chk.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/60 space-y-2">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-semibold text-slate-200">{chk.name}</div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{chk.name}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">
                             Tipo: {chk.type} • Intervallo: {chk.interval_seconds}s
                           </div>
                         </div>
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
                             chk.current_status === 'ok'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                               : chk.current_status === 'crit'
-                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                              : 'bg-slate-700 text-slate-400'
+                              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                           }`}
                         >
                           {chk.current_status}
                         </span>
                       </div>
-                      <div className="flex justify-end">
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-slate-700/40">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCheck(chk.id)}
+                          className="text-slate-400 hover:text-rose-500 transition p-1 rounded"
+                          title="Elimina controllo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => handleRunCheck(chk.id)}
                           disabled={runningCheckId === chk.id}
-                          className="flex items-center gap-1.5 px-2.5 py-1 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white rounded text-[11px] font-medium transition"
+                          className="flex items-center gap-1.5 px-2.5 py-1 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white rounded text-[11px] font-medium transition shadow-sm"
                         >
                           {runningCheckId === chk.id ? (
                             <RefreshCw className="w-3 h-3 animate-spin" />

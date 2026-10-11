@@ -150,12 +150,19 @@
     "subtitle": "Arrastra sobre el lienzo para añadir dispositivos",
     "categories": {
       "router": "Router / Gateway",
+      "firewall": "Cortafuegos / Firewall",
       "switch": "Switch de Red",
       "access_point": "Punto de Acceso Wi-Fi",
       "nas": "NAS / Almacenamiento",
-      "server": "Servidor / Docker",
+      "server": "Servidor / Hipervisor",
       "ups": "Sistema SAI / UPS",
       "smart_hub": "Hub Domótico",
+      "camera": "Cámara IP",
+      "nvr": "NVR / Videovigilancia",
+      "printer": "Impresora de Red",
+      "smart_plug": "Enchufe Inteligente / PDU",
+      "modem": "Módem Fibra / ONT",
+      "sensor": "Sensor IoT / Ambiente",
       "client": "Cliente / PC"
     }
   },

@@ -14,8 +14,16 @@ import {
   AlertTriangle,
   Radio,
   Eye,
+  Flame,
+  Camera,
+  Video,
+  Printer,
+  Plug,
+  Rss,
+  Gauge,
 } from 'lucide-react';
 import { DeviceKind, DeviceStatus } from '../../types';
+import { getColorConfig } from '../../constants/colors';
 
 interface CustomNodeData {
   id: string;
@@ -30,16 +38,24 @@ interface CustomNodeData {
   metricsBadge?: string;
   rtt_ms?: number;
   isEditMode?: boolean;
+  color?: string;
 }
 
 const kindIcons: Record<DeviceKind, React.ComponentType<{ className?: string }>> = {
   wan_gateway: Globe,
   router: RouterIcon,
+  firewall: Flame,
   switch: Network,
   access_point: Wifi,
   nas: HardDrive,
   server: Server,
   ups: Zap,
+  smart_plug: Plug,
+  camera: Camera,
+  nvr: Video,
+  printer: Printer,
+  modem: Rss,
+  sensor: Gauge,
   poe_injector: Radio,
   smart_hub: Cpu,
   client: Smartphone,
@@ -77,6 +93,8 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
   const status = nodeData.status || 'unknown';
   const isEdit = Boolean(nodeData.isEditMode);
 
+  const nodeColor = getColorConfig(nodeData.color || 'slate');
+
   return (
     <div
       className={`relative min-w-[190px] rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-3.5 py-3 border transition-all duration-200 ${
@@ -85,6 +103,13 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         isRoot ? 'root-cause-ring border-rose-500 ring-2 ring-rose-500' : ''
       }`}
     >
+      {/* Grouping Color Accent Stripe */}
+      {nodeData.color && nodeData.color !== 'slate' && (
+        <div
+          className={`absolute top-0 left-3 right-3 h-1 rounded-b-full shadow-sm ${nodeColor.bgClass}`}
+        />
+      )}
+
       {/* Handles: visibili e collegabili solo in modalità modifica */}
       <Handle
         type="target"
@@ -140,8 +165,11 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
           <IconComponent className="w-5 h-5" />
         </div>
         <div className="overflow-hidden flex-1">
-          <div className="font-semibold text-xs text-slate-800 dark:text-slate-100 truncate" title={nodeData.name}>
-            {nodeData.name}
+          <div className="font-semibold text-xs text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5" title={nodeData.name}>
+            {nodeData.color && nodeData.color !== 'slate' && (
+              <span className={`w-2 h-2 rounded-full shrink-0 ${nodeColor.dotClass}`} title={`Gruppo: ${nodeColor.name}`} />
+            )}
+            <span className="truncate">{nodeData.name}</span>
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
             {nodeData.ip || nodeData.kind}

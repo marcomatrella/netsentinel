@@ -150,12 +150,19 @@
     "subtitle": "Drag onto canvas to add network devices",
     "categories": {
       "router": "Router / Gateway",
+      "firewall": "Network Firewall",
       "switch": "Network Switch",
       "access_point": "Wi-Fi Access Point",
       "nas": "NAS / Storage",
-      "server": "Server / Docker Host",
+      "server": "Server / Hypervisor",
       "ups": "Battery UPS",
       "smart_hub": "Smart Hub / IoT",
+      "camera": "IP Camera",
+      "nvr": "NVR / Surveillance",
+      "printer": "Network Printer",
+      "smart_plug": "Smart Plug / PDU",
+      "modem": "Fiber Modem / ONT",
+      "sensor": "IoT Sensor / Env",
       "client": "Client / PC"
     }
   },

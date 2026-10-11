@@ -150,12 +150,19 @@
     "subtitle": "Glissez sur la toile pour ajouter des appareils",
     "categories": {
       "router": "Routeur / Passerelle",
+      "firewall": "Pare-feu Réseau",
       "switch": "Commutateur (Switch)",
       "access_point": "Point d'accès Wi-Fi",
       "nas": "NAS / Stockage",
-      "server": "Serveur / Docker",
+      "server": "Serveur / Hyperviseur",
       "ups": "Onduleur (UPS)",
       "smart_hub": "Hub Domotique",
+      "camera": "Caméra IP",
+      "nvr": "NVR / Vidéosurveillance",
+      "printer": "Imprimante Réseau",
+      "smart_plug": "Prise Connectée / PDU",
+      "modem": "Modem Fibre / ONT",
+      "sensor": "Capteur IoT / Env",
       "client": "Client / PC"
     }
   },

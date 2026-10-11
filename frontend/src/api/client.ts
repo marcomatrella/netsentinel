@@ -90,6 +90,43 @@ export async function fetchDeviceChecks(deviceId: string): Promise<Check[]> {
   return res.json();
 }
 
+export async function createCheck(payload: {
+  id: string;
+  device_id: string;
+  type: string;
+  name: string;
+  params?: Record<string, any>;
+  interval_seconds?: number;
+  timeout_seconds?: number;
+  thresholds?: Record<string, any>;
+  enabled?: boolean;
+}): Promise<Check> {
+  const res = await fetch(`${API_BASE}/checks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      params: {},
+      thresholds: {},
+      failure_policy: { consecutive_failures: 3 },
+      recovery_policy: { consecutive_successes: 2 },
+      interval_seconds: 30,
+      timeout_seconds: 5.0,
+      enabled: true,
+      ...payload,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Errore creazione controllo.');
+  }
+  return res.json();
+}
+
+export async function deleteCheck(checkId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/checks/${checkId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Errore eliminazione controllo.');
+}
+
 export async function fetchObservations(deviceId?: string, limit: number = 50): Promise<any[]> {
   const url = deviceId ? `${API_BASE}/observations?device_id=${deviceId}&limit=${limit}` : `${API_BASE}/observations?limit=${limit}`;
   const res = await fetch(url);

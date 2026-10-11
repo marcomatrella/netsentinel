@@ -150,12 +150,19 @@
     "subtitle": "Trascina sulla tela per aggiungere apparati",
     "categories": {
       "router": "Router / Gateway",
+      "firewall": "Firewall di Rete",
       "switch": "Switch di Rete",
       "access_point": "Access Point Wi-Fi",
       "nas": "NAS / Storage",
-      "server": "Server / Docker",
+      "server": "Server / Hypervisor",
       "ups": "Gruppo UPS",
       "smart_hub": "Smart Hub / Domotica",
+      "camera": "Telecamera IP",
+      "nvr": "NVR / Videosorveglianza",
+      "printer": "Stampante di Rete",
+      "smart_plug": "Presa Smart / PDU",
+      "modem": "Modem Fibra / ONT",
+      "sensor": "Sensore IoT / Ambiente",
       "client": "Client / PC"
     }
   },

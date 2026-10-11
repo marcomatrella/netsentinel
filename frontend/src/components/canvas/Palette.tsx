@@ -11,6 +11,13 @@ import {
   Zap,
   Smartphone,
   Search,
+  Flame,
+  Camera,
+  Video,
+  Printer,
+  Plug,
+  Rss,
+  Gauge,
 } from 'lucide-react';
 import { DeviceKind } from '../../types';
 
@@ -24,15 +31,22 @@ interface PaletteItem {
 
 const PALETTE_ITEMS: PaletteItem[] = [
   { kind: 'wan_gateway', label: 'Internet / WAN', category: 'Infrastruttura', icon: Globe, defaultRoles: ['wan_provider'] },
+  { kind: 'modem', label: 'Modem / ONT Fibra', category: 'Infrastruttura', icon: Rss, defaultRoles: ['wan_provider'] },
+  { kind: 'firewall', label: 'Firewall (pfSense/OPNsense)', category: 'Infrastruttura', icon: Flame, defaultRoles: ['gateway'] },
   { kind: 'router', label: 'Router / Gateway', category: 'Infrastruttura', icon: RouterIcon, defaultRoles: ['gateway'] },
   { kind: 'switch', label: 'Switch Ethernet', category: 'Infrastruttura', icon: Network, defaultRoles: [] },
   { kind: 'access_point', label: 'Access Point Wi-Fi', category: 'Wireless', icon: Wifi, defaultRoles: [] },
   { kind: 'poe_injector', label: 'Iniettore PoE', category: 'Alimentazione', icon: Radio, defaultRoles: [] },
-  { kind: 'ups', label: 'UPS Rack / Batteria', category: 'Alimentazione', icon: Zap, defaultRoles: [] },
+  { kind: 'ups', label: 'UPS Rack / Batteria', category: 'Alimentazione', icon: Zap, defaultRoles: ['power_provider'] },
+  { kind: 'smart_plug', label: 'Presa Smart / PDU', category: 'Alimentazione', icon: Plug, defaultRoles: [] },
   { kind: 'nas', label: 'NAS / Storage', category: 'Server & Servizi', icon: HardDrive, defaultRoles: ['dns_resolver', 'dhcp_server'] },
-  { kind: 'server', label: 'Server / VM', category: 'Server & Servizi', icon: Server, defaultRoles: [] },
+  { kind: 'server', label: 'Server / Hypervisor (Proxmox)', category: 'Server & Servizi', icon: Server, defaultRoles: [] },
   { kind: 'smart_hub', label: 'Server Domotico (HA)', category: 'Server & Servizi', icon: Cpu, defaultRoles: ['service'] },
-  { kind: 'client', label: 'Gruppo Client / TV', category: 'Dispositivi', icon: Smartphone, defaultRoles: [] },
+  { kind: 'camera', label: 'Telecamera IP (RTSP)', category: 'Videosorveglianza', icon: Camera, defaultRoles: [] },
+  { kind: 'nvr', label: 'NVR / Videosorveglianza', category: 'Videosorveglianza', icon: Video, defaultRoles: [] },
+  { kind: 'printer', label: 'Stampante di Rete', category: 'Dispositivi', icon: Printer, defaultRoles: [] },
+  { kind: 'sensor', label: 'Sensore IoT / Ambiente', category: 'Dispositivi', icon: Gauge, defaultRoles: [] },
+  { kind: 'client', label: 'Gruppo Client / TV / PC', category: 'Dispositivi', icon: Smartphone, defaultRoles: [] },
 ];
 
 interface PaletteProps {
