@@ -60,3 +60,4 @@ async def update_retention_setting(
 
     await db.commit()
     return {"status": "ok", "retention_period": period}
+

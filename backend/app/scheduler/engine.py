@@ -359,6 +359,14 @@ class SchedulerEngine:
 
             await session.commit()
 
+            # If device state changed and it's not a passive client, trigger root-cause correlation & notifications
+            if dev_changed and not is_passive:
+                try:
+                    from app.correlation.engine import correlation_engine
+                    await correlation_engine.run_correlation_cycle(session)
+                except Exception as corr_err:
+                    logger.warning("Errore esecuzione ciclo di correlazione: %s", corr_err)
+
     async def _batch_flush_loop(self) -> None:
         """Periodically flushes accumulated observations to SQLite in a single transaction."""
         while self.is_running:
