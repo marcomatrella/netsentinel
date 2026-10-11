@@ -54,19 +54,24 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
     return 2;
   }, [maxHours]);
 
+  // Track if user is actively dragging / scrubbing the slider
+  const isScrubbingRef = useRef<boolean>(false);
+
   // sliderPosition goes from 0 (max past) to maxHours (Now / Live).
   // Default is maxHours (Now / Live on the RIGHT)
   const [sliderPosition, setSliderPosition] = useState<number>(maxHours);
 
-  // Keep sliderPosition clamped to maxHours if maxHours changes
+  // Keep sliderPosition clamped to maxHours if maxHours changes, unless user is scrubbing
   useEffect(() => {
-    if (isLive) {
+    if (isLive && !isScrubbingRef.current) {
       setSliderPosition(maxHours);
     }
   }, [maxHours, isLive]);
 
   // Sync with external target time (e.g. from Event Log jump)
   useEffect(() => {
+    if (isScrubbingRef.current) return;
+
     if (externalTargetTime) {
       const diffHours = Math.max(0, (Date.now() - externalTargetTime.getTime()) / (3600 * 1000));
       const pos = Math.max(0, Math.min(maxHours, maxHours - diffHours));
@@ -83,6 +88,8 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
   }, []);
 
   const offsetHours = Math.max(0, maxHours - sliderPosition);
+  // Stable threshold for historical mode: at least half a step away from "Now"
+  const isHistoricalActive = !isLive || offsetHours >= stepValue * 0.5;
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const pos = parseFloat(e.target.value);
@@ -92,8 +99,8 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Rightmost position is LIVE
-    if (pos >= maxHours - 0.05) {
+    // If within half a step of the rightmost edge, treat as Live immediately
+    if (pos >= maxHours - stepValue * 0.5) {
       if (onLiveMode) onLiveMode();
       return;
     }
@@ -105,14 +112,26 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
     }, 200);
   };
 
+  const handlePointerDown = () => {
+    isScrubbingRef.current = true;
+  };
+
+  const handlePointerUp = () => {
+    // Keep flag true momentarily until debounce settles
+    setTimeout(() => {
+      isScrubbingRef.current = false;
+    }, 250);
+  };
+
   const resetToLive = () => {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    isScrubbingRef.current = false;
     setSliderPosition(maxHours);
     if (onLiveMode) onLiveMode();
   };
 
   const currentDateDisplay =
-    offsetHours < 0.05 && isLive
+    !isHistoricalActive && isLive
       ? t('timemachine.live_mode')
       : externalTargetTime
       ? formatDateTime(externalTargetTime, activeLocale)
@@ -129,7 +148,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
         <span className="font-semibold text-slate-700 dark:text-slate-200">{t('timemachine.title')}:</span>
         <span
           className={`font-mono px-2 py-0.5 rounded text-[11px] whitespace-nowrap ${
-            offsetHours < 0.05 && isLive
+            !isHistoricalActive && isLive
               ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold'
               : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold animate-pulse'
           }`}
@@ -160,6 +179,10 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
           step={stepValue}
           value={sliderPosition}
           onChange={handleSliderChange}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onTouchStart={handlePointerDown}
+          onTouchEnd={handlePointerUp}
           className="w-full accent-sky-500 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg transition-all"
         />
         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium shrink-0">
@@ -167,7 +190,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
         </span>
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons with stable width to completely avoid layout reflow/glitches */}
       <div className="flex items-center gap-2 shrink-0">
         {onOpenLogs && (
           <button
@@ -180,14 +203,20 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
           </button>
         )}
 
-        {(!isLive || offsetHours >= 0.05) && (
+        {/* Stable Return to Live button: kept in layout with opacity/pointer-events toggle to eliminate any slider width shifting */}
+        <div className="w-[110px] flex justify-end">
           <button
             onClick={resetToLive}
-            className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow transition whitespace-nowrap"
+            tabIndex={isHistoricalActive ? 0 : -1}
+            className={`flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow whitespace-nowrap transition-all duration-200 ${
+              isHistoricalActive
+                ? 'opacity-100 scale-100 pointer-events-auto'
+                : 'opacity-0 scale-95 pointer-events-none'
+            }`}
           >
             <RotateCcw className="w-3 h-3" /> {t('timemachine.return_live')}
           </button>
-        )}
+        </div>
       </div>
     </div>
   );
