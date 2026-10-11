@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -16,64 +16,90 @@ import '@xyflow/react/dist/style.css';
 
 import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
-import { Device, Link, Incident } from '../../types';
+import { Device, Link, Incident, CanvasLayout } from '../../types';
 import { getLayoutedElements } from '../../utils/elkLayout';
 
 interface NetworkCanvasProps {
   devices: Device[];
   links: Link[];
   activeIncident: Incident | null;
+  layout?: CanvasLayout | null;
   isEditMode?: boolean;
   onSelectDevice?: (device: Device | null) => void;
   onSelectLink?: (link: Link | null) => void;
-  onNodesChangeParent?: (nodes: Node[]) => void;
-  onEdgesChangeParent?: (edges: Edge[]) => void;
+  onLayoutChange?: (layout: CanvasLayout) => void;
   onConnectLink?: (newLink: Link) => void;
-  onAddDeviceDrop?: (device: Device) => void;
+  onAddDeviceDrop?: (device: Device, position?: { x: number; y: number }) => void;
 }
 
 export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   devices,
   links,
   activeIncident,
+  layout,
   isEditMode = false,
   onSelectDevice,
   onSelectLink,
-  onNodesChangeParent,
-  onEdgesChangeParent,
+  onLayoutChange,
   onConnectLink,
   onAddDeviceDrop,
 }) => {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const nodeTypes = useMemo(() => ({ customNode: CustomNode as any }), []);
   const edgeTypes = useMemo(() => ({ customEdge: CustomEdge as any }), []);
 
-  // Map devices to React Flow nodes
-  const initialNodes: Node[] = useMemo(() => {
-    return devices.map((d, index) => {
+  // Helper to construct custom node data
+  const buildNodeData = useCallback(
+    (d: Device) => {
       const isRoot = activeIncident?.root_cause_device_id === d.id;
       const isImpacted = activeIncident?.impacted?.includes(d.id);
       return {
         id: d.id,
+        name: d.name,
+        kind: d.kind,
+        ip: d.addresses?.ip,
+        status: d.status,
+        roles: d.roles,
+        rtt_ms: d.rtt_ms,
+        isRootCause: isRoot,
+        isImpacted: isImpacted,
+        isVantagePoint: d.roles?.includes('vantage_point'),
+      };
+    },
+    [activeIncident]
+  );
+
+  // Lookup map of saved node positions from backend layout
+  const layoutPosMap = useMemo(() => {
+    const map = new Map<string, { x: number; y: number }>();
+    if (layout?.nodes && Array.isArray(layout.nodes)) {
+      for (const ln of layout.nodes) {
+        if (ln && ln.id && typeof ln.x === 'number' && typeof ln.y === 'number') {
+          map.set(ln.id, { x: ln.x, y: ln.y });
+        }
+      }
+    }
+    return map;
+  }, [layout?.nodes]);
+
+  // Initial nodes computed only on initial load or layout reset
+  const initialNodes: Node[] = useMemo(() => {
+    return devices.map((d, index) => {
+      const pos = layoutPosMap.get(d.id) || {
+        x: 120 + (index % 3) * 260,
+        y: 80 + Math.floor(index / 3) * 180,
+      };
+      return {
+        id: d.id,
         type: 'customNode',
-        position: { x: 150 + (index % 4) * 240, y: 100 + Math.floor(index / 4) * 160 },
-        data: {
-          id: d.id,
-          name: d.name,
-          kind: d.kind,
-          ip: d.addresses?.ip,
-          status: d.status,
-          roles: d.roles,
-          rtt_ms: d.rtt_ms,
-          isRootCause: isRoot,
-          isImpacted: isImpacted,
-          isVantagePoint: d.roles?.includes('vantage_point'),
-        },
+        position: pos,
+        data: buildNodeData(d),
       };
     });
-  }, [devices, activeIncident]);
+  }, [devices, layoutPosMap, buildNodeData]);
 
-  // Map links to React Flow edges
+  // Initial edges
   const initialEdges: Edge[] = useMemo(() => {
     return links.map((l) => {
       const isFault =
@@ -100,14 +126,89 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Sync when devices or links change
+  // Synchronize devices and live status updates WITHOUT losing node positions
   React.useEffect(() => {
-    setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
+    setNodes((prevNodes) => {
+      const existingPosMap = new Map<string, { x: number; y: number }>();
+      for (const pn of prevNodes) {
+        existingPosMap.set(pn.id, pn.position);
+      }
 
+      return devices.map((d, index) => {
+        // Priority:
+        // 1. Current on-canvas position (so dragging or editing is never overwritten by SSE or state updates)
+        // 2. Saved position from layout prop
+        // 3. Fallback grid position
+        const position =
+          existingPosMap.get(d.id) ||
+          layoutPosMap.get(d.id) || {
+            x: 120 + (index % 3) * 260,
+            y: 80 + Math.floor(index / 3) * 180,
+          };
+
+        return {
+          id: d.id,
+          type: 'customNode',
+          position,
+          data: buildNodeData(d),
+        };
+      });
+    });
+  }, [devices, layoutPosMap, buildNodeData, setNodes]);
+
+  // Synchronize edges when links or incident changes
   React.useEffect(() => {
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
+
+  // Handle user dragging a node and releasing it (persist exact coordinates)
+  const handleNodeDragStop = useCallback(
+    (_event: MouseEvent | TouchEvent, _node: Node) => {
+      setNodes((currentNodes) => {
+        const updatedLayoutNodes = currentNodes.map((n) => ({
+          id: n.id,
+          x: Math.round(n.position.x),
+          y: Math.round(n.position.y),
+        }));
+
+        if (onLayoutChange) {
+          onLayoutChange({
+            id: layout?.id || 'default',
+            nodes: updatedLayoutNodes,
+            edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+            groups: layout?.groups || [],
+            updated_at: new Date().toISOString(),
+          });
+        }
+        return currentNodes;
+      });
+    },
+    [edges, layout, onLayoutChange, setNodes]
+  );
+
+  const handleSelectionDragStop = useCallback(
+    (_event: React.MouseEvent, _nodes: Node[]) => {
+      setNodes((currentNodes) => {
+        const updatedLayoutNodes = currentNodes.map((n) => ({
+          id: n.id,
+          x: Math.round(n.position.x),
+          y: Math.round(n.position.y),
+        }));
+
+        if (onLayoutChange) {
+          onLayoutChange({
+            id: layout?.id || 'default',
+            nodes: updatedLayoutNodes,
+            edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+            groups: layout?.groups || [],
+            updated_at: new Date().toISOString(),
+          });
+        }
+        return currentNodes;
+      });
+    },
+    [edges, layout, onLayoutChange, setNodes]
+  );
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -145,12 +246,27 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     if (onSelectLink && lnk) onSelectLink(lnk);
   };
 
+  // Explicit user trigger for ELK Auto-Layout
   const handleAutoLayout = async () => {
     const layouted = await getLayoutedElements(nodes, edges);
     setNodes([...layouted.nodes]);
     setEdges([...layouted.edges]);
-    if (onNodesChangeParent) onNodesChangeParent(layouted.nodes);
-    if (onEdgesChangeParent) onEdgesChangeParent(layouted.edges);
+
+    const updatedLayoutNodes = layouted.nodes.map((n) => ({
+      id: n.id,
+      x: Math.round(n.position.x),
+      y: Math.round(n.position.y),
+    }));
+
+    if (onLayoutChange) {
+      onLayoutChange({
+        id: layout?.id || 'default',
+        nodes: updatedLayoutNodes,
+        edges: layouted.edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+        groups: layout?.groups || [],
+        updated_at: new Date().toISOString(),
+      });
+    }
   };
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -170,6 +286,14 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       const roles = rolesJson ? JSON.parse(rolesJson) : [];
       const newDevId = `${kind}-${Math.floor(100 + Math.random() * 900)}`;
 
+      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      const dropPosition = reactFlowBounds
+        ? {
+            x: Math.round(event.clientX - reactFlowBounds.left - 100),
+            y: Math.round(event.clientY - reactFlowBounds.top - 40),
+          }
+        : undefined;
+
       const newDev: Device = {
         id: newDevId,
         name: label || `${kind.toUpperCase()}`,
@@ -185,7 +309,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       };
 
       if (onAddDeviceDrop) {
-        onAddDeviceDrop(newDev);
+        onAddDeviceDrop(newDev, dropPosition);
       }
     },
     [onAddDeviceDrop]
@@ -193,6 +317,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
 
   return (
     <div
+      ref={reactFlowWrapper}
       className="w-full h-full relative bg-slate-950"
       onDragOver={isEditMode ? onDragOver : undefined}
       onDrop={isEditMode ? onDrop : undefined}
@@ -211,14 +336,10 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={(changes) => {
-          onNodesChange(changes);
-          if (onNodesChangeParent) onNodesChangeParent(nodes);
-        }}
-        onEdgesChange={(changes) => {
-          onEdgesChange(changes);
-          if (onEdgesChangeParent) onEdgesChangeParent(edges);
-        }}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeDragStop={handleNodeDragStop}
+        onSelectionDragStop={handleSelectionDragStop}
         onConnect={isEditMode ? onConnect : undefined}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
@@ -228,7 +349,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.2}
         maxZoom={2.5}
-        nodesDraggable={isEditMode}
+        nodesDraggable={true}
         nodesConnectable={isEditMode}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#334155" />
@@ -242,4 +363,3 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     </div>
   );
 };
-

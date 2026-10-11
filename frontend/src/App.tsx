@@ -18,7 +18,7 @@ import {
   Network,
 } from 'lucide-react';
 
-import { Device, Link, FullTopology, Incident } from './types';
+import { Device, Link, FullTopology, Incident, CanvasLayout } from './types';
 import {
   fetchTopology,
   fetchIncidents,
@@ -145,13 +145,33 @@ export const App: React.FC = () => {
   };
 
   // Add device to topology in edit mode
-  const handleAddDevice = (newDev: Device) => {
+  const handleAddDevice = (newDev: Device, position?: { x: number; y: number }) => {
     if (!topology) return;
+    const currentNodes = topology.layout?.nodes || [];
+    const newLayoutNodes = position
+      ? [...currentNodes.filter((n: any) => n.id !== newDev.id), { id: newDev.id, x: position.x, y: position.y }]
+      : currentNodes;
+
     setTopology({
       ...topology,
       devices: [...topology.devices, newDev],
+      layout: {
+        ...(topology.layout || { id: 'default', edges: [], groups: [], updated_at: new Date().toISOString() }),
+        nodes: newLayoutNodes,
+      },
     });
   };
+
+  // Track canvas layout updates when nodes are dragged or auto-layouted
+  const handleLayoutChange = useCallback((newLayout: CanvasLayout) => {
+    setTopology((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        layout: newLayout,
+      };
+    });
+  }, []);
 
   // Update device in topology
   const handleUpdateDevice = async (deviceId: string, updatedData: Partial<Device>) => {
@@ -227,13 +247,21 @@ export const App: React.FC = () => {
         })),
       });
 
+      const currentLayout = topology.layout || {
+        id: 'default',
+        nodes: [],
+        edges: [],
+        groups: [],
+        updated_at: new Date().toISOString(),
+      };
+
       await applyTopology({
         vantage_point_id: vp,
         description: 'Salvataggio modifiche dalla tela grafica',
         devices: topology.devices,
         links: topology.links,
         dependencies: deducedDeps,
-        layout: topology.layout || { nodes: [], edges: [], groups: [] },
+        layout: currentLayout,
       });
 
       setSaveSuccessMsg('Configurazione salvata con successo!');
@@ -505,11 +533,13 @@ export const App: React.FC = () => {
               devices={topology.devices}
               links={topology.links}
               activeIncident={activeIncident}
+              layout={topology.layout}
               isEditMode={isEditMode}
               onSelectDevice={handleSelectDevice}
               onSelectLink={handleSelectLink}
               onConnectLink={handleConnectLink}
               onAddDeviceDrop={handleAddDevice}
+              onLayoutChange={handleLayoutChange}
             />
           ) : null}
 
