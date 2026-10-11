@@ -253,3 +253,4 @@ export const DeviceColorModal: React.FC<DeviceColorModalProps> = ({
     </div>
   );
 };
+

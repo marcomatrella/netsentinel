@@ -60,9 +60,120 @@ const localeMap: Record<string, string> = {
   es: 'es-ES',
 };
 
+const RULE_SUMMARIES_TRANSLATIONS: Record<string, Record<string, string>> = {
+  "Il gateway locale è perfettamente operativo e raggiungibile, ma la connettività verso l'esterno (DNS pubblico o ping WAN) è interrotta. La LAN interna è sana.": {
+    en: "The local gateway is operational and reachable, but outbound connectivity (public DNS or WAN ping) is broken. The local LAN is healthy.",
+    fr: "La passerelle locale est opérationnelle et joignable, mais la connectivité vers l'extérieur (DNS public ou ping WAN) est interrompue. Le LAN local est sain.",
+    de: "Das lokale Gateway ist betriebsbereit und erreichbar, aber die ausgehende Konnektivität (öffentliches DNS oder WAN-Ping) ist unterbrochen. Das lokale LAN ist intakt.",
+    es: "La puerta de enlace local está operativa y accesible, pero la conectividad exterior (DNS público o ping WAN) está interrumpida. La LAN local está sana.",
+  },
+  "Il router/gateway principale della rete non risponde ai controlli. Tutte le destinazioni esterne e le rotte inter-VLAN sono isolate.": {
+    en: "The primary router/gateway is not responding to health checks. All outbound destinations and inter-VLAN routes are isolated.",
+    fr: "Le routeur/passerelle principal ne répond pas aux contrôles. Toutes les destinations externes et routes inter-VLAN sont isolées.",
+    de: "Der Hauptrouter/das Hauptgateway antwortet nicht auf Prüfungen. Alle externen Ziele und Inter-VLAN-Routen sind isoliert.",
+    es: "El router/puerta de enlace principal no responde a las comprobaciones. Todos los destinos externos y rutas inter-VLAN están aislados.",
+  },
+  "L'uptime dell'access point si è azzerato mentre il link sullo switch è rimasto costantemente attivo. Indica un reboot per crash, watchdog o aggiornamento.": {
+    en: "The access point uptime reset to zero while the switch port link remained continuously active. Indicates a reboot due to crash, watchdog, or update.",
+    fr: "La durée de fonctionnement du point d'accès s'est réinitialisée alors que le lien du switch est resté actif en continu. Indique un redémarrage dû à un crash, un watchdog ou une mise à jour.",
+    de: "Die Betriebszeit des APs wurde zurückgesetzt, während der Switch-Port-Link kontinuierlich aktiv blieb. Weist auf einen Neustart durch Absturz, Watchdog oder Update hin.",
+    es: "El tiempo de actividad del punto de acceso se reinició mientras el enlace del conmutador permaneció activo continuamente. Indica un reinicio por fallo, watchdog o actualización.",
+  },
+  "L'access point non risponde e il link fisico risulta assente. L'iniettore o la porta PoE dello switch non erogano corrente o il cavo è disconnesso.": {
+    en: "The access point does not respond and the physical link is down. The switch PoE port or injector is not delivering power or the cable is disconnected.",
+    fr: "Le point d'accès ne répond pas et le lien physique est absent. Le port PoE du switch ou l'injecteur ne fournit pas d'alimentation ou le câble est déconnecté.",
+    de: "Der AP antwortet nicht und der physische Link ist getrennt. Der PoE-Port oder Injektor liefert keinen Strom oder das Kabel ist getrennt.",
+    es: "El punto de acceso no responde y el enlace físico está ausente. El puerto PoE del conmutador o el inyector no suministra energía o el cable está desconectado.",
+  },
+  "Rilevati frequenti cambi di stato up/down (link flapping) o errori di trasmissione. Tipico sintomo di crimpatura difettosa o interferenze.": {
+    en: "Frequent up/down state transitions (link flapping) or transmission errors detected. Typical symptom of faulty crimping or interference.",
+    fr: "Fréquents changements d'état up/down (link flapping) ou erreurs de transmission détectés. Symptôme typique d'un sertissage défectueux ou d'interférences.",
+    de: "Häufige Up/Down-Statuswechsel (Link Flapping) oder Übertragungsfehler erkannt. Typisches Symptom fehlerhafter Crimpung oder Interferenzen.",
+    es: "Se detectaron frecuentes cambios de estado up/down (link flapping) o errores de transmisión. Síntoma típico de crimpado defectuoso o interferencias.",
+  },
+  "Lo switch non risponde ai controlli e tutti gli apparati a valle sono contemporaneamente irraggiungibili dal monitor. Lo switch è la causa radice.": {
+    en: "The switch is not responding to health checks and all downstream devices are simultaneously unreachable from the monitor. The switch is the root cause.",
+    fr: "Le switch ne répond pas aux contrôles et tous les appareils en aval sont simultanément inaccessibles depuis le moniteur. Le switch est la cause racine.",
+    de: "Der Switch antwortet nicht auf Prüfungen und alle nachgeschalteten Geräte sind gleichzeitig vom Monitor aus nicht erreichbar. Der Switch ist die Grundursache.",
+    es: "El conmutador no responde a las comprobaciones y todos los dispositivos aguas abajo son simultáneamente inaccesibles desde el monitor. El conmutador es la causa raíz.",
+  },
+  "Il NAS è completamente offline. Di conseguenza, i client perdono la risoluzione dei nomi e i rinnovi DHCP, ma l'infrastruttura di commutazione (switch/router) è sana.": {
+    en: "The NAS is completely offline. Consequently, clients lose name resolution and DHCP renewals, but switching infrastructure (switch/router) is healthy.",
+    fr: "Le NAS est complètement hors ligne. Par conséquent, les clients perdent la résolution de noms et les renouvellements DHCP, mais l'infrastructure réseau est saine.",
+    de: "Das NAS ist vollständig offline. Folglich verlieren Clients die Namensauflösung und DHCP-Verlängerungen, aber die Netzwerkinfrastruktur ist intakt.",
+    es: "El NAS está completamente sin conexión. En consecuencia, los clientes pierden la resolución de nombres y renovaciones DHCP, pero la infraestructura de red está sana.",
+  },
+  "La rete a livello IP funziona regolarmente, ma le query DNS verso il server locale falliscono o restituiscono errori di inoltro agli upstream.": {
+    en: "IP connectivity is normal, but DNS queries to the local resolver fail or return upstream forwarding errors.",
+    fr: "La connectivité IP est normale, mais les requêtes DNS vers le serveur local échouent ou renvoient des erreurs de transfert vers les upstreams.",
+    de: "Die IP-Konnektivität ist normal, aber DNS-Abfragen an den lokalen Resolver schlagen fehl oder melden Upstream-Weiterleitungsfehler.",
+    es: "La conectividad IP funciona con normalidad, pero las consultas DNS al servidor local fallan o devuelven errores de reenvío hacia los upstreams.",
+  },
+  "I nuovi client non riescono a ottenere un indirizzo IP, sebbene il server host sia raggiungibile a livello di rete.": {
+    en: "New clients cannot obtain an IP address, although the host server is reachable at network level.",
+    fr: "Les nouveaux clients ne peuvent pas obtenir d'adresse IP, bien que le serveur hôte soit accessible au niveau du réseau.",
+    de: "Neue Clients können keine IP-Adresse beziehen, obwohl der Host-Server auf Netzwerkebene erreichbar ist.",
+    es: "Los nuevos clientes no pueden obtener una dirección IP, aunque el servidor host sea accesible a nivel de red.",
+  },
+  "Il gruppo di continuità è passato allo stato On Battery (OB). I dispositivi privi di protezione UPS risultano spenti.": {
+    en: "The uninterruptible power supply entered On Battery (OB) mode. Devices without UPS backup may be powered off.",
+    fr: "L'onduleur est passé en mode batterie (OB). Les appareils sans protection d'onduleur peuvent être éteints.",
+    de: "Die USV ist in den Batteriebetrieb (OB) gewechselt. Geräte ohne USV-Schutz sind möglicherweise ausgeschaltet.",
+    es: "El sistema de alimentación ininterrumpida pasó a modo batería (OB). Los dispositivos sin protección SAI pueden estar apagados.",
+  },
+  "NetSentinel non riesce a comunicare con nessun apparato, nemmeno con il proprio switch o gateway immediato. Il problema è locale all'host del monitor.": {
+    en: "NetSentinel cannot reach any device, not even its immediate switch or gateway. The issue is local to the monitoring host.",
+    fr: "NetSentinel ne parvient à joindre aucun appareil, pas même son switch ou sa passerelle directe. Le problème est local à l'hôte de surveillance.",
+    de: "NetSentinel kann kein Gerät erreichen, nicht einmal seinen direkten Switch oder sein Gateway. Das Problem liegt lokal beim Überwachungs-Host.",
+    es: "NetSentinel no puede comunicarse con ningún dispositivo, ni siquiera con su conmutador o puerta de enlace inmediata. El problema es local al host del monitor.",
+  },
+  "Parametri S.M.A.R.T. peggiorati (settori rilocati) o volume RAID in stato degraded. Nessun blocco immediato ma rischio di perdita dati.": {
+    en: "S.M.A.R.T. parameters worsened (reallocated sectors) or RAID volume is in degraded status. No immediate outage, but risk of data loss.",
+    fr: "Paramètres S.M.A.R.T. détériorés (secteurs réalloués) ou volume RAID dégradé. Pas de blocage immédiat mais risque de perte de données.",
+    de: "S.M.A.R.T.-Werte verschlechtert (neu zugewiesene Sektoren) oder RAID-Volume degradiert. Kein sofortiger Ausfall, aber Datenverlustrisiko.",
+    es: "Parámetros S.M.A.R.T. empeorados (sectores reasignados) o volumen RAID en estado degradado. Sin bloqueo inmediato pero con riesgo de pérdida de datos.",
+  },
+  "L'host risponde al ping di rete, ma l'API o l'interfaccia web del servizio è bloccata o in timeout.": {
+    en: "The host responds to network ping, but the service API or web interface is frozen or timing out.",
+    fr: "L'hôte répond au ping réseau, mais l'API ou l'interface web du service est bloquée ou en timeout.",
+    de: "Der Host antwortet auf Ping, aber die Dienst-API oder Weboberfläche ist blockiert oder im Timeout.",
+    es: "El host responde al ping de red, pero la API o la interfaz web del servicio está bloqueada o en tiempo de espera.",
+  },
+  "Disconnessione temporanea con ritorno alla normalità e incremento della versione firmware registrata.": {
+    en: "Temporary disconnection followed by recovery and recorded increment in firmware version.",
+    fr: "Déconnexion temporaire suivie d'un retour à la normale et incrémentation de version du micrologiciel.",
+    de: "Vorübergehende Trennung mit normaler Wiederherstellung und höherer Firmware-Version.",
+    es: "Desconexión temporal seguida de recuperación e incremento de versión de firmware.",
+  },
+  "L'AP risponde al ping diretto e i client continuano a navigare, ma il controller UniFi lo segnala come disconnesso o isolato. Si tratta di un'interruzione della comunicazione inform (porta 8080/tcp).": {
+    en: "The AP responds to direct ping and clients continue browsing, but UniFi controller reports it as disconnected or isolated. Indicates loss of inform traffic (port 8080/tcp).",
+    fr: "Le point d'accès répond au ping direct et les clients naviguent, mais le contrôleur UniFi le signale comme déconnecté ou isolé. Interruption du trafic inform (port 8080/tcp).",
+    de: "Der AP antwortet auf direkten Ping und Clients surfen weiter, aber der UniFi Controller meldet ihn als getrennt oder isoliert (Inform Port 8080/tcp).",
+    es: "El AP responde al ping directo y los clientes navegan, pero el controlador UniFi lo marca como desconectado o aislado (puerto inform 8080/tcp).",
+  },
+  "Lo switch eroga regolarmente alimentazione PoE e il link fisico Ethernet è attivo, ma l'AP non risponde a livello IP. Possibile mancato rinnovo del lease DHCP o pool esaurito.": {
+    en: "Switch is delivering PoE power and Ethernet link is active, but the AP does not respond at IP level. Possible DHCP lease renewal failure or pool exhaustion.",
+    fr: "Le switch fournit l'alimentation PoE et le lien Ethernet est actif, mais l'AP ne répond pas au niveau IP. Échec possible du renouvellement de bail DHCP.",
+    de: "Der Switch liefert PoE-Strom und der Ethernet-Link ist aktiv, aber der AP antwortet nicht auf IP-Ebene. Möglicherweise DHCP-Lease fehlgeschlagen.",
+    es: "El conmutador suministra alimentación PoE y el enlace Ethernet está activo, pero el AP no responde a nivel IP. Posible fallo de renovación de concesión DHCP.",
+  },
+};
+
 function translateBackendMessage(rawMsg: string | undefined, lang: string): string {
   if (!rawMsg) return '';
   if (lang === 'it') return rawMsg;
+
+  // Exact rule summaries match
+  const trimmed = rawMsg.trim();
+  if (RULE_SUMMARIES_TRANSLATIONS[trimmed]?.[lang]) {
+    return RULE_SUMMARIES_TRANSLATIONS[trimmed][lang];
+  }
+  // Substring replacement for composite summaries (e.g. "Title — Summary")
+  for (const [itText, translations] of Object.entries(RULE_SUMMARIES_TRANSLATIONS)) {
+    if (rawMsg.includes(itText) && translations[lang]) {
+      return rawMsg.replace(itText, translations[lang]);
+    }
+  }
 
   // 1. Overall device status
   const devStateMatch = rawMsg.match(/Lo stato complessivo di '(.+?)' è ora ([A-Z]+)\./i);
@@ -73,6 +184,28 @@ function translateBackendMessage(rawMsg: string | undefined, lang: string): stri
     if (lang === 'fr') return `L'état global de '${dev}' est maintenant ${st}.`;
     if (lang === 'de') return `Der Gesamtstatus von '${dev}' ist jetzt ${st}.`;
     if (lang === 'es') return `El estado general de '${dev}' es ahora ${st}.`;
+  }
+
+  // 1b. Passive device status
+  const passiveMatch = rawMsg.match(/Lo stato di '(.+?)' \(tracciamento passivo\) è ([A-Z]+)\./i);
+  if (passiveMatch) {
+    const dev = passiveMatch[1];
+    const st = passiveMatch[2].toUpperCase();
+    if (lang === 'en') return `The status of '${dev}' (passive tracking) is ${st}.`;
+    if (lang === 'fr') return `L'état de '${dev}' (suivi passif) est ${st}.`;
+    if (lang === 'de') return `Der Status von '${dev}' (passives Tracking) ist ${st}.`;
+    if (lang === 'es') return `El estado de '${dev}' (seguimiento pasivo) es ${st}.`;
+  }
+
+  // 1c. Candidate unreachable device
+  const candidateMatch = rawMsg.match(/L'apparato '(.+?)' \((.+?)\) risulta non raggiungibile dal monitor\. Nessun nodo a monte è guasto\./i);
+  if (candidateMatch) {
+    const dev = candidateMatch[1];
+    const kind = candidateMatch[2];
+    if (lang === 'en') return `Device '${dev}' (${kind}) is unreachable from the monitor. No upstream nodes are down.`;
+    if (lang === 'fr') return `L'équipement '${dev}' (${kind}) est inaccessible depuis le moniteur. Aucun nœud en amont n'est en panne.`;
+    if (lang === 'de') return `Gerät '${dev}' (${kind}) ist vom Monitor aus nicht erreichbar. Keine vorgeschalteten Knoten sind ausgefallen.`;
+    if (lang === 'es') return `El dispositivo '${dev}' (${kind}) no es accesible desde el monitor. Ningún nodo ascendente está caído.`;
   }
 
   // 2. Check state change
@@ -125,6 +258,29 @@ function translateBackendMessage(rawMsg: string | undefined, lang: string): stri
     if (lang === 'es') return `La causa raíz del incidente cambió a '${dev}'.`;
   }
 
+  // 7. UniFi firmware update
+  const fwMatch = rawMsg.match(/L'apparato (.+?) è in fase di aggiornamento firmware\./i);
+  if (fwMatch) {
+    const dev = fwMatch[1];
+    if (lang === 'en') return `Device ${dev} is currently undergoing a firmware update.`;
+    if (lang === 'fr') return `L'équipement ${dev} est en cours de mise à jour du micrologiciel.`;
+    if (lang === 'de') return `Gerät ${dev} führt derzeit ein Firmware-Update durch.`;
+    if (lang === 'es') return `El dispositivo ${dev} se encuentra en fase de actualización de firmware.`;
+  }
+
+  // 8. UPS on battery
+  const upsMatch = rawMsg.match(/L'UPS (.+?) \((.+?)\) è in modalità batteria\. Carica residua:\s*(\d+)%,\s*autonomia stimata:\s*(\d+)\s*min\./i);
+  if (upsMatch) {
+    const upsName = upsMatch[1];
+    const model = upsMatch[2];
+    const charge = upsMatch[3];
+    const runtime = upsMatch[4];
+    if (lang === 'en') return `UPS ${upsName} (${model}) is in battery mode. Remaining charge: ${charge}%, estimated runtime: ${runtime} min.`;
+    if (lang === 'fr') return `L'onduleur ${upsName} (${model}) est en mode batterie. Charge restante: ${charge}%, autonomie estimée: ${runtime} min.`;
+    if (lang === 'de') return `USV ${upsName} (${model}) ist im Batteriebetrieb. Restladung: ${charge}%, geschätzte Laufzeit: ${runtime} Min.`;
+    if (lang === 'es') return `El SAI ${upsName} (${model}) está en modo batería. Carga restante: ${charge}%, autonomía estimada: ${runtime} min.`;
+  }
+
   return rawMsg;
 }
 
@@ -143,6 +299,14 @@ function translateBackendTitle(rawTitle: string | undefined, lang: string): stri
     if (lang === 'fr') return 'Incident Résolu';
     if (lang === 'de') return 'Vorfall behoben';
     if (lang === 'es') return 'Incidente Resuelto';
+  }
+  const upsTitleMatch = rawTitle.match(/Mancanza rete elettrica:\s*UPS (.+?) su batteria/i);
+  if (upsTitleMatch) {
+    const ups = upsTitleMatch[1];
+    if (lang === 'en') return `Power Outage: UPS ${ups} on Battery`;
+    if (lang === 'fr') return `Panne de courant: Onduleur ${ups} sur batterie`;
+    if (lang === 'de') return `Stromausfall: USV ${ups} auf Batterie`;
+    if (lang === 'es') return `Corte de energía: SAI ${ups} en batería`;
   }
   const incApertoMatch = rawTitle.match(/Incidente Aperto:\s*(.+)/i);
   if (incApertoMatch) {
@@ -404,9 +568,47 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
     }
   };
 
-  // Export logs to JSON
+  // Export logs to JSON with title and message localized in the active system language
   const handleExportLogs = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(events, null, 2));
+    const localizedEvents = events.map((ev) => {
+      const narrative = getNarrative(ev);
+
+      let translatedTitle = ev.title;
+      if (language !== 'it') {
+        const titleFromBackend = translateBackendTitle(ev.title, language);
+        translatedTitle = titleFromBackend !== ev.title ? titleFromBackend : (narrative.headline || ev.title);
+      }
+
+      let translatedMessage = ev.message;
+      if (language !== 'it') {
+        const msgFromBackend = translateBackendMessage(ev.message, language);
+        if (msgFromBackend !== ev.message) {
+          translatedMessage = msgFromBackend;
+        } else if (narrative.explanation) {
+          translatedMessage = narrative.explanation;
+        }
+      }
+
+      return {
+        id: ev.id,
+        ts: ev.ts,
+        device_id: ev.device_id,
+        device_name: ev.device_name,
+        device_ip: ev.device_ip,
+        device_kind: ev.device_kind,
+        check_id: ev.check_id,
+        event_type: ev.event_type,
+        severity: ev.severity,
+        title: translatedTitle,
+        message: translatedMessage,
+        explanation: narrative.explanation || undefined,
+        actionable: narrative.actionable || undefined,
+        language,
+        details: ev.details,
+      };
+    });
+
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(localizedEvents, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
     downloadAnchor.setAttribute('download', `netsentinel-events-${new Date().toISOString().slice(0, 10)}.json`);
