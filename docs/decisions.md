@@ -22,3 +22,5 @@ Convenzione: una riga riassuntiva per decisione, seguita da eventuale contesto c
 - **ADR-017**: Motore di simulazione del guasto (dry-run) che riutilizza in memoria il motore di correlazione topologica senza alterare lo stato del database né emettere notifiche esterne.
 - **ADR-018**: Plugin collector per integrazioni apparati avanzati (UniFi, Synology DSM, NUT, AdGuard Home, SNMP UDP, Home Assistant, Generic HTTP JSON) con discovery automatica e raccolta asincrona non bloccante.
 - **ADR-019**: Discriminazione fine-grained dei guasti agli Access Point con identificazione probabilistica dei 4 scenari della Sezione 6.4 (Reboot/firmware, guasto cavo/PoE, DHCP lease loss, disconnessione isolata dal controller UniFi) ed evidenze mancanti suggerite.
+- **ADR-020**: Architettura delle notifiche su coda persistente SQLite con gestione differita e consolidamento in caso di blackout WAN, orari di silenzio configurabili ed eccezione per allarmi critici.
+- **ADR-021**: Client dead-man's switch esterno compatibile Healthchecks.io con watchdog interno a due livelli (salute scheduler e reattività database SQLite) per inibire il ping in caso di stallo del processo.

@@ -1,0 +1,196 @@
+"""Comprehensive tests for Milestone M5: Notifications, Persistent Queue, Quiet Hours, and Dead-Man's Switch."""
+
+import json
+from datetime import datetime
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from app.db.models import Incident, NotificationChannel, utcnow
+from app.db.session import AsyncSessionLocal
+from app.heartbeat.client import heartbeat_client
+from app.heartbeat.watchdog import watchdog
+from app.main import app
+from app.notification.formatters import render_incident_notification
+from app.notification.manager import notification_manager
+from app.state.maintenance import maintenance_tracker
+from httpx import ASGITransport, AsyncClient
+
+
+def test_notification_formatter_italian():
+    """Verify Italian notification rendering with HTML and text templates."""
+    incident = {
+        "id": "inc-test-1",
+        "summary": "Switch principale di rete offline",
+        "confidence": 0.95,
+        "started_at": "2026-10-11T10:00:00",
+        "resolved_at": "2026-10-11T10:15:00",
+        "root_cause_device_id": "usw-switch-24",
+        "root_cause_category": "network_device",
+        "recommendations": ["Verifica alimentazione elettrica dello switch", "Controlla spie LED"],
+    }
+    root_dev = {"id": "usw-switch-24", "name": "UniFi Switch 24 PoE", "kind": "switch"}
+    impacted = [{"id": "ap-salotto", "name": "AP Salotto", "kind": "access_point"}]
+
+    subject, html, text = render_incident_notification(
+        incident=incident,
+        root_cause_device=root_dev,
+        impacted_devices=impacted,
+        is_resolved=True,
+    )
+
+    assert "[NetSentinel RISOLTO]" in subject
+    assert "UniFi Switch 24 PoE" in subject
+    assert "95%" in html
+    assert "AP Salotto" in html
+    assert "Verifica alimentazione" in html
+    assert "Durata totale:" in html
+    assert "15 minuti" in html
+
+    assert "[NetSentinel RISOLTO]" in text
+    assert "UniFi Switch 24 PoE" in text
+    assert "DIAGNOSI:" in text
+
+
+@pytest.mark.asyncio
+async def test_quiet_hours_evaluation():
+    """Test quiet hours suppression and critical alert bypass."""
+    qh_config = {
+        "enabled": True,
+        "start": "23:00",
+        "end": "07:00",
+        "allow_critical": True,
+    }
+
+    # Fixed time during night (03:00)
+    with patch("app.notification.manager.datetime") as mock_dt:
+        mock_now = datetime(2026, 10, 11, 3, 0, 0)
+        mock_dt.now.return_value = mock_now
+        mock_dt.strptime = datetime.strptime
+
+        # Warn alert should be suppressed
+        is_quiet_warn = notification_manager.is_in_quiet_hours(qh_config, severity="warn")
+        assert is_quiet_warn is True
+
+        # Critical alert should bypass quiet hours
+        is_quiet_crit = notification_manager.is_in_quiet_hours(qh_config, severity="crit")
+        assert is_quiet_crit is False
+
+
+@pytest.mark.asyncio
+async def test_maintenance_mode_suppression():
+    """Test that active maintenance mode suppresses all alerts."""
+    maintenance_tracker.set_maintenance(enabled=True, duration_minutes=60, notes="Manutenzione programmata switch")
+
+    inc = Incident(
+        id="inc-maint-test",
+        status="open",
+        started_at=utcnow(),
+        root_cause_device_id="switch-core",
+        root_cause_category="network_device",
+        confidence=0.90,
+        summary="Switch non raggiungibile",
+    )
+
+    logs = await notification_manager.notify_incident(inc)
+    assert len(logs) == 1
+    assert logs[0].status == "suppressed_maintenance"
+
+    # Reset maintenance
+    maintenance_tracker.set_maintenance(enabled=False)
+    assert maintenance_tracker.is_active() is False
+
+
+@pytest.mark.asyncio
+async def test_wan_blackout_queue_and_drain():
+    """Test that notifications are queued as pending_wan during WAN outage and drained on recovery."""
+    maintenance_tracker.set_maintenance(enabled=False)
+
+    async with AsyncSessionLocal() as session:
+        # Insert test notification channel
+        ch = NotificationChannel(
+            id="test-webhook-wan",
+            name="Webhook Allarmi",
+            type="webhook",
+            config_json=json.dumps({"url": "http://127.0.0.1:9999/alert", "requires_wan": True}),
+            enabled=True,
+        )
+        session.add(ch)
+
+        inc = Incident(
+            id="inc-wan-outage",
+            status="open",
+            started_at=utcnow(),
+            root_cause_device_id="wan-modem",
+            root_cause_category="wan",
+            confidence=0.98,
+            summary="Connessione Internet assente",
+        )
+        session.add(inc)
+        await session.commit()
+
+    # Simulate WAN offline
+    notification_manager.set_wan_status(False)
+
+    logs = await notification_manager.notify_incident(inc)
+    assert len(logs) == 1
+    assert logs[0].status == "pending_wan"
+
+    # Now restore WAN and drain queue
+    notification_manager.set_wan_status(True)
+    drained = await notification_manager.drain_pending_wan_queue()
+    assert drained >= 1
+
+
+@pytest.mark.asyncio
+async def test_dead_mans_switch_watchdog():
+    """Test dead-man's switch watchdog evaluating database and scheduler."""
+    # 1. Unhealthy case: when scheduler is stopped, ping MUST be blocked!
+    with patch.object(watchdog, "check_scheduler", return_value=False):
+        healthy, details = await watchdog.evaluate_health()
+        assert healthy is False
+        assert details["scheduler_ok"] is False
+
+        success, msg = await heartbeat_client.send_ping(force_url="https://hc-ping.com/mock-uuid")
+        assert success is False
+        assert "bloccato" in msg.lower()
+
+    # 2. Healthy case: when database and scheduler are both running, ping succeeds!
+    with patch.object(watchdog, "check_scheduler", return_value=True):
+        healthy, details = await watchdog.evaluate_health()
+        assert healthy is True
+        assert details["database_ok"] is True
+        assert details["scheduler_ok"] is True
+
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value.status_code = 200
+            success, msg = await heartbeat_client.send_ping(force_url="https://hc-ping.com/mock-uuid")
+            assert success is True
+            assert "successo" in msg.lower()
+
+
+@pytest.mark.asyncio
+async def test_maintenance_and_heartbeat_api():
+    """Test REST API endpoints for maintenance mode and heartbeat status."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Maintenance toggle
+        resp = await client.post("/api/v1/maintenance", json={"enabled": True, "duration_minutes": 30, "notes": "Test API"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["enabled"] is True
+        assert data["is_active"] is True
+
+        # 2. Query status
+        status_resp = await client.get("/api/v1/maintenance")
+        assert status_resp.status_code == 200
+        assert status_resp.json()["enabled"] is True
+
+        # Disable
+        await client.post("/api/v1/maintenance", json={"enabled": False})
+
+        # 3. Heartbeat status endpoint
+        hb_resp = await client.get("/api/v1/heartbeat/status")
+        assert hb_resp.status_code == 200
+        hb_data = hb_resp.json()
+        assert "healthy" in hb_data
+        assert "watchdog_details" in hb_data

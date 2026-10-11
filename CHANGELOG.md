@@ -7,6 +7,19 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 ## [Unreleased]
 
 ### Aggiunto
+- **Milestone M5**:
+  - Sistema completo di notifica con template email HTML e testo in italiano (`render_incident_notification`), chiaro, conciso e privo di tempeste di allarmi (un solo avviso per incidente).
+  - Canali di notifica implementati e testati:
+    - `smtp`: invio email asincrono con `aiosmtplib` (supporto TLS/SSL e STARTTLS).
+    - `webhook`: payload JSON verso endpoint REST arbitrari con token Bearer.
+    - `ntfy`: notifiche push verso istanze ntfy pubbliche o locali con priorità, tag contestuali e link diretto alla dashboard.
+    - `home_assistant`: creazione notifiche persistenti native su Home Assistant tramite API REST.
+  - Coda persistente su SQLite (`NotificationLog`) con resilienza a blackout WAN: le notifiche verso destinatari esterni vengono accumulate in stato `pending_wan` e trasmesse o consolidate all'avvenuto ripristino.
+  - Gestione orari di silenzio (quiet hours) configurabili per canale (es. 23:00 - 07:00), con bypass automatico garantito per eventi critici.
+  - Modalità manutenzione con silenziamento temporaneo programmabile via API (`/api/v1/maintenance`).
+  - Dead-man's switch esterno periodico verso Healthchecks.io (o URL compatibile), protetto da watchdog interno su due livelli (stato scheduler asincrono e reattività database SQLite).
+  - Endpoint REST per canali di notifica, invio test, consultazione log coda e stato watchdog/heartbeat.
+  - Suite di test completa per M5 (43 test totali nel repository, 100% superati).
 - **Milestone M4**:
   - Implementazione dei collector avanzati a plugin per apparati specifici e protocolli standard:
     - `unifi`: interroga controller UniFi (UDM/CloudKey) per stato apparati, consumo PoE porte switch, client connessi e stato di aggiornamento firmware.

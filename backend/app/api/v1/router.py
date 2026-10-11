@@ -3,7 +3,10 @@
 from app.api.v1.checks import router as checks_router
 from app.api.v1.devices import router as devices_router
 from app.api.v1.events import router as events_router
+from app.api.v1.heartbeat import router as heartbeat_router
 from app.api.v1.incidents import router as incidents_router
+from app.api.v1.maintenance import router as maintenance_router
+from app.api.v1.notifications import router as notifications_router
 from app.api.v1.observations import router as observations_router
 from app.api.v1.simulate import router as simulate_router
 from app.api.v1.topology import router as topology_router
@@ -17,3 +20,6 @@ api_v1_router.include_router(events_router)
 api_v1_router.include_router(incidents_router)
 api_v1_router.include_router(topology_router)
 api_v1_router.include_router(simulate_router)
+api_v1_router.include_router(maintenance_router)
+api_v1_router.include_router(notifications_router)
+api_v1_router.include_router(heartbeat_router)

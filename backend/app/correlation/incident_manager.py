@@ -117,6 +117,17 @@ class IncidentManager:
 
         await session.commit()
         await session.refresh(incident)
+
+        # Dispatch notification
+        try:
+            from app.notification.manager import notification_manager
+            is_new = (not incident or incident.timeline_json and "incident_opened" in incident.timeline_json and len(json.loads(incident.timeline_json)) == 1)
+            is_shift = (incident.timeline_json and "root_cause_shift" in incident.timeline_json and json.loads(incident.timeline_json)[-1]["event_type"] == "root_cause_shift")
+            if is_new or is_shift:
+                await notification_manager.notify_incident(incident, is_resolved=False, is_shift=is_shift)
+        except Exception as exc:
+            logger.warning("Errore trigger notifiche incidente: %s", exc)
+
         return incident
 
     async def resolve_incident(self, session: AsyncSession, incident_id: str) -> Incident | None:
@@ -141,6 +152,14 @@ class IncidentManager:
         await session.commit()
         await session.refresh(incident)
         logger.info("Incidente risolto: %s (Durata: %ds)", incident.id, duration_s)
+
+        # Dispatch resolution notification
+        try:
+            from app.notification.manager import notification_manager
+            await notification_manager.notify_incident(incident, is_resolved=True, is_shift=False)
+        except Exception as exc:
+            logger.warning("Errore trigger notifica risoluzione incidente: %s", exc)
+
         return incident
 
 

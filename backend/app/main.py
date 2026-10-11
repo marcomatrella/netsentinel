@@ -46,12 +46,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         session.add(ev)
         await session.commit()
 
-    # Step 3: Start internal scheduler
+    # Step 3: Start internal scheduler and external heartbeat
     await scheduler.start()
+    from app.heartbeat.client import heartbeat_client
+    await heartbeat_client.start()
 
     yield
 
     # Teardown
+    await heartbeat_client.stop()
     await scheduler.stop()
     logger.info("Arresto di NetSentinel completato.")
 
