@@ -67,9 +67,10 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         isRootCause: isRoot,
         isImpacted: isImpacted,
         isVantagePoint: d.roles?.includes('vantage_point'),
+        isEditMode: isEditMode,
       };
     },
-    [activeIncident]
+    [activeIncident, isEditMode]
   );
 
   // Lookup map of saved node positions from backend layout

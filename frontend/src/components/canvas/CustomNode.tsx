@@ -29,6 +29,7 @@ interface CustomNodeData {
   isVantagePoint?: boolean;
   metricsBadge?: string;
   rtt_ms?: number;
+  isEditMode?: boolean;
 }
 
 const kindIcons: Record<DeviceKind, React.ComponentType<{ className?: string }>> = {
@@ -74,6 +75,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
 
   const isRoot = Boolean(nodeData.isRootCause);
   const status = nodeData.status || 'unknown';
+  const isEdit = Boolean(nodeData.isEditMode);
 
   return (
     <div
@@ -83,11 +85,41 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         isRoot ? 'root-cause-ring border-rose-500 ring-2 ring-rose-500' : ''
       }`}
     >
-      {/* Handles */}
-      <Handle type="target" position={Position.Top} className="!bg-sky-400 !w-2.5 !h-2.5" />
-      <Handle type="source" position={Position.Bottom} className="!bg-sky-400 !w-2.5 !h-2.5" />
-      <Handle type="target" position={Position.Left} id="left" className="!bg-sky-400 !w-2.5 !h-2.5" />
-      <Handle type="source" position={Position.Right} id="right" className="!bg-sky-400 !w-2.5 !h-2.5" />
+      {/* Handles: visibili e collegabili solo in modalità modifica */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        isConnectable={isEdit}
+        className={`!bg-sky-400 !w-2.5 !h-2.5 transition-all duration-150 ${
+          isEdit ? '!opacity-100 hover:scale-125' : '!opacity-0 !pointer-events-none !border-none'
+        }`}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        isConnectable={isEdit}
+        className={`!bg-sky-400 !w-2.5 !h-2.5 transition-all duration-150 ${
+          isEdit ? '!opacity-100 hover:scale-125' : '!opacity-0 !pointer-events-none !border-none'
+        }`}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        isConnectable={isEdit}
+        className={`!bg-sky-400 !w-2.5 !h-2.5 transition-all duration-150 ${
+          isEdit ? '!opacity-100 hover:scale-125' : '!opacity-0 !pointer-events-none !border-none'
+        }`}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        isConnectable={isEdit}
+        className={`!bg-sky-400 !w-2.5 !h-2.5 transition-all duration-150 ${
+          isEdit ? '!opacity-100 hover:scale-125' : '!opacity-0 !pointer-events-none !border-none'
+        }`}
+      />
 
       {/* Root Cause Banner */}
       {isRoot && (
