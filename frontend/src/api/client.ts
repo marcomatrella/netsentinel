@@ -166,3 +166,24 @@ export async function assignNetworkRoles(payload: {
   if (!res.ok) throw new Error('Errore durante l\'assegnazione dei ruoli di rete.');
   return res.json();
 }
+
+export async function saveNotificationChannel(payload: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/notifications/channels`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Errore durante il salvataggio del canale di notifica.');
+  return res.json();
+}
+
+export async function testNotificationChannel(channelId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/notifications/channels/${channelId}/test`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Errore invio notifica di prova.');
+  }
+  return res.json();
+}
