@@ -7,6 +7,19 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 ## [Unreleased]
 
 ### Aggiunto
+- **Milestone M6**:
+  - Streaming incrementale in tempo reale basato su Server-Sent Events (SSE) su `/api/v1/stream`: diff push automatici dello stato del grafo e degli incidenti verso il frontend senza overhead di polling.
+  - Funzionalità "Macchina del Tempo" (Time Machine): endpoint `/api/v1/timemachine/snapshot` e componente slider frontend per ricostruire e riprodurre lo stato storico della rete e gli incidenti passati negli ultimi 30 giorni.
+  - Modalità Kiosk a schermo intero: interfaccia pulita senza barre di navigazione ideale per monitor a parete e tablet dedicati.
+  - Documentazione esaustiva completata nella directory `docs/`:
+    - `docs/architecture.md`: panoramica architetturale, pipeline ad eventi e modelli.
+    - `docs/plugins.md`: guida per lo sviluppo di nuovi collector e canali di notifica.
+    - `docs/setup-nas.md`: guida dettagliata al deployment su Synology DSM, TrueNAS, unRAID e QNAP con docker-compose.
+    - `docs/heartbeat.md`: guida all'integrazione del dead-man's switch con Healthchecks.io.
+    - `docs/security.md`: modello di sicurezza, cifratura a riposo e permessi minimi.
+    - `README.md` principale completo con diagramma architetturale, badge CI e guida rapida.
+  - Benchmark prestazionale e di impronta di memoria superato con successo: memoria a riposo < 200MB RAM, CPU < 3%, scritture batch ultrarapide su SQLite WAL.
+  - Suite di test completa (46 test unitari, di scenario e di performance, 100% verdi).
 - **Milestone M5**:
   - Sistema completo di notifica con template email HTML e testo in italiano (`render_incident_notification`), chiaro, conciso e privo di tempeste di allarmi (un solo avviso per incidente).
   - Canali di notifica implementati e testati:

@@ -96,3 +96,24 @@ export async function fetchEvents(deviceId?: string, limit: number = 50): Promis
   if (!res.ok) throw new Error('Errore caricamento eventi.');
   return res.json();
 }
+
+export async function fetchHistoricalSnapshot(targetIsoTime: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/timemachine/snapshot?target_time=${encodeURIComponent(targetIsoTime)}`);
+  if (!res.ok) throw new Error('Errore caricamento snapshot storico.');
+  return res.json();
+}
+
+export function setupSSEStream(onDiff: (data: any) => void): () => void {
+  const eventSource = new EventSource(`${API_BASE}/stream`);
+  eventSource.addEventListener('status_diff', (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(e.data);
+      onDiff(data);
+    } catch (err) {
+      console.error('Errore parsing frame SSE:', err);
+    }
+  });
+  return () => {
+    eventSource.close();
+  };
+}
