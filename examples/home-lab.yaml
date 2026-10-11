@@ -1,0 +1,390 @@
+# NetSentinel — Topologia di Riferimento Home Lab (Sezione 13)
+# Sottorete: 192.168.1.0/24 — Vantage Point: synology-nas
+
+version: "1.0"
+vantage_point: "synology-nas"
+timezone: "Europe/Rome"
+heartbeat_url: "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
+heartbeat_interval_seconds: 60
+
+devices:
+  # 1. WAN & Gateway
+  - id: "wan-internet"
+    name: "Internet WAN"
+    kind: "wan_gateway"
+    criticality: 5
+    roles: ["wan_provider"]
+    notes: "Connessione FTTH del provider"
+
+  - id: "gateway-router"
+    name: "Router Gateway ONT"
+    kind: "router"
+    location: "Ingresso / Quadro rack"
+    criticality: 5
+    addresses:
+      ip: "192.168.1.1"
+      hostname: "router.lan"
+    roles: ["gateway"]
+    notes: "Gateway principale con ONT integrato. DHCP server in modalità relay verso NAS."
+
+  # 2. Switch Core
+  - id: "switch-core"
+    name: "Switch Gigabit Core 16p"
+    kind: "switch"
+    location: "Quadro rack"
+    criticality: 5
+    addresses:
+      ip: "192.168.1.2"
+      hostname: "switch.lan"
+    roles: []
+    notes: "Switch consumer smart/web-managed (no API/SNMP avanzato, monitorato via ping e HTTP)."
+
+  # 3. UPS
+  - id: "ups-rack"
+    name: "UPS Rack 1500VA"
+    kind: "ups"
+    location: "Quadro rack"
+    criticality: 5
+    addresses:
+      hostname: "ups.lan"
+    roles: []
+    notes: "Gruppo di continuità che alimenta NAS, switch e router. Monitorato via NUT sul Raspberry Pi."
+
+  # 4. NAS (Vantage Point)
+  - id: "synology-nas"
+    name: "Synology NAS DS920+"
+    kind: "nas"
+    location: "Quadro rack"
+    criticality: 5
+    addresses:
+      ip: "192.168.1.10"
+      hostname: "nas.lan"
+    roles: ["vantage_point", "dhcp_server", "dns_resolver"]
+    notes: "Ospita AdGuard Home (DNS e DHCP della LAN in container host) e NetSentinel."
+
+  # 5. Server Domotico
+  - id: "home-server"
+    name: "Home Assistant Server (Pi 4)"
+    kind: "smart_hub"
+    location: "Quadro rack"
+    criticality: 4
+    addresses:
+      ip: "192.168.1.20"
+      hostname: "homeassistant.lan"
+    roles: ["service"]
+    notes: "Server domotico Home Assistant, add-on UniFi Network Controller e server NUT per l'UPS."
+
+  # 6. Iniettore PoE & Access Point
+  - id: "poe-injector-ap-a"
+    name: "Iniettore PoE AP Salotto"
+    kind: "poe_injector"
+    location: "Quadro rack"
+    criticality: 3
+    notes: "Alimenta l'AP Salotto tramite tratta lunga nelle canaline."
+
+  - id: "ap-livingroom"
+    name: "Access Point Wi-Fi A (Salotto)"
+    kind: "access_point"
+    location: "Salotto (Piano Terra)"
+    criticality: 4
+    addresses:
+      ip: "192.168.1.30"
+      hostname: "ap-salotto.lan"
+    roles: []
+    notes: "UniFi U6 Pro. Collegato con tratta lunga nelle canaline all'iniettore PoE."
+
+  - id: "ap-firstfloor"
+    name: "Access Point Wi-Fi B (Primo Piano)"
+    kind: "access_point"
+    location: "Primo Piano"
+    criticality: 4
+    addresses:
+      ip: "192.168.1.31"
+      hostname: "ap-piano1.lan"
+    roles: []
+    notes: "UniFi U6 Lite collegato direttamente allo switch."
+
+  # 7. Gruppo Client Wi-Fi e Cablati
+  - id: "clients-lan"
+    name: "Client LAN e Domotica"
+    kind: "client"
+    criticality: 2
+    roles: []
+    notes: "Gruppo aggregato di dispositivi domestici, smartphone e smart TV."
+
+links:
+  - id: "link-wan-router"
+    from: "wan-internet"
+    to: "gateway-router"
+    medium: "wan"
+
+  - id: "link-router-switch"
+    from: "gateway-router"
+    to: "switch-core"
+    medium: "ethernet"
+
+  - id: "link-switch-nas"
+    from: "switch-core"
+    to: "synology-nas"
+    medium: "ethernet"
+
+  - id: "link-switch-server"
+    from: "switch-core"
+    to: "home-server"
+    medium: "ethernet"
+
+  - id: "link-switch-poe-inj"
+    from: "switch-core"
+    to: "poe-injector-ap-a"
+    medium: "ethernet"
+
+  - id: "link-poe-inj-ap-a"
+    from: "poe-injector-ap-a"
+    to: "ap-livingroom"
+    medium: "poe"
+    cable_notes: "Tratta lunga 25m nelle canaline murali"
+
+  - id: "link-switch-ap-b"
+    from: "switch-core"
+    to: "ap-firstfloor"
+    medium: "ethernet"
+
+  - id: "link-ups-nas-power"
+    from: "ups-rack"
+    to: "synology-nas"
+    medium: "power"
+
+  - id: "link-ups-switch-power"
+    from: "ups-rack"
+    to: "switch-core"
+    medium: "power"
+
+  - id: "link-ups-router-power"
+    from: "ups-rack"
+    to: "gateway-router"
+    medium: "power"
+
+  - id: "link-ap-a-clients"
+    from: "ap-livingroom"
+    to: "clients-lan"
+    medium: "wifi"
+
+dependencies:
+  # Dipendenze WAN e Gateway
+  - id: "dep-router-wan"
+    dependent: "gateway-router"
+    provider: "wan-internet"
+    kind: "wan"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-switch-gateway"
+    dependent: "switch-core"
+    provider: "gateway-router"
+    kind: "l3_gateway"
+    strength: "hard"
+    source: "inferred"
+
+  # Dipendenze L2 path
+  - id: "dep-nas-switch"
+    dependent: "synology-nas"
+    provider: "switch-core"
+    kind: "l2_path"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-server-switch"
+    dependent: "home-server"
+    provider: "switch-core"
+    kind: "l2_path"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-poe-switch"
+    dependent: "poe-injector-ap-a"
+    provider: "switch-core"
+    kind: "l2_path"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-ap-a-poe"
+    dependent: "ap-livingroom"
+    provider: "poe-injector-ap-a"
+    kind: "power"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-ap-a-l2"
+    dependent: "ap-livingroom"
+    provider: "poe-injector-ap-a"
+    kind: "l2_path"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-ap-b-switch"
+    dependent: "ap-firstfloor"
+    provider: "switch-core"
+    kind: "l2_path"
+    strength: "hard"
+    source: "inferred"
+
+  # Dipendenze Alimentazione UPS
+  - id: "dep-nas-ups"
+    dependent: "synology-nas"
+    provider: "ups-rack"
+    kind: "power"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-switch-ups"
+    dependent: "switch-core"
+    provider: "ups-rack"
+    kind: "power"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-router-ups"
+    dependent: "gateway-router"
+    provider: "ups-rack"
+    kind: "power"
+    strength: "hard"
+    source: "inferred"
+
+  # Dipendenze Servizi DHCP & DNS (forniti da AdGuard Home sul NAS)
+  - id: "dep-clients-dhcp"
+    dependent: "clients-lan"
+    provider: "synology-nas"
+    kind: "dhcp"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-clients-dns"
+    dependent: "clients-lan"
+    provider: "synology-nas"
+    kind: "dns"
+    strength: "hard"
+    source: "inferred"
+
+  - id: "dep-aps-controller"
+    dependent: "ap-livingroom"
+    provider: "home-server"
+    kind: "service"
+    strength: "soft"
+    source: "manual"
+    reason: "L'AP funziona autonomamente anche se il controller UniFi è spento (soft dependency)."
+
+checks:
+  - id: "check-wan-dns-1"
+    device: "wan-internet"
+    type: "dns"
+    name: "Risoluzione DNS Internet 1.1.1.1"
+    params:
+      server: "1.1.1.1"
+      domain: "cloudflare.com"
+    interval_seconds: 15
+    timeout_seconds: 3.0
+
+  - id: "check-gateway-ping"
+    device: "gateway-router"
+    type: "ping"
+    name: "Ping Gateway"
+    params:
+      target: "192.168.1.1"
+    interval_seconds: 15
+
+  - id: "check-switch-ping"
+    device: "switch-core"
+    type: "ping"
+    name: "Ping Switch"
+    params:
+      target: "192.168.1.2"
+    interval_seconds: 15
+
+  - id: "check-switch-http"
+    device: "switch-core"
+    type: "http"
+    name: "Web GUI Switch"
+    params:
+      url: "http://192.168.1.2"
+      expected_status: 200
+    interval_seconds: 60
+
+  - id: "check-nas-dsm"
+    device: "synology-nas"
+    type: "synology_dsm"
+    name: "Stato Synology DSM e S.M.A.R.T."
+    params:
+      host: "192.168.1.10"
+      port: 5000
+    interval_seconds: 60
+
+  - id: "check-nas-adguard"
+    device: "synology-nas"
+    type: "adguard_home"
+    name: "API AdGuard Home (DNS & DHCP)"
+    params:
+      url: "http://192.168.1.10:3000"
+    interval_seconds: 30
+
+  - id: "check-server-ha"
+    device: "home-server"
+    type: "home_assistant"
+    name: "Home Assistant API"
+    params:
+      url: "http://192.168.1.20:8123"
+    interval_seconds: 30
+
+  - id: "check-ups-nut"
+    device: "ups-rack"
+    type: "nut"
+    name: "NUT Daemon UPS"
+    params:
+      host: "192.168.1.20"
+      port: 3493
+      ups_name: "ups"
+    interval_seconds: 30
+
+  - id: "check-ap-a-ping"
+    device: "ap-livingroom"
+    type: "ping"
+    name: "Ping AP Salotto"
+    params:
+      target: "192.168.1.30"
+    interval_seconds: 15
+
+  - id: "check-ap-b-ping"
+    device: "ap-firstfloor"
+    type: "ping"
+    name: "Ping AP Primo Piano"
+    params:
+      target: "192.168.1.31"
+    interval_seconds: 15
+
+  - id: "check-unifi-controller"
+    device: "home-server"
+    type: "unifi"
+    name: "UniFi Network Controller API"
+    params:
+      host: "192.168.1.20"
+      port: 8443
+    interval_seconds: 60
+
+notification_channels:
+  - id: "channel-email"
+    name: "Email Alert Amministratore"
+    type: "smtp"
+    enabled: true
+    min_severity: "warn"
+    config:
+      smtp_host: "smtp.example.com"
+      smtp_port: 587
+      use_tls: true
+      username: "netsentinel@example.com"
+      password: "secret_smtp_password"
+      from_email: "netsentinel@example.com"
+      to_emails: ["admin@example.com"]
+    quiet_hours:
+      enabled: true
+      start: "23:00"
+      end: "07:00"
+      allow_critical: true
