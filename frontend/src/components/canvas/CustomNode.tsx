@@ -94,19 +94,26 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
   const isEdit = Boolean(nodeData.isEditMode);
 
   const nodeColor = getColorConfig(nodeData.color || 'slate');
+  const isColored = Boolean(nodeData.color && nodeData.color !== 'slate');
+  const isPassive = Boolean(
+    nodeData.roles?.includes('passive_tracking') ||
+    nodeData.kind === 'client'
+  );
 
   return (
     <div
       className={`relative min-w-[190px] rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-3.5 py-3 border transition-all duration-200 ${
-        statusBorderColors[status]
+        isColored && status === 'ok'
+          ? `${nodeColor.borderClass} dark:${nodeColor.borderClass}`
+          : statusBorderColors[status]
       } ${selected ? 'ring-2 ring-sky-400 shadow-lg' : 'shadow-md'} ${
         isRoot ? 'root-cause-ring border-rose-500 ring-2 ring-rose-500' : ''
       }`}
     >
-      {/* Grouping Color Accent Stripe */}
-      {nodeData.color && nodeData.color !== 'slate' && (
+      {/* Grouping Color Accent Stripe (Full width top bar) */}
+      {isColored && (
         <div
-          className={`absolute top-0 left-3 right-3 h-1 rounded-b-full shadow-sm ${nodeColor.bgClass}`}
+          className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-xl ${nodeColor.bgClass}`}
         />
       )}
 
@@ -161,12 +168,18 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       )}
 
       <div className="flex items-center gap-2.5">
-        <div className={`p-2 rounded-lg ${statusBadgeBg[status]} border`}>
+        <div
+          className={`p-2 rounded-lg border ${
+            isColored
+              ? `${nodeColor.badgeClass} ${nodeColor.borderClass} ${nodeColor.textClass}`
+              : `${statusBadgeBg[status]}`
+          }`}
+        >
           <IconComponent className="w-5 h-5" />
         </div>
         <div className="overflow-hidden flex-1">
           <div className="font-semibold text-xs text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5" title={nodeData.name}>
-            {nodeData.color && nodeData.color !== 'slate' && (
+            {isColored && (
               <span className={`w-2 h-2 rounded-full shrink-0 ${nodeColor.dotClass}`} title={`Gruppo: ${nodeColor.name}`} />
             )}
             <span className="truncate">{nodeData.name}</span>
@@ -205,6 +218,11 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
           ) : null}
         </div>
         <div className="flex gap-1">
+          {isPassive && (
+            <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 px-1 rounded text-[8px] font-medium" title="Client con tracciamento passivo (nessun falso allarme)">
+              Passivo
+            </span>
+          )}
           {nodeData.roles?.includes('dns_resolver') && (
             <span className="bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 px-1 rounded text-[8px] font-bold" title="Server DNS / AdGuard Home">
               DNS

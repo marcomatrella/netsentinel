@@ -78,6 +78,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [dnsServerId, setDnsServerId] = useState<string>('');
   const [dhcpServerId, setDhcpServerId] = useState<string>('');
+  const [deviceFilter, setDeviceFilter] = useState<'all' | 'infra' | 'clients'>('all');
 
   // Scanning & Reachability state
   const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -135,19 +136,25 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       const data = await scanNetwork(targetSubnet ? targetSubnet.trim() : undefined);
       if (data.subnet) setScanSubnet(data.subnet);
       if (data.devices && data.devices.length > 0) {
-        const scannedDevs: Device[] = data.devices.map((d) => ({
-          id: d.id,
-          name: d.name,
-          kind: d.kind as DeviceKind,
-          location: d.location || 'LAN',
-          criticality: d.kind === 'router' || d.is_gateway ? 5 : d.kind === 'switch' ? 4 : 3,
-          addresses: { ip: d.ip, mac: d.mac },
-          tags: [],
-          roles: d.roles,
-          status: 'ok',
-          status_since: new Date().toISOString(),
-          interfaces: [],
-        }));
+        const scannedDevs: Device[] = data.devices.map((d) => {
+          const roles = [...d.roles];
+          if (d.kind === 'client' && !roles.includes('passive_tracking')) {
+            roles.push('passive_tracking');
+          }
+          return {
+            id: d.id,
+            name: d.name,
+            kind: d.kind as DeviceKind,
+            location: d.location || 'LAN',
+            criticality: d.kind === 'router' || d.is_gateway ? 5 : d.kind === 'switch' ? 4 : d.kind === 'client' ? 1 : 3,
+            addresses: { ip: d.ip, mac: d.mac },
+            tags: [],
+            roles,
+            status: d.reachable ? 'ok' : 'unknown',
+            status_since: new Date().toISOString(),
+            interfaces: [],
+          };
+        });
         setDevices(scannedDevs);
 
         // Pre-fill reachability from scan results
@@ -187,6 +194,16 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     }
   }, [isOpen]);
 
+  // Synchronize DNS and DHCP dropdowns whenever guidedStep becomes 3
+  useEffect(() => {
+    if (guidedStep === 3) {
+      const devDns = devices.find((d) => d.roles?.includes('dns_resolver'));
+      if (devDns) setDnsServerId(devDns.id);
+      const devDhcp = devices.find((d) => d.roles?.includes('dhcp_server'));
+      if (devDhcp) setDhcpServerId(devDhcp.id);
+    }
+  }, [guidedStep, devices]);
+
   const loadTemplates = async () => {
     setLoadingTemplates(true);
     try {
@@ -204,12 +221,18 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   // Add custom device to guided list
   const handleAddDevice = () => {
     if (editingDeviceId) {
+      if (isDnsServer) setDnsServerId(editingDeviceId);
+      if (isDhcpServer) setDhcpServerId(editingDeviceId);
+
       setDevices((prev) =>
         prev.map((d) => {
           if (d.id === editingDeviceId) {
             const updatedRoles = (d.roles || []).filter((r) => r !== 'dns_resolver' && r !== 'dhcp_server');
             if (isDnsServer) updatedRoles.push('dns_resolver');
             if (isDhcpServer) updatedRoles.push('dhcp_server');
+            if (newKind === 'client' && !updatedRoles.includes('passive_tracking')) {
+              updatedRoles.push('passive_tracking');
+            }
             const updatedIp = newIp.trim() || d.addresses?.ip;
             if (updatedIp && updatedIp !== d.addresses?.ip) {
               checkDeviceReachability(d.id, updatedIp);
@@ -222,8 +245,17 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               addresses: { ...d.addresses, ip: updatedIp },
               roles: updatedRoles,
             };
+          } else {
+            // Strip dns_resolver or dhcp_server from previous holder if reassigned
+            let otherRoles = d.roles || [];
+            if (isDnsServer && otherRoles.includes('dns_resolver')) {
+              otherRoles = otherRoles.filter((r) => r !== 'dns_resolver');
+            }
+            if (isDhcpServer && otherRoles.includes('dhcp_server')) {
+              otherRoles = otherRoles.filter((r) => r !== 'dhcp_server');
+            }
+            return { ...d, roles: otherRoles };
           }
-          return d;
         })
       );
       setEditingDeviceId(null);
@@ -249,13 +281,14 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     const initialRoles: string[] = [...cat.defaultRoles];
     if (isDnsServer && !initialRoles.includes('dns_resolver')) initialRoles.push('dns_resolver');
     if (isDhcpServer && !initialRoles.includes('dhcp_server')) initialRoles.push('dhcp_server');
+    if (newKind === 'client' && !initialRoles.includes('passive_tracking')) initialRoles.push('passive_tracking');
 
     const newDev: Device = {
       id: devId,
       name: devName,
       kind: newKind,
       location: newLocation.trim() || 'Casa',
-      criticality: 3,
+      criticality: newKind === 'client' ? 1 : 3,
       addresses: { ip: devIp },
       tags: [],
       roles: initialRoles,
@@ -264,7 +297,23 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       interfaces: [],
     };
 
-    setDevices((prev) => [...prev, newDev]);
+    if (isDnsServer) setDnsServerId(devId);
+    if (isDhcpServer) setDhcpServerId(devId);
+
+    setDevices((prev) => {
+      const cleaned = prev.map((d) => {
+        let otherRoles = d.roles || [];
+        if (isDnsServer && otherRoles.includes('dns_resolver')) {
+          otherRoles = otherRoles.filter((r) => r !== 'dns_resolver');
+        }
+        if (isDhcpServer && otherRoles.includes('dhcp_server')) {
+          otherRoles = otherRoles.filter((r) => r !== 'dhcp_server');
+        }
+        return { ...d, roles: otherRoles };
+      });
+      return [...cleaned, newDev];
+    });
+
     if (!vantagePointId && newDev.roles.includes('vantage_point')) {
       setVantagePointId(newDev.id);
     }
@@ -413,18 +462,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
         });
       });
 
-      // Switch -> Clients
-      clients.forEach((cli, idx) => {
-        suggested.push({
-          id: `lnk-${mainDistributor.id}-${cli.id}`,
-          from_device_id: mainDistributor.id,
-          to_device_id: cli.id,
-          medium: 'ethernet',
-          poe: false,
-          status: 'ok',
-          updated_at: new Date().toISOString(),
-        });
-      });
+      // Switch -> Clients:
+      // Note: Client devices (smartphones, laptops, IoT plugs) roam wirelessly or disconnect dynamically.
+      // They are tagged with passive tracking and not linked with static infrastructure cables to prevent false down alarms.
     }
 
     // UPS -> NAS & Servers (Power)
@@ -460,18 +500,30 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       const configuredDevices: Device[] = devices.map((d) => {
         const rolesSet = new Set(d.roles || []);
 
-        if (dnsServerId && d.id === dnsServerId) {
-          rolesSet.add('dns_resolver');
+        if (dnsServerId) {
+          if (d.id === dnsServerId) {
+            rolesSet.add('dns_resolver');
+          } else {
+            rolesSet.delete('dns_resolver');
+          }
         }
 
-        if (dhcpServerId && d.id === dhcpServerId) {
-          rolesSet.add('dhcp_server');
+        if (dhcpServerId) {
+          if (d.id === dhcpServerId) {
+            rolesSet.add('dhcp_server');
+          } else {
+            rolesSet.delete('dhcp_server');
+          }
         }
 
         if (d.id === vp) {
           rolesSet.add('vantage_point');
         } else {
           rolesSet.delete('vantage_point');
+        }
+
+        if (d.kind === 'client' && !rolesSet.has('passive_tracking')) {
+          rolesSet.add('passive_tracking');
         }
 
         return {
@@ -853,6 +905,30 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                           <span className="font-medium text-[11px] leading-tight">{t('wizard.dhcp_server_role')}</span>
                         </label>
                       </div>
+
+                      {(() => {
+                        if (!isDnsServer) return null;
+                        const prevDns = devices.find((d) => d.id !== editingDeviceId && d.roles?.includes('dns_resolver'));
+                        if (!prevDns) return null;
+                        return (
+                          <div className="p-1.5 bg-amber-950/40 border border-amber-800/80 rounded text-[10px] text-amber-300 flex items-start gap-1">
+                            <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                            <span>Il ruolo DNS verrà rimosso da <strong>{prevDns.name}</strong> e assegnato a questo apparato.</span>
+                          </div>
+                        );
+                      })()}
+
+                      {(() => {
+                        if (!isDhcpServer) return null;
+                        const prevDhcp = devices.find((d) => d.id !== editingDeviceId && d.roles?.includes('dhcp_server'));
+                        if (!prevDhcp) return null;
+                        return (
+                          <div className="p-1.5 bg-amber-950/40 border border-amber-800/80 rounded text-[10px] text-amber-300 flex items-start gap-1">
+                            <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                            <span>Il ruolo DHCP verrà rimosso da <strong>{prevDhcp.name}</strong> e assegnato a questo apparato.</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -956,109 +1032,162 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
-                        {devices.map((d) => {
-                          const cat = DEVICE_CATEGORIES.find((c) => c.kind === d.kind) || DEVICE_CATEGORIES[0];
-                          const Icon = cat.icon;
-                          const isVp = d.id === vantagePointId || d.roles.includes('vantage_point');
-                          const reach = reachabilityMap[d.id];
-                          const isUnreachable = reach && !reach.checking && !reach.reachable;
-                          const isChecking = reach?.checking;
+                      <>
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setDeviceFilter('all')}
+                            className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
+                              deviceFilter === 'all'
+                                ? 'bg-sky-600 text-white shadow-sm'
+                                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                            }`}
+                          >
+                            Tutti ({devices.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeviceFilter('infra')}
+                            className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
+                              deviceFilter === 'infra'
+                                ? 'bg-sky-600 text-white shadow-sm'
+                                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                            }`}
+                          >
+                            Solo Infrastruttura ({devices.filter((d) => d.kind !== 'client').length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeviceFilter('clients')}
+                            className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
+                              deviceFilter === 'clients'
+                                ? 'bg-sky-600 text-white shadow-sm'
+                                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                            }`}
+                          >
+                            Solo Client / Passivi ({devices.filter((d) => d.kind === 'client').length})
+                          </button>
+                        </div>
 
-                          return (
-                            <div
-                              key={d.id}
-                              className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
-                                editingDeviceId === d.id
-                                  ? 'border-sky-500 bg-sky-950/20'
-                                  : isUnreachable
-                                  ? 'border-amber-500/80 bg-amber-950/20 shadow-sm shadow-amber-500/10'
-                                  : 'border-slate-800 bg-slate-900 hover:border-slate-700'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 overflow-hidden">
+                        <div className="space-y-2 max-h-[42vh] overflow-y-auto pr-1">
+                          {devices
+                            .filter((d) => {
+                              if (deviceFilter === 'infra') return d.kind !== 'client';
+                              if (deviceFilter === 'clients') return d.kind === 'client';
+                              return true;
+                            })
+                            .map((d) => {
+                              const cat = DEVICE_CATEGORIES.find((c) => c.kind === d.kind) || DEVICE_CATEGORIES[0];
+                              const Icon = cat.icon;
+                              const isVp = d.id === vantagePointId || d.roles.includes('vantage_point');
+                              const reach = reachabilityMap[d.id];
+                              const isUnreachable = reach && !reach.checking && !reach.reachable;
+                              const isChecking = reach?.checking;
+                              const isPassive = d.roles.includes('passive_tracking') || d.kind === 'client';
+
+                              return (
                                 <div
-                                  className={`p-2 rounded-lg ${
-                                    isUnreachable ? 'bg-amber-900/40 text-amber-400' : 'bg-slate-800 text-sky-400'
+                                  key={d.id}
+                                  className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
+                                    editingDeviceId === d.id
+                                      ? 'border-sky-500 bg-sky-950/20'
+                                      : isUnreachable
+                                      ? 'border-amber-500/80 bg-amber-950/20 shadow-sm shadow-amber-500/10'
+                                      : 'border-slate-800 bg-slate-900 hover:border-slate-700'
                                   }`}
                                 >
-                                  <Icon className="w-4 h-4" />
-                                </div>
-                                <div className="overflow-hidden">
-                                  <div className="font-semibold text-slate-200 truncate flex items-center gap-1.5">
-                                    <span>{d.name}</span>
-                                    {isUnreachable && (
-                                      <div
-                                        className="flex items-center text-amber-400 cursor-help"
-                                        title={t('wizard.ping_unreachable_warning')}
-                                      >
-                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                                      </div>
-                                    )}
-                                    {isChecking && (
-                                      <span className="flex items-center" title={t('wizard.ping_checking')}>
-                                        <Loader2 className="w-3 h-3 animate-spin text-sky-400" />
-                                      </span>
-                                    )}
-                                    {isVp && (
-                                      <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-mono">
-                                        {t('wizard.vantage_point_badge')}
-                                      </span>
-                                    )}
-                                    {d.roles.includes('dns_resolver') && (
-                                      <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[9px] font-mono">
-                                        {t('wizard.dns_badge')}
-                                      </span>
-                                    )}
-                                    {d.roles.includes('dhcp_server') && (
-                                      <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[9px] font-mono">
-                                        {t('wizard.dhcp_badge')}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                    <span
-                                      className={`font-mono ${
-                                        isUnreachable ? 'text-amber-400 font-semibold' : 'text-sky-400'
+                                  <div className="flex items-center gap-2.5 overflow-hidden">
+                                    <div
+                                      className={`p-2 rounded-lg ${
+                                        isUnreachable ? 'bg-amber-900/40 text-amber-400' : 'bg-slate-800 text-sky-400'
                                       }`}
                                     >
-                                      {d.addresses?.ip || 'Nessun IP'}
-                                    </span>
-                                    {reach?.reachable && reach.rtt_ms !== null && reach.rtt_ms !== undefined && (
-                                      <span className="text-[10px] text-emerald-400 font-mono">
-                                        ({reach.rtt_ms.toFixed(1)} ms)
-                                      </span>
-                                    )}
-                                    <span>•</span>
-                                    <span>{d.location}</span>
-                                    <span>•</span>
-                                    <span className="uppercase font-mono text-[9px] text-slate-500">{d.kind}</span>
+                                      <Icon className="w-4 h-4" />
+                                    </div>
+                                    <div className="overflow-hidden">
+                                      <div className="font-semibold text-slate-200 truncate flex items-center gap-1.5">
+                                        <span>{d.name}</span>
+                                        {isUnreachable && (
+                                          <div
+                                            className="flex items-center text-amber-400 cursor-help"
+                                            title={t('wizard.ping_unreachable_warning')}
+                                          >
+                                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                          </div>
+                                        )}
+                                        {isChecking && (
+                                          <span className="flex items-center" title={t('wizard.ping_checking')}>
+                                            <Loader2 className="w-3 h-3 animate-spin text-sky-400" />
+                                          </span>
+                                        )}
+                                        {isVp && (
+                                          <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-mono">
+                                            {t('wizard.vantage_point_badge')}
+                                          </span>
+                                        )}
+                                        {d.roles.includes('dns_resolver') && (
+                                          <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[9px] font-mono">
+                                            {t('wizard.dns_badge')}
+                                          </span>
+                                        )}
+                                        {d.roles.includes('dhcp_server') && (
+                                          <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[9px] font-mono">
+                                            {t('wizard.dhcp_badge')}
+                                          </span>
+                                        )}
+                                        {isPassive && (
+                                          <span
+                                            className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 text-[9px] font-mono"
+                                            title="Client tracciato passivamente (nessun falso allarme)"
+                                          >
+                                            Passivo
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                        <span
+                                          className={`font-mono ${
+                                            isUnreachable ? 'text-amber-400 font-semibold' : 'text-sky-400'
+                                          }`}
+                                        >
+                                          {d.addresses?.ip || 'Nessun IP'}
+                                        </span>
+                                        {reach?.reachable && reach.rtt_ms !== null && reach.rtt_ms !== undefined && (
+                                          <span className="text-[10px] text-emerald-400 font-mono">
+                                            ({reach.rtt_ms.toFixed(1)} ms)
+                                          </span>
+                                        )}
+                                        <span>•</span>
+                                        <span>{d.location}</span>
+                                        <span>•</span>
+                                        <span className="uppercase font-mono text-[9px] text-slate-500">{d.kind}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartEdit(d)}
+                                      className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded-lg transition"
+                                      title={t('common.edit')}
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveDevice(d.id)}
+                                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                                      title={t('common.delete')}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 </div>
-                              </div>
-
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleStartEdit(d)}
-                                  className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded-lg transition"
-                                  title={t('common.edit')}
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveDevice(d.id)}
-                                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
-                                  title={t('common.delete')}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                              );
+                            })}
+                        </div>
+                      </>
                     )}
                   </div>
 
@@ -1281,7 +1410,17 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                         </p>
                         <select
                           value={dnsServerId}
-                          onChange={(e) => setDnsServerId(e.target.value)}
+                          onChange={(e) => {
+                            const newDnsId = e.target.value;
+                            setDnsServerId(newDnsId);
+                            setDevices((prev) =>
+                              prev.map((d) => {
+                                const roles = (d.roles || []).filter((r) => r !== 'dns_resolver');
+                                if (d.id === newDnsId) roles.push('dns_resolver');
+                                return { ...d, roles };
+                              })
+                            );
+                          }}
                           className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-sky-500 font-medium"
                         >
                           {devices.map((d) => (
@@ -1301,7 +1440,17 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                         </p>
                         <select
                           value={dhcpServerId}
-                          onChange={(e) => setDhcpServerId(e.target.value)}
+                          onChange={(e) => {
+                            const newDhcpId = e.target.value;
+                            setDhcpServerId(newDhcpId);
+                            setDevices((prev) =>
+                              prev.map((d) => {
+                                const roles = (d.roles || []).filter((r) => r !== 'dhcp_server');
+                                if (d.id === newDhcpId) roles.push('dhcp_server');
+                                return { ...d, roles };
+                              })
+                            );
+                          }}
                           className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-sky-500 font-medium"
                         >
                           {devices.map((d) => (

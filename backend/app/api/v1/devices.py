@@ -172,6 +172,30 @@ async def create_device(payload: DeviceCreate, db: AsyncSession = Depends(get_db
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ID apparato già esistente.")
 
+    new_ip = payload.addresses.ip.strip() if payload.addresses and payload.addresses.ip else None
+    if new_ip:
+        all_devs = (await db.execute(select(Device))).scalars().all()
+        for d in all_devs:
+            addrs = json.loads(d.addresses_json) if d.addresses_json else {}
+            if addrs.get("ip") == new_ip:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"L'indirizzo IP '{new_ip}' è già assegnato all'apparato '{d.name}' ({d.id}).",
+                )
+
+    if payload.roles:
+        if "dns_resolver" in payload.roles or "dhcp_server" in payload.roles:
+            all_devs_roles = (await db.execute(select(Device))).scalars().all()
+            for od in all_devs_roles:
+                od_roles = json.loads(od.roles_json) if od.roles_json else []
+                new_od_roles = [
+                    r for r in od_roles
+                    if not (r == "dns_resolver" and "dns_resolver" in payload.roles)
+                    and not (r == "dhcp_server" and "dhcp_server" in payload.roles)
+                ]
+                if len(new_od_roles) != len(od_roles):
+                    od.roles_json = json.dumps(new_od_roles)
+
     device = Device(
         id=payload.id,
         name=payload.name,
@@ -215,6 +239,17 @@ async def update_device(
     if not device:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Apparato non trovato.")
 
+    new_ip = payload.addresses.ip.strip() if payload.addresses and payload.addresses.ip else None
+    if new_ip:
+        all_devs = (await db.execute(select(Device).where(Device.id != device_id))).scalars().all()
+        for d in all_devs:
+            addrs = json.loads(d.addresses_json) if d.addresses_json else {}
+            if addrs.get("ip") == new_ip:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"L'indirizzo IP '{new_ip}' è già assegnato all'apparato '{d.name}' ({d.id}).",
+                )
+
     if payload.name is not None:
         device.name = payload.name
     if payload.kind is not None:
@@ -228,6 +263,17 @@ async def update_device(
     if payload.tags is not None:
         device.tags_json = json.dumps(payload.tags)
     if payload.roles is not None:
+        if "dns_resolver" in payload.roles or "dhcp_server" in payload.roles:
+            other_devs = (await db.execute(select(Device).where(Device.id != device_id))).scalars().all()
+            for od in other_devs:
+                od_roles = json.loads(od.roles_json) if od.roles_json else []
+                new_od_roles = [
+                    r for r in od_roles
+                    if not (r == "dns_resolver" and "dns_resolver" in payload.roles)
+                    and not (r == "dhcp_server" and "dhcp_server" in payload.roles)
+                ]
+                if len(new_od_roles) != len(od_roles):
+                    od.roles_json = json.dumps(new_od_roles)
         device.roles_json = json.dumps(payload.roles)
     if payload.notes is not None:
         device.notes = payload.notes

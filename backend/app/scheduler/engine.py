@@ -252,9 +252,12 @@ class SchedulerEngine:
 
             # Check for flapping
             is_flapping = False
+            dev_roles = json.loads(device.roles_json) if device.roles_json else []
+            is_passive = "passive_tracking" in dev_roles or device.kind == "client"
+
             if h_res.state_changed:
                 is_flapping = self.flap_detector.record_transition(device_id)
-                if is_flapping:
+                if is_flapping and not is_passive:
                     ev_flap = Event(
                         ts=utcnow(),
                         device_id=device_id,
@@ -276,21 +279,23 @@ class SchedulerEngine:
             new_dev_status, dev_changed = synthesize_device_status(
                 current_device_status=device.status,
                 check_statuses=checks_status_list,
-                is_flapping=is_flapping,
+                is_flapping=is_flapping if not is_passive else False,
             )
 
             if dev_changed:
                 old_dev_status = device.status
                 device.status = new_dev_status
                 device.status_since = utcnow()
+                # Passive devices (clients) only emit info severity events
+                severity = "info" if is_passive else ("crit" if new_dev_status in ["down", "flapping"] else "info")
                 ev_dev = Event(
                     ts=utcnow(),
                     device_id=device_id,
                     event_type="device_state_change",
-                    severity="crit" if new_dev_status in ["down", "flapping"] else "info",
+                    severity=severity,
                     title=f"Apparato {device.name}: {old_dev_status.upper()} -> {new_dev_status.upper()}",
-                    message=f"Lo stato complessivo di '{device.name}' è ora {new_dev_status.upper()}.",
-                    details_json=json.dumps({"old_status": old_dev_status, "new_status": new_dev_status}),
+                    message=f"Lo stato di '{device.name}' (tracciamento passivo) è {new_dev_status.upper()}." if is_passive else f"Lo stato complessivo di '{device.name}' è ora {new_dev_status.upper()}.",
+                    details_json=json.dumps({"old_status": old_dev_status, "new_status": new_dev_status, "passive": is_passive}),
                 )
                 session.add(ev_dev)
                 self._broadcast_event({
@@ -298,6 +303,7 @@ class SchedulerEngine:
                     "device_id": device_id,
                     "old_status": old_dev_status,
                     "new_status": new_dev_status,
+                    "passive": is_passive,
                 })
 
             if obs.status == "ok":

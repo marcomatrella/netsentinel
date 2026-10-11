@@ -206,9 +206,19 @@ export const App: React.FC = () => {
       ? [...currentNodes.filter((n: any) => n.id !== newDev.id), { id: newDev.id, x: position.x, y: position.y }]
       : currentNodes;
 
+    const isNewDns = newDev.roles?.includes('dns_resolver');
+    const isNewDhcp = newDev.roles?.includes('dhcp_server');
+
+    const cleanDevices = topology.devices.map((d) => {
+      let r = d.roles || [];
+      if (isNewDns && r.includes('dns_resolver')) r = r.filter((x) => x !== 'dns_resolver');
+      if (isNewDhcp && r.includes('dhcp_server')) r = r.filter((x) => x !== 'dhcp_server');
+      return { ...d, roles: r };
+    });
+
     setTopology({
       ...topology,
-      devices: [...topology.devices, newDev],
+      devices: [...cleanDevices, newDev],
       layout: {
         ...(topology.layout || { id: 'default', edges: [], groups: [], updated_at: new Date().toISOString() }),
         nodes: newLayoutNodes,
@@ -232,9 +242,22 @@ export const App: React.FC = () => {
     if (!topology) return;
     try {
       const updated = await updateDevice(deviceId, updatedData);
+      const isNewDns = updatedData.roles?.includes('dns_resolver');
+      const isNewDhcp = updatedData.roles?.includes('dhcp_server');
+
       setTopology((prev) => {
         if (!prev) return prev;
-        const newDevs = prev.devices.map((d) => (d.id === deviceId ? { ...d, ...updated } : d));
+        const newDevs = prev.devices.map((d) => {
+          if (d.id === deviceId) return { ...d, ...updated };
+          let roles = d.roles || [];
+          if (isNewDns && roles.includes('dns_resolver')) {
+            roles = roles.filter((r) => r !== 'dns_resolver');
+          }
+          if (isNewDhcp && roles.includes('dhcp_server')) {
+            roles = roles.filter((r) => r !== 'dhcp_server');
+          }
+          return { ...d, roles };
+        });
         return { ...prev, devices: newDevs };
       });
       setSelectedDevice((prev) => (prev && prev.id === deviceId ? { ...prev, ...updated } : prev));
@@ -695,6 +718,7 @@ export const App: React.FC = () => {
           isOpen={isAddDeviceOpen}
           onClose={() => setIsAddDeviceOpen(false)}
           onAddDevice={handleAddDevice}
+          existingDevices={topology?.devices || []}
         />
       )}
 

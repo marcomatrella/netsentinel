@@ -193,6 +193,20 @@ async def deduce_dependencies(payload: TopologyDeduceRequest) -> list[Dependency
 
 @router.post("/apply", summary="Applica e salva modifiche alla topologia con snapshot di versione")
 async def apply_topology(payload: TopologyApplyRequest, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+    # Check duplicate IP addresses among submitted devices
+    ip_map: dict[str, str] = {}
+    for d_data in payload.devices:
+        addrs = d_data.get("addresses", {})
+        ip = addrs.get("ip") if isinstance(addrs, dict) else None
+        if ip and ip.strip():
+            ip_clean = ip.strip()
+            if ip_clean in ip_map:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"L'indirizzo IP '{ip_clean}' è assegnato a più apparati ('{ip_map[ip_clean]}' e '{d_data.get('name', d_data['id'])}'). Gli indirizzi IP devono essere univoci.",
+                )
+            ip_map[ip_clean] = d_data.get("name", d_data["id"])
+
     # 1. Update devices and delete removed devices
     submitted_ids = {d["id"] for d in payload.devices}
     existing_dev_records = (await db.execute(select(Device))).scalars().all()

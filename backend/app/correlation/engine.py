@@ -71,7 +71,17 @@ class CorrelationEngine:
 
         unhealthy_ids = {d.id for d in unhealthy_nodes}
 
+        def is_passive(d: Device) -> bool:
+            if d.kind == "client":
+                return True
+            r = json.loads(d.roles_json) if d.roles_json else []
+            return "passive_tracking" in r
+
         for dev in unhealthy_nodes:
+            # Passive clients/devices are only tracked inventory, not monitored infrastructure
+            if is_passive(dev):
+                continue
+
             # Look for unhealthy upstream providers
             providers = self.topology.get_upstream_providers(dev.id)
             unhealthy_providers = [p for p in providers if p in unhealthy_ids]

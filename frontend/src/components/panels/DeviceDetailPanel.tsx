@@ -290,6 +290,15 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   };
 
   const handleSaveEdit = async () => {
+    const cleanEditIp = editIp.trim();
+    const conflict = cleanEditIp && cleanEditIp !== device.addresses?.ip
+      ? allDevices.find((d) => d.id !== device.id && d.addresses?.ip === cleanEditIp)
+      : null;
+    if (conflict) {
+      alert(`L'indirizzo IP '${cleanEditIp}' è già assegnato all'apparato '${conflict.name}' (${conflict.id}). Gli indirizzi IP devono essere univoci.`);
+      return;
+    }
+
     setIsSaving(true);
     try {
       const newTags = setDeviceColorTag(device.tags || [], editColor);
@@ -519,6 +528,19 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                 placeholder="es. 192.168.1.70"
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-sky-500"
               />
+              {(() => {
+                const clean = editIp.trim();
+                const conflict = clean && clean !== device.addresses?.ip
+                  ? allDevices.find((d) => d.id !== device.id && d.addresses?.ip === clean)
+                  : null;
+                if (!conflict) return null;
+                return (
+                  <div className="mt-2 p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-300 text-[11px] flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                    <span>L'indirizzo IP <strong>{clean}</strong> è già assegnato a <strong>{conflict.name}</strong> ({conflict.id}). Gli IP devono essere univoci.</span>
+                  </div>
+                );
+              })()}
               <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
                 NetSentinel invierà ping periodici a questo IP per misurare lo stato live e la latenza RTT.
               </p>
@@ -617,6 +639,19 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">Questo apparato risolve le query DNS della rete domestica</span>
                 </div>
               </label>
+              {(() => {
+                if (!editRoles.includes('dns_resolver')) return null;
+                const previousDns = allDevices.find((d) => d.id !== device.id && d.roles?.includes('dns_resolver'));
+                if (!previousDns) return null;
+                return (
+                  <div className="ml-6 p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] text-amber-700 dark:text-amber-300 flex items-start gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-500 mt-0.5" />
+                    <span>
+                      <strong>Riassegnazione:</strong> il ruolo DNS è attualmente assegnato a <strong>{previousDns.name}</strong> ({previousDns.addresses?.ip || previousDns.id}). Salvando, verrà rimosso da {previousDns.name} e assegnato a questo apparato.
+                    </span>
+                  </div>
+                );
+              })()}
 
               <label className="flex items-start gap-2 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
                 <input
@@ -630,6 +665,19 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">Assegna gli indirizzi IP ai client e dispositivi di rete</span>
                 </div>
               </label>
+              {(() => {
+                if (!editRoles.includes('dhcp_server')) return null;
+                const previousDhcp = allDevices.find((d) => d.id !== device.id && d.roles?.includes('dhcp_server'));
+                if (!previousDhcp) return null;
+                return (
+                  <div className="ml-6 p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] text-amber-700 dark:text-amber-300 flex items-start gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-500 mt-0.5" />
+                    <span>
+                      <strong>Riassegnazione:</strong> il ruolo DHCP è attualmente assegnato a <strong>{previousDhcp.name}</strong> ({previousDhcp.addresses?.ip || previousDhcp.id}). Salvando, verrà rimosso da {previousDhcp.name} e assegnato a questo apparato.
+                    </span>
+                  </div>
+                );
+              })()}
 
               <label className="flex items-start gap-2 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
                 <input
@@ -654,6 +702,19 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                 <div>
                   <span className="font-semibold block text-blue-600 dark:text-blue-300">Punto di Monitoraggio (Vantage Point)</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">Host fisico dove risiede ed esegue NetSentinel</span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+                <input
+                  type="checkbox"
+                  checked={editRoles.includes('passive_tracking')}
+                  onChange={() => handleToggleRole('passive_tracking')}
+                  className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-sky-500 focus:ring-0"
+                />
+                <div>
+                  <span className="font-semibold block text-slate-600 dark:text-slate-300">Tracciamento Passivo (Client non allarmato)</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Per smartphone, laptop, TV, IoT: non genera allarmi critici o notifiche flapping in caso di disconnessione</span>
                 </div>
               </label>
 
@@ -690,15 +751,27 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
               >
                 Annulla
               </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={isSaving}
-                className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold shadow-md shadow-sky-500/20 transition flex items-center gap-1.5"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>{isSaving ? 'Salvataggio...' : 'Salva Modifiche'}</span>
-              </button>
+              {(() => {
+                const clean = editIp.trim();
+                const conflict = clean && clean !== device.addresses?.ip
+                  ? allDevices.find((d) => d.id !== device.id && d.addresses?.ip === clean)
+                  : null;
+                return (
+                  <button
+                    type="button"
+                    onClick={handleSaveEdit}
+                    disabled={isSaving || Boolean(conflict)}
+                    className={`px-4 py-1.5 rounded-lg font-bold shadow-md transition flex items-center gap-1.5 ${
+                      isSaving || Boolean(conflict)
+                        ? 'bg-slate-400 dark:bg-slate-700 text-slate-200 cursor-not-allowed shadow-none'
+                        : 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-500/20'
+                    }`}
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isSaving ? 'Salvataggio...' : 'Salva Modifiche'}</span>
+                  </button>
+                );
+              })()}
             </div>
           </div>
         ) : (
