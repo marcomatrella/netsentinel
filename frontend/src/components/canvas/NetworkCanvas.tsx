@@ -106,9 +106,21 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     });
   }, [devices, layoutPosMap, buildNodeData]);
 
+  // Map of device status by ID for instantaneous lookup
+  const deviceStatusMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const d of devices) {
+      map.set(d.id, d.status);
+    }
+    return map;
+  }, [devices]);
+
   // Initial edges
   const initialEdges: Edge[] = useMemo(() => {
     return links.map((l) => {
+      const fromStatus = deviceStatusMap.get(l.from_device_id) || 'ok';
+      const toStatus = deviceStatusMap.get(l.to_device_id) || 'ok';
+
       const isFault =
         activeIncident?.root_cause_device_id === l.from_device_id ||
         activeIncident?.root_cause_device_id === l.to_device_id;
@@ -125,10 +137,12 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           fromPort: l.from_port,
           toPort: l.to_port,
           isFaultPath: isFault,
+          fromDeviceStatus: fromStatus,
+          toDeviceStatus: toStatus,
         },
       };
     });
-  }, [links, activeIncident]);
+  }, [links, activeIncident, deviceStatusMap]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);

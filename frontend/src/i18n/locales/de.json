@@ -70,7 +70,9 @@
     "toggle_edit_mode": "In den Bearbeitungsmodus wechseln",
     "toggle_live_view": "Zur LIVE-Ansicht zurückkehren",
     "fullscreen": "Kiosk-Modus / Vollbild",
-    "force_refresh": "Aktualisierung erzwingen"
+    "force_refresh": "Aktualisierung erzwingen",
+    "system_settings": "Systemeinstellungen & Aufbewahrung",
+    "system_settings_desc": "Datenaufbewahrung und historische Einstellungen konfigurieren"
   },
   "edit_bar": {
     "title": "Bearbeitungsmodus aktiv:",
@@ -195,7 +197,22 @@
     "logs_tooltip": "Ereignisprotokoll öffnen, um Vorfälle einzusehen",
     "return_live": "Zurück zu Live",
     "now": "Jetzt",
-    "range_24h": "-24h"
+    "range_24h": "-24h",
+    "range_48h": "-48h",
+    "range_5d": "-5T",
+    "range_10d": "-10T",
+    "range_30d": "-30T",
+    "step_back_10s": "-10s",
+    "step_forward_10s": "+10s",
+    "step_back_tooltip": "10 Sekunden zurück",
+    "step_forward_tooltip": "10 Sekunden vor",
+    "pick_datetime_tooltip": "Klicken, um Datum und Uhrzeit genau auszuwählen",
+    "apply_custom_time": "Zu diesem Zeitpunkt springen",
+    "cancel_custom_time": "Abbrechen",
+    "select_datetime_title": "Historisches Datum & Uhrzeit Auswählen",
+    "retention_min_hint": "Frühestes durch die Aufbewahrungsrichtlinie erlaubtes Datum: {{date}}",
+    "non_live_badge": "HISTORISCHE ANSICHT — NICHT LIVE",
+    "non_live_badge_sub": "Sie betrachten den Netzwerkstatus in der Vergangenheit"
   },
   "events": {
     "modal_title": "Ereignisprotokoll & Netzwerkdiagnose",
@@ -309,7 +326,9 @@
     "gateway_badge": "Gateway",
     "ping_unreachable_warning": "Das Gerät ist per Ping derzeit nicht erreichbar, die Konfiguration kann dennoch fortgesetzt werden.",
     "ping_checking": "Erreichbarkeit wird geprüft...",
-    "ping_ok": "Erreichbar ({{rtt}} ms)"
+    "ping_ok": "Erreichbar ({{rtt}} ms)",
+    "subnet_label": "Subnetz",
+    "subnet_placeholder": "z.B. 192.168.1.0/24"
   },
   "device_detail": {
     "tab_overview": "Übersicht",
@@ -493,5 +512,25 @@
     "client": "Client / TV / Workstation",
     "wan_gateway": "Internet-WAN-Gateway",
     "custom": "Benutzerdefiniert"
+  },
+  "settings": {
+    "modal_title": "Systemeinstellungen",
+    "modal_desc": "Konfiguration der Datenaufbewahrung und Einstellungen",
+    "retention_label": "Datenaufbewahrungsrichtlinie (Retention)",
+    "retention_desc": "Definiert die Aufbewahrungsdauer von Daten und den mit der Zeitmaschine navigierbaren Bereich.",
+    "retention_24h": "24 Stunden (Standard)",
+    "retention_48h": "48 Stunden (2 Tage)",
+    "retention_5d": "5 Tage",
+    "retention_10d": "10 Tage",
+    "retention_30d": "30 Tage (1 Monat)",
+    "save_btn": "Einstellungen Speichern"
+  },
+  "custom_edge": {
+    "status_active": "Aktiv",
+    "status_waiting": "Warten auf Prüfung",
+    "status_degraded": "Degradiert",
+    "status_down": "Down",
+    "tooltip_link": "Verbindung {{medium}} — Status: {{status}} ({{source}})",
+    "source_deduced": "abgeleitet"
   }
 }

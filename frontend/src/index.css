@@ -65,6 +65,25 @@
   animation: dash-flow 1.2s linear infinite;
 }
 
+@keyframes dash-flow-reverse {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 24;
+  }
+}
+
+.flow-down {
+  stroke-dasharray: 6 4;
+  animation: dash-flow-reverse 0.9s linear infinite;
+}
+
+.flow-degraded {
+  stroke-dasharray: 6 4;
+  animation: dash-flow 1.5s linear infinite;
+}
+
 @keyframes shrink-width {
   from {
     width: 100%;

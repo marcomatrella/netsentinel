@@ -157,8 +157,12 @@ export async function fetchEvents(
   return res.json();
 }
 
-export async function fetchHistoricalSnapshot(targetIsoTime: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/timemachine/snapshot?target_time=${encodeURIComponent(targetIsoTime)}`);
+export async function fetchHistoricalSnapshot(targetIsoTime: string, deviceId?: string): Promise<any> {
+  let url = `${API_BASE}/timemachine/snapshot?target_time=${encodeURIComponent(targetIsoTime)}`;
+  if (deviceId) {
+    url += `&device_id=${encodeURIComponent(deviceId)}`;
+  }
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Errore caricamento snapshot storico.');
   return res.json();
 }

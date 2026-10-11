@@ -213,7 +213,18 @@
     "range_48h": "-48h",
     "range_5d": "-5d",
     "range_10d": "-10d",
-    "range_30d": "-30d"
+    "range_30d": "-30d",
+    "step_back_10s": "-10s",
+    "step_forward_10s": "+10s",
+    "step_back_tooltip": "Step back 10 seconds",
+    "step_forward_tooltip": "Step forward 10 seconds",
+    "pick_datetime_tooltip": "Click to pick exact date and time",
+    "apply_custom_time": "Jump to this time",
+    "cancel_custom_time": "Cancel",
+    "select_datetime_title": "Select Historical Date & Time",
+    "retention_min_hint": "Earliest date allowed by retention policy: {{date}}",
+    "non_live_badge": "HISTORICAL VIEW — NOT LIVE",
+    "non_live_badge_sub": "You are viewing network state in the past"
   },
   "events": {
     "modal_title": "Network Event Log & Diagnostics",
@@ -454,6 +465,14 @@
     "source_deduced": "Inferred from endpoint reachability",
     "cable_notes": "Wiring Notes",
     "btn_delete_link": "Delete This Link"
+  },
+  "custom_edge": {
+    "status_active": "Active",
+    "status_waiting": "Pending check",
+    "status_degraded": "Degraded",
+    "status_down": "Down",
+    "tooltip_link": "Link {{medium}} — Status: {{status}} ({{source}})",
+    "source_deduced": "inferred"
   },
   "incident_banner": {
     "incident_open": "Incident Open",

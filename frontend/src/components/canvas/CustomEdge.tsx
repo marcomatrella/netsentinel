@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { BaseEdge, EdgeLabelRenderer, EdgeProps, getSmoothStepPath } from '@xyflow/react';
 import { Zap, Wifi, ShieldAlert } from 'lucide-react';
 import { LinkMedium, LinkStatus } from '../../types';
+import { useTranslation } from '../../i18n/I18nContext';
 
 interface CustomEdgeData {
   medium?: LinkMedium;
@@ -11,6 +12,8 @@ interface CustomEdgeData {
   fromPort?: string;
   toPort?: string;
   isFaultPath?: boolean;
+  fromDeviceStatus?: string;
+  toDeviceStatus?: string;
 }
 
 const statusStrokeColors: Record<LinkStatus, string> = {
@@ -43,9 +46,28 @@ export const CustomEdge = memo(({
   data,
   selected,
 }: EdgeProps<any>) => {
+  const { t } = useTranslation();
   const edgeData = (data || {}) as CustomEdgeData;
-  const status = edgeData.status || 'ok';
+  const rawStatus = edgeData.status || 'ok';
   const medium = edgeData.medium || 'ethernet';
+
+  // Connected nodes statuses (live or historical replay)
+  const fromDevStatus = edgeData.fromDeviceStatus || 'ok';
+  const toDevStatus = edgeData.toDeviceStatus || 'ok';
+
+  const hasDownNode = fromDevStatus === 'down' || fromDevStatus === 'unreachable' || fromDevStatus === 'flapping' ||
+                      toDevStatus === 'down' || toDevStatus === 'unreachable' || toDevStatus === 'flapping';
+  const hasDegradedNode = fromDevStatus === 'degraded' || toDevStatus === 'degraded';
+
+  // Effective status of link: if either connected node is down, link is considered down/KO; if degraded, degraded.
+  const effectiveStatus: LinkStatus = (edgeData.isFaultPath || hasDownNode || rawStatus === 'down')
+    ? 'down'
+    : (hasDegradedNode || rawStatus === 'degraded')
+    ? 'degraded'
+    : rawStatus;
+
+  const isFault = effectiveStatus === 'down';
+  const isDegraded = effectiveStatus === 'degraded';
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -57,13 +79,15 @@ export const CustomEdge = memo(({
     borderRadius: 16,
   });
 
-  const strokeColor = edgeData.isFaultPath
+  const strokeColor = isFault
     ? '#f43f5e'
-    : statusStrokeColors[status] || '#10b981';
+    : isDegraded
+    ? '#f59e0b'
+    : statusStrokeColors[effectiveStatus] || '#10b981';
 
-  const isDashed = medium === 'logical' || status === 'unverified';
-  const strokeWidth = selected ? 3.5 : (edgeData.isFaultPath ? 3 : 2);
-  const particleColor = pulseColors[medium] || strokeColor;
+  const isDashed = medium === 'logical' || effectiveStatus === 'unverified';
+  const strokeWidth = selected ? 3.5 : (isFault ? 3 : isDegraded ? 2.5 : 2);
+  const particleColor = isFault ? '#f43f5e' : isDegraded ? '#f59e0b' : (pulseColors[medium] || strokeColor);
 
   return (
     <>
@@ -75,12 +99,12 @@ export const CustomEdge = memo(({
           stroke: strokeColor,
           strokeWidth,
           strokeDasharray: isDashed ? '5 5' : undefined,
-          opacity: status === 'unmonitored' ? 0.35 : 0.6,
+          opacity: effectiveStatus === 'unmonitored' ? 0.35 : isFault ? 0.75 : 0.6,
         }}
       />
 
-      {/* Live Interconnection Flow Progression */}
-      {status === 'ok' && !edgeData.isFaultPath && (
+      {/* Live Interconnection Flow Progression (OK normal) */}
+      {effectiveStatus === 'ok' && (
         <>
           <path
             d={edgePath}
@@ -100,16 +124,46 @@ export const CustomEdge = memo(({
         </>
       )}
 
-      {/* Broken Fault Path Indicator */}
-      {edgeData.isFaultPath && (
-        <path
-          d={edgePath}
-          fill="none"
-          stroke="#f43f5e"
-          strokeWidth={strokeWidth + 1}
-          strokeDasharray="4 4"
-          className="animate-pulse"
-        />
+      {/* Offline/Down Broken Flow (Red animated dashed flow in motion + blinking particle) */}
+      {isFault && (
+        <>
+          <path
+            d={edgePath}
+            fill="none"
+            stroke="#f43f5e"
+            strokeWidth={strokeWidth + 0.5}
+            className="flow-down"
+            style={{ opacity: 0.95 }}
+          />
+          <circle r="3.5" fill="#f43f5e" className="animate-ping">
+            <animateMotion
+              dur="1.2s"
+              repeatCount="indefinite"
+              path={edgePath}
+            />
+          </circle>
+        </>
+      )}
+
+      {/* Degraded Connection Flow (Amber/Yellow animated flow in motion) */}
+      {isDegraded && (
+        <>
+          <path
+            d={edgePath}
+            fill="none"
+            stroke="#f59e0b"
+            strokeWidth={strokeWidth}
+            className="flow-degraded"
+            style={{ opacity: 0.95 }}
+          />
+          <circle r="3" fill="#f59e0b">
+            <animateMotion
+              dur="2.2s"
+              repeatCount="indefinite"
+              path={edgePath}
+            />
+          </circle>
+        </>
       )}
 
       <EdgeLabelRenderer>
@@ -120,37 +174,48 @@ export const CustomEdge = memo(({
             pointerEvents: 'all',
           }}
           className={`flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/90 border px-2 py-0.5 rounded-full text-[10px] text-slate-700 dark:text-slate-300 shadow cursor-pointer transition ${
-            edgeData.isFaultPath || status === 'down'
-              ? 'border-rose-500/80 text-rose-600 dark:text-rose-300 shadow-rose-950/40'
-              : status === 'ok'
-              ? 'border-emerald-500/60 dark:border-emerald-600/60 hover:border-emerald-400 hover:text-slate-900 dark:hover:text-white'
-              : 'border-slate-300 dark:border-slate-700/80 text-slate-500 dark:text-slate-400'
+            isFault
+              ? 'border-rose-500/90 text-rose-600 dark:text-rose-300 shadow-rose-950/40 ring-1 ring-rose-500/40'
+              : isDegraded
+              ? 'border-amber-500/90 text-amber-600 dark:text-amber-300 shadow-amber-950/40 ring-1 ring-amber-500/40'
+              : 'border-emerald-500/60 dark:border-emerald-600/60 hover:border-emerald-400 hover:text-slate-900 dark:hover:text-white'
           }`}
-          title={`Link ${medium.toUpperCase()} — Stato: ${status.toUpperCase()} (${edgeData.statusSource || 'dedotto'})`}
+          title={t('custom_edge.tooltip_link', {
+            medium: medium.toUpperCase(),
+            status: effectiveStatus.toUpperCase(),
+            source: edgeData.statusSource || t('custom_edge.source_deduced'),
+          })}
         >
           {medium === 'poe' && <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />}
           {medium === 'power' && <Zap className="w-3 h-3 text-yellow-500 dark:text-yellow-400" />}
           {medium === 'wifi' && <Wifi className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />}
-          {(edgeData.isFaultPath || status === 'down') && <ShieldAlert className="w-3 h-3 text-rose-500 dark:text-rose-400 animate-bounce" />}
+          {isFault && <ShieldAlert className="w-3 h-3 text-rose-500 dark:text-rose-400 animate-bounce" />}
+          {isDegraded && <ShieldAlert className="w-3 h-3 text-amber-500 dark:text-amber-400 animate-pulse" />}
           
           <span className="font-mono text-[9px] uppercase font-bold">{medium}</span>
 
-          {status === 'ok' && !edgeData.isFaultPath && (
+          {effectiveStatus === 'ok' && (
             <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Attivo
+              {t('custom_edge.status_active')}
             </span>
           )}
-          {status === 'unverified' && (
+          {effectiveStatus === 'unverified' && (
             <span className="text-[8px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
-              Attesa check
+              {t('custom_edge.status_waiting')}
             </span>
           )}
-          {(status === 'down' || edgeData.isFaultPath) && (
+          {isDegraded && (
+            <span className="text-[8px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              {t('custom_edge.status_degraded')}
+            </span>
+          )}
+          {isFault && (
             <span className="text-[8px] text-rose-600 dark:text-rose-400 font-medium flex items-center gap-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-              KO
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+              {t('custom_edge.status_down')}
             </span>
           )}
 

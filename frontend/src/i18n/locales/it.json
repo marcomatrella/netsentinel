@@ -213,7 +213,18 @@
     "range_48h": "-48h",
     "range_5d": "-5gg",
     "range_10d": "-10gg",
-    "range_30d": "-30gg"
+    "range_30d": "-30gg",
+    "step_back_10s": "-10s",
+    "step_forward_10s": "+10s",
+    "step_back_tooltip": "Arretra di 10 secondi",
+    "step_forward_tooltip": "Avanza di 10 secondi",
+    "pick_datetime_tooltip": "Clicca per scegliere data e ora esatta",
+    "apply_custom_time": "Vai a questo orario",
+    "cancel_custom_time": "Annulla",
+    "select_datetime_title": "Seleziona Data e Ora Storica",
+    "retention_min_hint": "Minima data consentita dalla retention policy: {{date}}",
+    "non_live_badge": "VISTA STORICA — NON SEI IN LIVE",
+    "non_live_badge_sub": "Stai visualizzando lo stato della rete nel passato"
   },
   "events": {
     "modal_title": "Registro Eventi & Diagnostica di Rete",
@@ -454,6 +465,14 @@
     "source_deduced": "Dedotto da raggiungibilità capi",
     "cable_notes": "Note Cablaggio",
     "btn_delete_link": "Elimina Questo Collegamento"
+  },
+  "custom_edge": {
+    "status_active": "Attivo",
+    "status_waiting": "Attesa check",
+    "status_degraded": "Degradato",
+    "status_down": "KO",
+    "tooltip_link": "Link {{medium}} — Stato: {{status}} ({{source}})",
+    "source_deduced": "dedotto"
   },
   "incident_banner": {
     "incident_open": "Incidente Aperto",

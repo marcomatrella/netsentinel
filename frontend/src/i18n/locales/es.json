@@ -70,7 +70,9 @@
     "toggle_edit_mode": "Cambiar a Modo Edición",
     "toggle_live_view": "Volver a Vista Operativa LIVE",
     "fullscreen": "Modo Kiosco / Pantalla Completa",
-    "force_refresh": "Forzar Actualización"
+    "force_refresh": "Forzar Actualización",
+    "system_settings": "Ajustes del Sistema y Retención",
+    "system_settings_desc": "Configura la retención de datos y preferencias históricas"
   },
   "edit_bar": {
     "title": "Modo Edición Activo:",
@@ -195,7 +197,22 @@
     "logs_tooltip": "Abrir el registro de eventos para ver lo sucedido",
     "return_live": "Volver a En Vivo",
     "now": "Ahora",
-    "range_24h": "-24h"
+    "range_24h": "-24h",
+    "range_48h": "-48h",
+    "range_5d": "-5d",
+    "range_10d": "-10d",
+    "range_30d": "-30d",
+    "step_back_10s": "-10s",
+    "step_forward_10s": "+10s",
+    "step_back_tooltip": "Retroceder 10 segundos",
+    "step_forward_tooltip": "Avanzar 10 segundos",
+    "pick_datetime_tooltip": "Haz clic para seleccionar fecha y hora exactas",
+    "apply_custom_time": "Ir a esta hora",
+    "cancel_custom_time": "Cancelar",
+    "select_datetime_title": "Seleccionar Fecha y Hora Histórica",
+    "retention_min_hint": "Fecha mínima permitida por la política de retención: {{date}}",
+    "non_live_badge": "VISTA HISTÓRICA — NO EN VIVO",
+    "non_live_badge_sub": "Estás visualizando el estado de la red en el pasado"
   },
   "events": {
     "modal_title": "Registro de Eventos y Diagnóstico de Red",
@@ -309,7 +326,9 @@
     "gateway_badge": "Gateway",
     "ping_unreachable_warning": "El dispositivo no responde al Ping, pero puedes continuar con la configuración igualmente.",
     "ping_checking": "Comprobando disponibilidad...",
-    "ping_ok": "Accesible ({{rtt}} ms)"
+    "ping_ok": "Accesible ({{rtt}} ms)",
+    "subnet_label": "Subred",
+    "subnet_placeholder": "ej. 192.168.1.0/24"
   },
   "device_detail": {
     "tab_overview": "Resumen",
@@ -493,5 +512,25 @@
     "client": "Cliente / TV / Equipo de trabajo",
     "wan_gateway": "Puerta de enlace Internet WAN",
     "custom": "Personalizado"
+  },
+  "settings": {
+    "modal_title": "Ajustes del Sistema",
+    "modal_desc": "Configuración de la retención de datos y preferencias",
+    "retention_label": "Política de Retención de Datos (Retention)",
+    "retention_desc": "Define cuánto tiempo conservar el historial y el intervalo explorable con la Máquina del Tiempo.",
+    "retention_24h": "24 Horas (Predeterminado)",
+    "retention_48h": "48 Horas (2 Días)",
+    "retention_5d": "5 Días",
+    "retention_10d": "10 Días",
+    "retention_30d": "30 Días (1 Mes)",
+    "save_btn": "Guardar Ajustes"
+  },
+  "custom_edge": {
+    "status_active": "Activo",
+    "status_waiting": "Esperando comprobación",
+    "status_degraded": "Degradado",
+    "status_down": "Caído",
+    "tooltip_link": "Enlace {{medium}} — Estado: {{status}} ({{source}})",
+    "source_deduced": "deducido"
   }
 }

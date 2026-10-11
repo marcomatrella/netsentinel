@@ -70,7 +70,9 @@
     "toggle_edit_mode": "Passer en mode édition",
     "toggle_live_view": "Revenir à la vue LIVE",
     "fullscreen": "Mode Kiosk / Plein écran",
-    "force_refresh": "Forcer l'actualisation"
+    "force_refresh": "Forcer l'actualisation",
+    "system_settings": "Paramètres Système & Rétention",
+    "system_settings_desc": "Configurer la rétention des données et l'historique"
   },
   "edit_bar": {
     "title": "Mode Édition Actif :",
@@ -195,7 +197,22 @@
     "logs_tooltip": "Ouvrir le registre d'événements pour voir ce qui s'est passé",
     "return_live": "Retour au direct",
     "now": "Maintenant",
-    "range_24h": "-24h"
+    "range_24h": "-24h",
+    "range_48h": "-48h",
+    "range_5d": "-5j",
+    "range_10d": "-10j",
+    "range_30d": "-30j",
+    "step_back_10s": "-10s",
+    "step_forward_10s": "+10s",
+    "step_back_tooltip": "Reculer de 10 secondes",
+    "step_forward_tooltip": "Avancer de 10 secondes",
+    "pick_datetime_tooltip": "Cliquer pour choisir la date et l'heure exactes",
+    "apply_custom_time": "Aller à cette heure",
+    "cancel_custom_time": "Annuler",
+    "select_datetime_title": "Sélectionner Date & Heure Historique",
+    "retention_min_hint": "Date minimale autorisée par la politique de rétention : {{date}}",
+    "non_live_badge": "VUE HISTORIQUE — PAS EN DIRECT",
+    "non_live_badge_sub": "Vous visualisez l'état du réseau dans le passé"
   },
   "events": {
     "modal_title": "Journal des Événements & Diagnostic Réseau",
@@ -309,7 +326,9 @@
     "gateway_badge": "Passerelle",
     "ping_unreachable_warning": "Cet équipement n'est pas joignable par Ping, mais vous pouvez continuer la configuration.",
     "ping_checking": "Vérification joignabilité...",
-    "ping_ok": "Joignable ({{rtt}} ms)"
+    "ping_ok": "Joignable ({{rtt}} ms)",
+    "subnet_label": "Sous-réseau",
+    "subnet_placeholder": "ex. 192.168.1.0/24"
   },
   "device_detail": {
     "tab_overview": "Vue d'ensemble",
@@ -493,5 +512,25 @@
     "client": "Client / TV / Poste de travail",
     "wan_gateway": "Passerelle Internet WAN",
     "custom": "Personnalisé"
+  },
+  "settings": {
+    "modal_title": "Paramètres Système",
+    "modal_desc": "Configuration de la conservation des données et préférences",
+    "retention_label": "Politique de Conservation des Données (Rétention)",
+    "retention_desc": "Définit la durée de conservation de l'historique et la plage explorable avec la Machine Temporelle.",
+    "retention_24h": "24 Heures (Par défaut)",
+    "retention_48h": "48 Heures (2 Jours)",
+    "retention_5d": "5 Jours",
+    "retention_10d": "10 Jours",
+    "retention_30d": "30 Jours (1 Mois)",
+    "save_btn": "Enregistrer les Paramètres"
+  },
+  "custom_edge": {
+    "status_active": "Actif",
+    "status_waiting": "En attente de vérification",
+    "status_degraded": "Dégradé",
+    "status_down": "KO",
+    "tooltip_link": "Lien {{medium}} — État : {{status}} ({{source}})",
+    "source_deduced": "déduit"
   }
 }

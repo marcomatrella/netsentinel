@@ -18,6 +18,7 @@ router = APIRouter(prefix="/timemachine", tags=["Time Machine"])
 @router.get("/snapshot")
 async def get_historical_snapshot(
     target_time: datetime = Query(..., description="Timestamp storico nel passato (ISO 8601)"),
+    device_id: str | None = Query(None, description="ID apparato specifico target (es. da log evento)"),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     """Retrieve historical state of the entire network as it was at target_time."""
@@ -61,11 +62,15 @@ async def get_historical_snapshot(
             )
             last_obs = obs_res.scalar_one_or_none()
 
-            # B) Check the last state change event (either device_state_change or check_state_change) up to target_time
+            # B) Check the last discrete state event for this device up to target_time
+            # Match either by device_id OR by device name in title/message (to catch controller & flap events)
             last_ev_res = await db.execute(
                 select(Event)
-                .where(Event.device_id == d.id)
-                .where(Event.event_type.in_(["device_state_change", "check_state_change"]))
+                .where(
+                    (Event.device_id == d.id)
+                    | (Event.title.ilike(f"%{d.name}%"))
+                    | (Event.message.ilike(f"%{d.name}%"))
+                )
                 .where(Event.ts <= t_clean)
                 .order_by(desc(Event.ts))
                 .limit(1)
@@ -75,6 +80,8 @@ async def get_historical_snapshot(
             status = None
 
             if last_ev:
+                title_upper = (last_ev.title or "").upper()
+                msg_upper = (last_ev.message or "").upper()
                 if last_ev.event_type == "device_state_change" and last_ev.details_json:
                     try:
                         ev_details = json.loads(last_ev.details_json)
@@ -86,31 +93,30 @@ async def get_historical_snapshot(
                         status = "down"
                     elif last_ev.severity == "warn":
                         status = "degraded"
-                    elif "OK" in (last_ev.title or "").upper() or "RIPRISTINATO" in (last_ev.title or "").upper():
+                    elif "OK" in title_upper or "RIPRISTINATO" in title_upper:
                         status = "ok"
 
-            if not status and last_obs:
-                if last_obs.status in ["crit", "down"]:
-                    status = "down"
-                elif last_obs.status == "warn":
-                    status = "degraded"
-                else:
-                    status = "ok"
+                # Check title/message heuristics if status not clearly set or to handle FLAPPING/DOWN
+                if not status or status in ["unknown", "flapping"]:
+                    text_to_check = f"{title_upper} {msg_upper}"
+                    if "-> DOWN" in text_to_check or "OFFLINE" in text_to_check or "FALLITO" in text_to_check:
+                        status = "down"
+                    elif "-> OK" in text_to_check or "ONLINE" in text_to_check or "RIPRISTINATO" in text_to_check:
+                        status = "ok"
+                    elif "-> DEGRADED" in text_to_check or "-> WARN" in text_to_check:
+                        status = "degraded"
+                    elif last_ev.severity == "crit":
+                        status = "down"
+                    elif last_ev.severity == "warn":
+                        status = "degraded"
 
-            # C) If target_time is at or around an event (e.g. user selected from Event Log with +/- a few seconds window)
-            if not status or status == "ok":
-                near_ev_res = await db.execute(
-                    select(Event)
-                    .where(Event.device_id == d.id)
-                    .where(Event.ts >= t_clean - timedelta(seconds=120))
-                    .where(Event.ts <= t_clean + timedelta(seconds=120))
-                    .where(Event.severity.in_(["crit", "warn"]))
-                    .order_by(desc(Event.ts))
-                    .limit(1)
-                )
-                near_ev = near_ev_res.scalar_one_or_none()
-                if near_ev:
-                    status = "down" if near_ev.severity == "crit" else "degraded"
+            # Check Observation if no event status found, OR if last_obs is strictly newer than last_ev
+            if last_obs:
+                obs_status_norm = "down" if last_obs.status in ["crit", "down"] else ("degraded" if last_obs.status == "warn" else "ok")
+                if not status:
+                    status = obs_status_norm
+                elif last_ev and last_obs.ts >= last_ev.ts:
+                    status = obs_status_norm
 
             # Fallback to current device status if no historical records exist
             if not status:
@@ -120,10 +126,10 @@ async def get_historical_snapshot(
             if active_incident and active_incident.root_cause_device_id == d.id:
                 status = "down"
 
-            # Normalize raw status
-            if status in ["crit", "down", "unreachable"]:
+            # Normalize raw status: flapping, crit, down, unreachable all map to "down" (red node with offline glow)
+            if status in ["crit", "down", "unreachable", "flapping"]:
                 status = "down"
-            elif status == "warn":
+            elif status in ["warn", "degraded"]:
                 status = "degraded"
 
             historical_devices.append({
@@ -162,11 +168,12 @@ async def get_historical_snapshot(
                 "resolved_at": to_utc_iso(active_incident.resolved_at),
             }
 
-        # 4. Fetch discrete events around target_time
+        # 4. Fetch discrete events around target_time (+/- 15 minutes window)
         events_stmt = (
             select(Event, Device)
             .outerjoin(Device, Event.device_id == Device.id)
-            .where(Event.ts <= t_clean)
+            .where(Event.ts >= t_clean - timedelta(minutes=15))
+            .where(Event.ts <= t_clean + timedelta(minutes=5))
             .order_by(desc(Event.ts))
             .limit(10)
         )

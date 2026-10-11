@@ -18,6 +18,9 @@ import {
   Network,
   Mail,
   ScrollText,
+  History,
+  AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
 
 import { Device, Link, FullTopology, Incident, CanvasLayout } from './types';
@@ -77,8 +80,13 @@ export const App: React.FC = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
+  const isHistoricalModeRef = React.useRef<boolean>(false);
+  useEffect(() => {
+    isHistoricalModeRef.current = isHistoricalMode;
+  }, [isHistoricalMode]);
+
   // Load topology and incidents
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (resetHistorical: boolean = false) => {
     try {
       const [topoData, incData, settingsData] = await Promise.all([
         fetchTopology(),
@@ -91,7 +99,9 @@ export const App: React.FC = () => {
       if (settingsData?.retention_period) {
         setRetentionPeriod(settingsData.retention_period);
       }
-      setIsHistoricalMode(false);
+      if (resetHistorical) {
+        setIsHistoricalMode(false);
+      }
       setError(null);
 
       // First run detection: if 0 devices, show onboarding setup modal
@@ -110,8 +120,9 @@ export const App: React.FC = () => {
     loadData();
 
     // Connect Server-Sent Events (SSE) for incremental real-time streaming
+    // Crucial: Use isHistoricalModeRef so the live stream NEVER overwrites historical canvas state!
     const cleanupSSE = setupSSEStream((diff) => {
-      if (isHistoricalMode) return; // Don't overwrite if user is scrubbing time machine
+      if (isHistoricalModeRef.current) return;
       if (diff.devices) {
         setTopology((prev) => {
           if (!prev) return prev;
@@ -142,58 +153,36 @@ export const App: React.FC = () => {
     });
 
     return () => cleanupSSE();
-  }, [loadData, isHistoricalMode]);
+  }, [loadData]);
 
   // Handle Time Machine historical scrubbing
   const handleTimeTravel = async (targetDate: Date, targetDeviceId?: string) => {
+    isHistoricalModeRef.current = true;
     setIsHistoricalMode(true);
     setHistoricalTime(targetDate);
+
     try {
-      const snapshot = await fetchHistoricalSnapshot(targetDate.toISOString());
+      const snapshot = await fetchHistoricalSnapshot(targetDate.toISOString(), targetDeviceId);
       if (snapshot && topology) {
-        const histMap = new Map(snapshot.devices.map((d: any) => [d.id, d.status]));
+        const histIdMap = new Map(snapshot.devices.map((d: any) => [d.id, d.status]));
+        const histNameMap = new Map(snapshot.devices.map((d: any) => [(d.name || '').toLowerCase(), d.status]));
         setTopology((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
-            devices: prev.devices.map((dev) => ({
-              ...dev,
-              status: (histMap.get(dev.id) as any) || dev.status,
-            })),
+            devices: prev.devices.map((dev) => {
+              const newStatus =
+                histIdMap.get(dev.id) ||
+                histNameMap.get((dev.name || '').toLowerCase()) ||
+                dev.status;
+              return {
+                ...dev,
+                status: newStatus as any,
+              };
+            }),
           };
         });
         setActiveIncident(snapshot.active_incident);
-
-        let errorFound = false;
-        // Priority 1: explicitly requested target device
-        if (targetDeviceId) {
-          const dev = topology.devices.find((d) => d.id === targetDeviceId);
-          if (dev) {
-            setSelectedDevice(dev);
-            errorFound = true;
-          }
-        }
-
-        // Priority 2: root cause device from active incident
-        if (!errorFound && snapshot.active_incident?.root_cause_device_id) {
-          const rootDev = topology.devices.find((d) => d.id === snapshot.active_incident.root_cause_device_id);
-          if (rootDev) {
-            setSelectedDevice(rootDev);
-            errorFound = true;
-          }
-        }
-
-        // Priority 3: any device from events around this time that was critical or warning
-        if (!errorFound && snapshot.events_around?.length > 0) {
-          const critEvent = snapshot.events_around.find((e: any) => e.severity === 'crit' || e.severity === 'warn');
-          if (critEvent?.device_id) {
-            const evDev = topology.devices.find((d) => d.id === critEvent.device_id);
-            if (evDev) {
-              setSelectedDevice(evDev);
-              errorFound = true;
-            }
-          }
-        }
 
         if (snapshot.active_incident?.summary) {
           setHistoricalErrorSummary(snapshot.active_incident.summary);
@@ -620,7 +609,7 @@ export const App: React.FC = () => {
               <ShieldAlert className="w-10 h-10 text-rose-500" />
               <p className="font-semibold">{error}</p>
               <button
-                onClick={loadData}
+                onClick={() => loadData()}
                 className="mt-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs"
               >
                 {t('canvas.retry')}
@@ -660,6 +649,44 @@ export const App: React.FC = () => {
             />
           ) : null}
 
+          {/* Top-Right Big Yellow Badge: NON-LIVE HISTORICAL VIEW */}
+          {isHistoricalMode && (
+            <div className="absolute top-4 right-4 z-30 pointer-events-auto flex items-center gap-2">
+              <div className="bg-amber-400 dark:bg-amber-500 text-slate-950 font-black px-4 py-2 rounded-2xl shadow-2xl border-2 border-amber-300 dark:border-amber-400 flex items-center gap-2.5 animate-pulse select-none">
+                <div className="p-1.5 bg-black/15 rounded-xl">
+                  <History className="w-5 h-5 text-slate-950 animate-spin" style={{ animationDuration: '6s' }} />
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs uppercase tracking-wider font-extrabold">
+                      {t('timemachine.non_live_badge')}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-black/20 text-[10px] font-mono font-bold">
+                      {historicalTime ? historicalTime.toLocaleTimeString() : ''}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-medium opacity-90 leading-tight">
+                    {t('timemachine.non_live_badge_sub')}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsHistoricalMode(false);
+                    setHistoricalTime(null);
+                    setHistoricalErrorSummary(null);
+                    loadData();
+                  }}
+                  className="ml-2 px-2.5 py-1 bg-slate-950 text-amber-300 hover:text-white hover:bg-slate-900 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-md"
+                  title={t('timemachine.return_live')}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>{t('timemachine.return_live')}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Bottom Floating Time Machine Slider (Visible in Live/Normal Mode) */}
           {!isEditMode && topology && topology.devices.length > 0 && (
             <div className="absolute bottom-5 left-4 right-4 md:left-8 md:right-8 z-20 pointer-events-auto flex justify-center">
@@ -683,8 +710,8 @@ export const App: React.FC = () => {
           )}
         </main>
 
-        {/* Right Details Panel */}
-        {selectedDevice && topology && !isKioskMode && (
+        {/* Right Details Panel - ONLY VISIBLE IN LIVE MODE */}
+        {selectedDevice && topology && !isKioskMode && !isHistoricalMode && (
           <DeviceDetailPanel
             device={selectedDevice}
             dependencies={topology.dependencies}
@@ -700,7 +727,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {selectedLink && topology && !isKioskMode && (
+        {selectedLink && topology && !isKioskMode && !isHistoricalMode && (
           <LinkDetailPanel
             link={selectedLink}
             devices={topology.devices}
