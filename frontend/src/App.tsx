@@ -464,7 +464,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex flex-col h-screen h-[100dvh] w-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* Top Navbar (Hidden in Kiosk Mode) */}
       {!isKioskMode && (
         <header className="h-14 border-b border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 backdrop-blur-md px-2.5 sm:px-4 flex items-center justify-between z-30 transition-all">
@@ -748,7 +748,7 @@ export const App: React.FC = () => {
 
           {/* Bottom Floating Time Machine Slider (Visible in Live/Normal Mode) */}
           {!isEditMode && topology && topology.devices.length > 0 && (
-            <div className="absolute bottom-2 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-4 md:left-8 md:right-8 z-20 pointer-events-auto flex justify-center">
+            <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 left-2 right-2 sm:left-4 sm:right-4 md:left-8 md:right-8 z-20 pointer-events-auto flex justify-center">
               <div className="w-full max-w-5xl">
                 <TimeMachineSlider
                   onTimeChange={(targetDate) => handleTimeTravel(targetDate)}
