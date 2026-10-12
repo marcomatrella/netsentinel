@@ -7,6 +7,7 @@ import {
   Database,
   GitFork,
   Radio,
+  Globe,
   Eye,
   Mail,
   Play,
@@ -1120,8 +1121,9 @@ export const WizardModal: React.FC<WizardModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-800">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Server DNS Primario (AdGuard / Pi-hole / Router):
+                    <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-cyan-400 stroke-[2.5]" />
+                      <span>Server DNS Primario (AdGuard / Pi-hole / Router):</span>
                     </label>
                     <select
                       value={dnsServerId}
@@ -1137,8 +1139,9 @@ export const WizardModal: React.FC<WizardModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Server DHCP (Assegnazione Lease IP):
+                    <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
+                      <span>Server DHCP (Assegnazione Lease IP):</span>
                     </label>
                     <select
                       value={dhcpServerId}
@@ -1443,11 +1446,17 @@ export const WizardModal: React.FC<WizardModalProps> = ({
                 </div>
                 <div className="flex justify-between pb-1.5 border-b border-slate-800">
                   <span className="text-slate-400">Server DNS:</span>
-                  <span className="font-bold text-cyan-300">{devices.find((d) => d.id === dnsServerId)?.name || dnsServerId}</span>
+                  <span className="font-bold text-cyan-300 inline-flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-cyan-400 stroke-[2.5]" />
+                    <span>{devices.find((d) => d.id === dnsServerId)?.name || dnsServerId}</span>
+                  </span>
                 </div>
                 <div className="flex justify-between pb-1.5 border-b border-slate-800">
                   <span className="text-slate-400">Server DHCP:</span>
-                  <span className="font-bold text-amber-300">{devices.find((d) => d.id === dhcpServerId)?.name || dhcpServerId}</span>
+                  <span className="font-bold text-amber-300 inline-flex items-center gap-1.5">
+                    <Radio className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
+                    <span>{devices.find((d) => d.id === dhcpServerId)?.name || dhcpServerId}</span>
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Frequenza Verifiche:</span>

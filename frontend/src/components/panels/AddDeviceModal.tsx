@@ -652,7 +652,10 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
                                       }}
                                       className="rounded bg-slate-950 border-slate-700 text-sky-500 focus:ring-0"
                                     />
-                                    <span className="text-sky-300">Server DNS</span>
+                                    <span className="inline-flex items-center gap-1 text-sky-300 font-medium">
+                                      <Globe className="w-3 h-3 text-cyan-400 stroke-[2.5]" />
+                                      <span>Server DNS</span>
+                                    </span>
                                   </label>
 
                                   <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
@@ -664,7 +667,10 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
                                       }}
                                       className="rounded bg-slate-950 border-slate-700 text-sky-500 focus:ring-0"
                                     />
-                                    <span className="text-amber-300">Server DHCP</span>
+                                    <span className="inline-flex items-center gap-1 text-amber-300 font-medium">
+                                      <Radio className="w-3 h-3 text-amber-400 stroke-[2.5]" />
+                                      <span>Server DHCP</span>
+                                    </span>
                                   </label>
                                 </div>
 
@@ -964,7 +970,10 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
                       onChange={(e) => setIsDnsResolver(e.target.checked)}
                       className="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
                     />
-                    <span className="font-semibold text-sky-400">Server DNS (AdGuard/Pi-hole)</span>
+                    <span className="font-semibold inline-flex items-center gap-1.5 text-sky-400">
+                      <Globe className="w-3.5 h-3.5 text-cyan-400 stroke-[2.5]" />
+                      <span>Server DNS (AdGuard/Pi-hole)</span>
+                    </span>
                   </label>
                   {isDnsResolver && currentDnsDevice && (
                     <div className="mt-1 ml-5 p-1.5 bg-amber-950/40 border border-amber-800 rounded text-[10px] text-amber-300 flex items-start gap-1">
@@ -984,7 +993,10 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
                       onChange={(e) => setIsDhcpServer(e.target.checked)}
                       className="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
                     />
-                    <span className="font-semibold text-amber-400">Server DHCP</span>
+                    <span className="font-semibold inline-flex items-center gap-1.5 text-amber-400">
+                      <Radio className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
+                      <span>Server DHCP</span>
+                    </span>
                   </label>
                   {isDhcpServer && currentDhcpDevice && (
                     <div className="mt-1 ml-5 p-1.5 bg-amber-950/40 border border-amber-800 rounded text-[10px] text-amber-300 flex items-start gap-1">

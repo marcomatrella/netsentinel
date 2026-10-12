@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Shield, Check } from 'lucide-react';
+import { X, Shield, Check, Globe, Radio } from 'lucide-react';
 import { Device } from '../../types';
 import { assignNetworkRoles } from '../../api/client';
 import { useTranslation } from '../../i18n/I18nContext';
@@ -89,7 +89,7 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
           <div className="bg-slate-850 p-3 rounded-xl border border-slate-700/60 space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="font-bold text-slate-200 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <Globe className="w-3.5 h-3.5 text-cyan-400 stroke-[2.5]" />
                 {t('network_roles.dns_label')}
               </label>
               <span className="text-[10px] text-cyan-400 font-mono">{t('network_roles.port_53')}</span>
@@ -112,7 +112,7 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
           <div className="bg-slate-850 p-3 rounded-xl border border-slate-700/60 space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="font-bold text-slate-200 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <Radio className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
                 {t('network_roles.dhcp_label')}
               </label>
               <span className="text-[10px] text-amber-400 font-mono">{t('network_roles.port_67')}</span>

@@ -629,7 +629,10 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                   className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-sky-500 focus:ring-0"
                 />
                 <div>
-                  <span className="font-semibold block text-sky-600 dark:text-sky-300">{t('device_detail.role_dns')}</span>
+                  <span className="font-semibold flex items-center gap-1.5 text-sky-600 dark:text-sky-300">
+                    <Globe className="w-3.5 h-3.5 text-cyan-500 stroke-[2.5]" />
+                    {t('device_detail.role_dns')}
+                  </span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">{t('device_detail.role_dns_resolver_badge')}</span>
                 </div>
               </label>
@@ -653,7 +656,10 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                   className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-sky-500 focus:ring-0"
                 />
                 <div>
-                  <span className="font-semibold block text-amber-600 dark:text-amber-300">{t('device_detail.role_dhcp')}</span>
+                  <span className="font-semibold flex items-center gap-1.5 text-amber-600 dark:text-amber-300">
+                    <Radio className="w-3.5 h-3.5 text-amber-500 stroke-[2.5]" />
+                    {t('device_detail.role_dhcp')}
+                  </span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">{t('device_detail.role_dhcp_server_badge')}</span>
                 </div>
               </label>
@@ -847,22 +853,34 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                             </span>
                           );
                         }
+                        if (r === 'dns_resolver') {
+                          return (
+                            <span
+                              key={r}
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border bg-cyan-950 text-cyan-300 border-cyan-800"
+                            >
+                              <Globe className="w-3 h-3 text-cyan-400 stroke-[2.5]" />
+                              <span>{t('device_detail.role_dns_resolver_badge')}</span>
+                            </span>
+                          );
+                        }
+                        if (r === 'dhcp_server') {
+                          return (
+                            <span
+                              key={r}
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border bg-amber-950 text-amber-300 border-amber-800"
+                            >
+                              <Radio className="w-3 h-3 text-amber-400 stroke-[2.5]" />
+                              <span>{t('device_detail.role_dhcp_server_badge')}</span>
+                            </span>
+                          );
+                        }
                         return (
                           <span
                             key={r}
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                              r === 'dns_resolver'
-                                ? 'bg-cyan-950 text-cyan-300 border-cyan-800'
-                                : r === 'dhcp_server'
-                                ? 'bg-amber-950 text-amber-300 border-amber-800'
-                                : 'bg-slate-800 text-slate-300 border-slate-700'
-                            }`}
+                            className="px-2 py-0.5 rounded text-[10px] font-semibold border bg-slate-800 text-slate-300 border-slate-700"
                           >
-                            {r === 'dns_resolver'
-                              ? t('device_detail.role_dns_resolver_badge')
-                              : r === 'dhcp_server'
-                              ? t('device_detail.role_dhcp_server_badge')
-                              : r}
+                            {r}
                           </span>
                         );
                       })}
