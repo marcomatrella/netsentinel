@@ -698,7 +698,7 @@ export const App: React.FC = () => {
 
           {/* Bottom Floating Time Machine Slider (Visible in Live/Normal Mode) */}
           {!isEditMode && topology && topology.devices.length > 0 && (
-            <div className="absolute bottom-5 left-4 right-4 md:left-8 md:right-8 z-20 pointer-events-auto flex justify-center">
+            <div className="absolute bottom-2 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-4 md:left-8 md:right-8 z-20 pointer-events-auto flex justify-center">
               <div className="w-full max-w-5xl">
                 <TimeMachineSlider
                   onTimeChange={(targetDate) => handleTimeTravel(targetDate)}
