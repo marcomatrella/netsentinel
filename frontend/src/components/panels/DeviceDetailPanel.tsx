@@ -846,7 +846,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                           return (
                             <span
                               key={r}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-500 text-white border border-sky-300 ring-2 ring-sky-300 dark:ring-sky-400 vantage-point-glow shadow-sm"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-500 text-white border border-sky-300 ring-1 ring-sky-300/60 dark:ring-sky-400/60 vantage-point-glow-subtle shadow-sm"
                             >
                               <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
                               <span>{t('device_detail.role_vantage_point_badge')}</span>
