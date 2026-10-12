@@ -302,7 +302,7 @@ async def _analyze_device(
         # 7. IoT Devices: Smart Plugs, Tapparelle, Shelly, Dongles, Relays
         elif any(k in h_lower for k in ["shelly", "tapparella", "plug", "meross", "dongle", "sonoff", "rele", "relay", "sensor", "presa"]):
             kind = "smart_hub"
-            roles.append("service")
+            roles.append("passive_tracking")
             if "meross" in h_lower or "plug" in h_lower:
                 name = f"Presa Smart ({h or ip})"
             elif "tapparella" in h_lower:

@@ -194,7 +194,16 @@
     "zoom_out": "Rimpicciolisci (Zoom out)",
     "fit_view": "Adatta vista alla tela",
     "lock": "Blocca/Sblocca interazione",
-    "auto_layout": "Auto-Layout (ELK)"
+    "auto_layout": "Auto-Layout (ELK)",
+    "tool_pan": "Strumento Pan / Sposta tela",
+    "tool_select": "Strumento Selezione rettangolare (Area)",
+    "selected_badge": "{{count}} apparati selezionati",
+    "delete_selected": "Elimina selezionati ({{count}})",
+    "confirm_batch_delete_title": "Conferma eliminazione apparati",
+    "confirm_batch_delete_msg": "Sei sicuro di voler eliminare i seguenti {{count}} apparati dalla plancia?",
+    "confirm_batch_delete_hint": "I controlli associati verranno arrestati e le connessioni rimosse.",
+    "btn_confirm_delete": "Elimina definitivamente",
+    "btn_cancel": "Annulla"
   },
   "settings": {
     "modal_title": "Impostazioni di Sistema",

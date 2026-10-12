@@ -106,11 +106,13 @@ class CorrelationEngine:
                 candidates.append(dev)
 
         if not candidates and unhealthy_nodes:
-            # Cycle or mutual dependency: select node closest to vantage point
-            candidates = sorted(
-                unhealthy_nodes,
-                key=lambda d: self.topology.get_distance_from_vantage_point(d.id),
-            )[:1]
+            # Cycle or mutual dependency: select non-passive node closest to vantage point
+            non_passive_unhealthy = [d for d in unhealthy_nodes if not is_passive(d)]
+            if non_passive_unhealthy:
+                candidates = sorted(
+                    non_passive_unhealthy,
+                    key=lambda d: self.topology.get_distance_from_vantage_point(d.id),
+                )[:1]
 
         # 5. Build/Update Incidents for each candidate (skip candidates under planned maintenance)
         from app.state.maintenance import maintenance_tracker

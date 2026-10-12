@@ -84,6 +84,10 @@ class DeviceRead(DeviceBase):
     interfaces: list[InterfaceBase] = Field(default_factory=list)
 
 
+class DeviceBatchDeleteRequest(NetSentinelBaseModel):
+    device_ids: list[str] = Field(..., description="Elenco degli ID apparati da eliminare")
+
+
 # ---------------------------------------------------------------------------
 # Link Schemas
 # ---------------------------------------------------------------------------

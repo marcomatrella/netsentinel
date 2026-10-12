@@ -194,7 +194,16 @@
     "zoom_out": "Verkleinern (Zoom out)",
     "fit_view": "Ansicht anpassen",
     "lock": "Interaktion sperren/entsperren",
-    "auto_layout": "Auto-Layout (ELK)"
+    "auto_layout": "Auto-Layout (ELK)",
+    "tool_pan": "Verschiebe-Werkzeug (Pan)",
+    "tool_select": "Bereichsauswahl-Werkzeug (Rechteck)",
+    "selected_badge": "{{count}} Geräte ausgewählt",
+    "delete_selected": "Ausgewählte löschen ({{count}})",
+    "confirm_batch_delete_title": "Gerätelöschung bestätigen",
+    "confirm_batch_delete_msg": "Sind Sie sicher, dass Sie die folgenden {{count}} Geräte aus der Topologie löschen möchten?",
+    "confirm_batch_delete_hint": "Zugehörige Prüfungen werden gestoppt und Verbindungen entfernt.",
+    "btn_confirm_delete": "Endgültig löschen",
+    "btn_cancel": "Abbrechen"
   },
   "timemachine": {
     "title": "Zeitmaschine",

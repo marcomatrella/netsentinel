@@ -2,9 +2,9 @@
 
 import json
 
-from app.db.models import Check, Device, Observation, utcnow
+from app.db.models import CanvasLayout, Check, Device, Incident, Link, Observation, utcnow
 from app.db.session import get_db
-from app.schemas.entities import DeviceCreate, DeviceRead, DeviceUpdate, InterfaceBase
+from app.schemas.entities import DeviceBatchDeleteRequest, DeviceCreate, DeviceRead, DeviceUpdate, InterfaceBase
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -300,11 +300,91 @@ async def update_device(
     return _to_device_read(updated_device, rtt_ms=rtt)
 
 
+@router.post("/batch-delete", summary="Elimina apparati multipli")
+async def batch_delete_devices(
+    payload: DeviceBatchDeleteRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Delete multiple devices in one atomic transaction, cascade deleting links, checks and canvas layout positions."""
+    if not payload.device_ids:
+        return {"deleted_count": 0, "deleted_ids": []}
+
+    deleted_ids: list[str] = []
+    to_delete_set = set(payload.device_ids)
+
+    # 1. Fetch devices to delete
+    res = await db.execute(select(Device).where(Device.id.in_(to_delete_set)))
+    devices = res.scalars().all()
+    for dev in devices:
+        deleted_ids.append(dev.id)
+        await db.delete(dev)
+
+    # 2. Cleanup CanvasLayout nodes and edges
+    layout = await db.get(CanvasLayout, "default")
+    if layout:
+        try:
+            nodes = json.loads(layout.nodes_json) if layout.nodes_json else []
+            edges = json.loads(layout.edges_json) if layout.edges_json else []
+            new_nodes = [n for n in nodes if n.get("id") not in to_delete_set]
+            new_edges = [
+                e for e in edges
+                if e.get("source") not in to_delete_set and e.get("target") not in to_delete_set
+            ]
+            layout.nodes_json = json.dumps(new_nodes)
+            layout.edges_json = json.dumps(new_edges)
+            layout.updated_at = utcnow()
+        except Exception:
+            pass
+
+    # 3. Resolve any active incidents targeting these deleted devices
+    inc_res = await db.execute(
+        select(Incident).where(
+            Incident.status.in_(["open", "monitoring"]),
+            Incident.root_cause_device_id.in_(to_delete_set),
+        )
+    )
+    for inc in inc_res.scalars().all():
+        inc.status = "resolved"
+        inc.resolved_at = utcnow()
+
+    await db.commit()
+    return {"deleted_count": len(deleted_ids), "deleted_ids": deleted_ids}
+
+
 @router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Elimina apparato")
 async def delete_device(device_id: str, db: AsyncSession = Depends(get_db)) -> None:
-    """Delete a device and cascade delete its checks, interfaces and dependencies."""
+    """Delete a device and cascade delete its checks, interfaces, dependencies and layout node."""
     device = await db.get(Device, device_id)
     if not device:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Apparato non trovato.")
+
+    # Cleanup CanvasLayout
+    layout = await db.get(CanvasLayout, "default")
+    if layout:
+        try:
+            nodes = json.loads(layout.nodes_json) if layout.nodes_json else []
+            edges = json.loads(layout.edges_json) if layout.edges_json else []
+            new_nodes = [n for n in nodes if n.get("id") != device_id]
+            new_edges = [
+                e for e in edges
+                if e.get("source") != device_id and e.get("target") != device_id
+            ]
+            layout.nodes_json = json.dumps(new_nodes)
+            layout.edges_json = json.dumps(new_edges)
+            layout.updated_at = utcnow()
+        except Exception:
+            pass
+
+    # Resolve any incident for this device
+    inc_res = await db.execute(
+        select(Incident).where(
+            Incident.status.in_(["open", "monitoring"]),
+            Incident.root_cause_device_id == device_id,
+        )
+    )
+    for inc in inc_res.scalars().all():
+        inc.status = "resolved"
+        inc.resolved_at = utcnow()
+
     await db.delete(device)
     await db.commit()

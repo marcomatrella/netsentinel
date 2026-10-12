@@ -209,6 +209,16 @@ export async function deleteDevice(deviceId: string): Promise<void> {
   if (!res.ok) throw new Error('Errore durante l\'eliminazione dell\'apparato.');
 }
 
+export async function batchDeleteDevices(deviceIds: string[]): Promise<{ deleted_count: number; deleted_ids: string[] }> {
+  const res = await fetch(`${API_BASE}/devices/batch-delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ device_ids: deviceIds }),
+  });
+  if (!res.ok) throw new Error('Errore durante l\'eliminazione multipla degli apparati.');
+  return res.json();
+}
+
 export async function assignNetworkRoles(payload: {
   dns_server_id?: string;
   dhcp_server_id?: string;

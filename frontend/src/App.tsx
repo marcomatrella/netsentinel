@@ -35,6 +35,8 @@ import {
   applyTopology,
   deduceDependencies,
   updateDevice,
+  deleteDevice,
+  batchDeleteDevices,
   setupSSEStream,
   fetchSettings,
   fetchActiveScheduledMaintenance,
@@ -366,15 +368,65 @@ export const App: React.FC = () => {
     }
   };
 
-  // Delete device from topology in edit mode
-  const handleDeleteDevice = (devId: string) => {
+  // Delete single device from topology (local in edit mode, or direct API delete in live mode)
+  const handleDeleteDevice = async (devId: string) => {
     if (!topology) return;
+    const targetDev = topology.devices.find((d) => d.id === devId);
+    const devName = targetDev ? targetDev.name : devId;
+
+    if (!isEditMode) {
+      if (!window.confirm(`Sei sicuro di voler eliminare l'apparato "${devName}"?`)) {
+        return;
+      }
+      try {
+        await deleteDevice(devId);
+        await loadData();
+        if (selectedDevice?.id === devId) setSelectedDevice(null);
+        return;
+      } catch (err: any) {
+        alert(err.message || "Errore durante l'eliminazione dell'apparato.");
+        return;
+      }
+    }
+
+    // In Edit Mode: stage deletion locally
     setTopology({
       ...topology,
       devices: topology.devices.filter((d) => d.id !== devId),
       links: topology.links.filter((l) => l.from_device_id !== devId && l.to_device_id !== devId),
     });
     if (selectedDevice?.id === devId) setSelectedDevice(null);
+  };
+
+  // Batch delete multiple devices from topology
+  const handleDeleteDevicesBatch = async (devicesToDelete: Device[]) => {
+    if (!topology || devicesToDelete.length === 0) return;
+    const idsToDelete = new Set(devicesToDelete.map((d) => d.id));
+
+    if (isEditMode) {
+      // In Edit Mode: stage batch removal locally
+      setTopology({
+        ...topology,
+        devices: topology.devices.filter((d) => !idsToDelete.has(d.id)),
+        links: topology.links.filter(
+          (l) => !idsToDelete.has(l.from_device_id) && !idsToDelete.has(l.to_device_id)
+        ),
+      });
+      if (selectedDevice && idsToDelete.has(selectedDevice.id)) {
+        setSelectedDevice(null);
+      }
+    } else {
+      // In LIVE Mode: call backend batch delete API
+      try {
+        await batchDeleteDevices(Array.from(idsToDelete));
+        await loadData();
+        if (selectedDevice && idsToDelete.has(selectedDevice.id)) {
+          setSelectedDevice(null);
+        }
+      } catch (err: any) {
+        alert(err.message || "Errore durante l'eliminazione multipla.");
+      }
+    }
   };
 
   // Connect link in edit mode
@@ -794,6 +846,7 @@ export const App: React.FC = () => {
               onConnectLink={handleConnectLink}
               onAddDeviceDrop={handleAddDevice}
               onLayoutChange={handleLayoutChange}
+              onDeleteDevicesBatch={handleDeleteDevicesBatch}
             />
           ) : null}
 
@@ -895,7 +948,7 @@ export const App: React.FC = () => {
               const d = topology.devices.find((item) => item.id === id);
               if (d) setSelectedDevice(d);
             }}
-            onDeleteDevice={isEditMode ? handleDeleteDevice : undefined}
+            onDeleteDevice={handleDeleteDevice}
             onUpdateDevice={handleUpdateDevice}
             onRefreshTopology={loadData}
             onOpenMaintenance={(devId) => {

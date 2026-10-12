@@ -194,7 +194,16 @@
     "zoom_out": "Zoom arrière (Zoom out)",
     "fit_view": "Ajuster la vue au canevas",
     "lock": "Verrouiller/Déverrouiller l'interaction",
-    "auto_layout": "Organisation automatique (ELK)"
+    "auto_layout": "Organisation automatique (ELK)",
+    "tool_pan": "Outil Déplacement (Pan)",
+    "tool_select": "Outil Sélection par cadre (Zone)",
+    "selected_badge": "{{count}} équipements sélectionnés",
+    "delete_selected": "Supprimer la sélection ({{count}})",
+    "confirm_batch_delete_title": "Confirmer la suppression des équipements",
+    "confirm_batch_delete_msg": "Êtes-vous sûr de vouloir supprimer les {{count}} équipements suivants de la topologie ?",
+    "confirm_batch_delete_hint": "Les contrôles associés seront arrêtés et les liens supprimés.",
+    "btn_confirm_delete": "Supprimer définitivement",
+    "btn_cancel": "Annuler"
   },
   "timemachine": {
     "title": "Machine Temporelle",

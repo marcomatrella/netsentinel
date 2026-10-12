@@ -194,7 +194,16 @@
     "zoom_out": "Alejar (Zoom out)",
     "fit_view": "Ajustar vista al lienzo",
     "lock": "Bloquear/Desbloquear interacción",
-    "auto_layout": "Diseño automático (ELK)"
+    "auto_layout": "Diseño automático (ELK)",
+    "tool_pan": "Herramienta Mover lienzo (Pan)",
+    "tool_select": "Herramienta Selección por área (Rectángulo)",
+    "selected_badge": "{{count}} dispositivos seleccionados",
+    "delete_selected": "Eliminar seleccionados ({{count}})",
+    "confirm_batch_delete_title": "Confirmar eliminación de dispositivos",
+    "confirm_batch_delete_msg": "¿Está seguro de que desea eliminar los siguientes {{count}} dispositivos de la topología?",
+    "confirm_batch_delete_hint": "Se detendrán los controles asociados y se eliminarán los enlaces.",
+    "btn_confirm_delete": "Eliminar definitivamente",
+    "btn_cancel": "Cancelar"
   },
   "timemachine": {
     "title": "Máquina del Tiempo",

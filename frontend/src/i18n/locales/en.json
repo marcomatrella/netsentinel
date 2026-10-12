@@ -194,7 +194,16 @@
     "zoom_out": "Zoom out",
     "fit_view": "Fit view to canvas",
     "lock": "Lock/Unlock interactivity",
-    "auto_layout": "Auto-Layout (ELK)"
+    "auto_layout": "Auto-Layout (ELK)",
+    "tool_pan": "Pan tool / Move canvas",
+    "tool_select": "Box Selection tool (Area)",
+    "selected_badge": "{{count}} devices selected",
+    "delete_selected": "Delete selected ({{count}})",
+    "confirm_batch_delete_title": "Confirm Device Deletion",
+    "confirm_batch_delete_msg": "Are you sure you want to delete the following {{count}} devices from the topology?",
+    "confirm_batch_delete_hint": "All associated checks will be stopped and links removed.",
+    "btn_confirm_delete": "Delete permanently",
+    "btn_cancel": "Cancel"
   },
   "settings": {
     "modal_title": "System Settings",

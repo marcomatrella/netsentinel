@@ -284,3 +284,15 @@
   transform: translateY(-50%) scale(1);
   transition-delay: 0.12s; /* Native OS short delay so it doesn't flash when moving fast */
 }
+
+/* Custom dashed rectangular selection box */
+.react-flow__selection {
+  background: rgba(14, 165, 233, 0.12) !important;
+  border: 1.5px dashed #0284c7 !important;
+  border-radius: 4px !important;
+}
+
+.dark .react-flow__selection {
+  background: rgba(56, 189, 248, 0.15) !important;
+  border: 1.5px dashed #38bdf8 !important;
+}

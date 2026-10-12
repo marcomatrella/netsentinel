@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -12,8 +12,11 @@ import {
   Edge,
   Node,
   FitViewOptions,
+  SelectionMode,
+  OnSelectionChangeFunc,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Hand, BoxSelect, Trash2 } from 'lucide-react';
 
 import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
@@ -36,6 +39,7 @@ interface NetworkCanvasProps {
   onLayoutChange?: (layout: CanvasLayout) => void;
   onConnectLink?: (newLink: Link) => void;
   onAddDeviceDrop?: (device: Device, position?: { x: number; y: number }) => void;
+  onDeleteDevicesBatch?: (devices: Device[]) => void;
 }
 
 export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
@@ -51,10 +55,16 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   onLayoutChange,
   onConnectLink,
   onAddDeviceDrop,
+  onDeleteDevicesBatch,
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const { t } = useTranslation();
+
+  // Canvas interaction mode: 'pan' (default hand drag) or 'select' (rectangular box selection)
+  const [interactionMode, setInteractionMode] = useState<'pan' | 'select'>('pan');
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>([]);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
 
   const nodeTypes = useMemo(() => ({ customNode: CustomNode as any }), []);
   const edgeTypes = useMemo(() => ({ customEdge: CustomEdge as any }), []);
@@ -324,13 +334,45 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   );
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
-    const dev = devices.find((d) => d.id === node.id);
-    if (onSelectDevice && dev) onSelectDevice(dev);
+    // In pan mode, selecting a single node opens the detail panel
+    if (interactionMode === 'pan') {
+      const dev = devices.find((d) => d.id === node.id);
+      if (onSelectDevice && dev) onSelectDevice(dev);
+    }
   };
 
   const onEdgeClick = (_: React.MouseEvent, edge: Edge) => {
-    const lnk = links.find((l) => l.id === edge.id);
-    if (onSelectLink && lnk) onSelectLink(lnk);
+    if (interactionMode === 'pan') {
+      const lnk = links.find((l) => l.id === edge.id);
+      if (onSelectLink && lnk) onSelectLink(lnk);
+    }
+  };
+
+  // Sync multi-selection box changes from ReactFlow
+  const handleSelectionChange: OnSelectionChangeFunc = useCallback(
+    ({ nodes: selectedNodes }) => {
+      const ids = selectedNodes.map((n) => n.id);
+      setSelectedDeviceIds(ids);
+    },
+    []
+  );
+
+  const selectedDevicesList = useMemo(() => {
+    const idSet = new Set(selectedDeviceIds);
+    return devices.filter((d) => idSet.has(d.id));
+  }, [devices, selectedDeviceIds]);
+
+  const handleTriggerBatchDelete = () => {
+    if (selectedDevicesList.length === 0) return;
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmBatchDelete = () => {
+    if (onDeleteDevicesBatch && selectedDevicesList.length > 0) {
+      onDeleteDevicesBatch(selectedDevicesList);
+    }
+    setIsConfirmModalOpen(false);
+    setSelectedDeviceIds([]);
   };
 
   // Explicit user trigger for ELK Auto-Layout
@@ -443,6 +485,57 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       onDragOver={isEditMode ? onDragOver : undefined}
       onDrop={isEditMode ? onDrop : undefined}
     >
+      {/* Top-Left Tool Selector: Hand (Pan) & Dotted Box (Selection) */}
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+        <div className="flex items-center p-1 bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg backdrop-blur-md">
+          {/* Tool 1: Pan / Drag (Hand) */}
+          <button
+            type="button"
+            onClick={() => setInteractionMode('pan')}
+            className={`p-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+              interactionMode === 'pan'
+                ? 'bg-sky-500 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title={t('canvas.tool_pan')}
+          >
+            <Hand className="w-4 h-4" />
+          </button>
+
+          {/* Tool 2: Selection / Box (Dotted Rectangle) */}
+          <button
+            type="button"
+            onClick={() => setInteractionMode('select')}
+            className={`p-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+              interactionMode === 'select'
+                ? 'bg-sky-500 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title={t('canvas.tool_select')}
+          >
+            <BoxSelect className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Selected devices action pill (visible when 1 or more devices are selected) */}
+        {selectedDeviceIds.length > 0 && (
+          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+            <span className="px-3 py-1.5 bg-slate-900/90 dark:bg-slate-800/90 text-white border border-slate-700/60 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md">
+              {t('canvas.selected_badge', { count: selectedDeviceIds.length })}
+            </span>
+            <button
+              type="button"
+              onClick={handleTriggerBatchDelete}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-lg shadow-rose-600/20 transition flex items-center gap-1.5 cursor-pointer"
+              title={t('canvas.delete_selected', { count: selectedDeviceIds.length })}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{t('canvas.delete_selected', { count: selectedDeviceIds.length })}</span>
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Auto-layout overlay button (only visible in Edit Mode) */}
       {isEditMode && (
         <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -463,6 +556,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         onEdgesChange={onEdgesChange}
         onNodeDragStop={handleNodeDragStop}
         onSelectionDragStop={handleSelectionDragStop}
+        onSelectionChange={handleSelectionChange}
         onConnect={isEditMode ? onConnect : undefined}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
@@ -474,6 +568,10 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         maxZoom={2.5}
         nodesDraggable={isEditMode}
         nodesConnectable={isEditMode}
+        elementsSelectable={true}
+        panOnDrag={interactionMode === 'pan'}
+        selectionOnDrag={interactionMode === 'select'}
+        selectionMode={SelectionMode.Partial}
       >
         <Background
           variant={BackgroundVariant.Dots}
@@ -493,6 +591,68 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           className="!hidden sm:!block !bg-white dark:!bg-slate-900 !border-slate-200 dark:!border-slate-800 rounded-lg overflow-hidden shadow-xl"
         />
       </ReactFlow>
+
+      {/* Confirmation Modal for Multiple Devices Deletion */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 text-slate-800 dark:text-slate-100 relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {t('canvas.confirm_batch_delete_title')}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('canvas.confirm_batch_delete_hint')}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              {t('canvas.confirm_batch_delete_msg', { count: selectedDevicesList.length })}
+            </p>
+
+            {/* List of devices to be deleted */}
+            <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800/80 mb-5">
+              {selectedDevicesList.map((dev) => (
+                <div key={dev.id} className="p-2.5 flex items-center justify-between text-xs bg-slate-50/50 dark:bg-slate-950/30">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      {dev.name}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {dev.addresses?.ip || dev.id}
+                    </span>
+                  </div>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-200/60 dark:bg-slate-800 text-slate-500 shrink-0">
+                    {dev.kind}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              >
+                {t('canvas.btn_cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBatchDelete}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{t('canvas.btn_confirm_delete')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
