@@ -171,23 +171,29 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
     const saved = localStorage.getItem('netsentinel_tm_step_unit') as StepUnit;
     return ['s', 'm', 'h', 'd'].includes(saved) ? saved : 's';
   });
-  const [isStepMenuOpen, setIsStepMenuOpen] = useState<boolean>(false);
-  const stepMenuRef = useRef<HTMLDivElement>(null);
+  type StepMenuTarget = 'back' | 'forward' | null;
+  const [activeStepMenu, setActiveStepMenu] = useState<StepMenuTarget>(null);
+  const backStepMenuRef = useRef<HTMLDivElement>(null);
+  const forwardStepMenuRef = useRef<HTMLDivElement>(null);
 
   // Close step menu popover on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (stepMenuRef.current && !stepMenuRef.current.contains(e.target as Node)) {
-        setIsStepMenuOpen(false);
+      const target = e.target as Node;
+      if (
+        (activeStepMenu === 'back' && backStepMenuRef.current && !backStepMenuRef.current.contains(target)) ||
+        (activeStepMenu === 'forward' && forwardStepMenuRef.current && !forwardStepMenuRef.current.contains(target))
+      ) {
+        setActiveStepMenu(null);
       }
     };
-    if (isStepMenuOpen) {
+    if (activeStepMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isStepMenuOpen]);
+  }, [activeStepMenu]);
 
   const stepTotalSeconds = useMemo(() => {
     const mult = stepUnit === 's' ? 1 : stepUnit === 'm' ? 60 : stepUnit === 'h' ? 3600 : 86400;
@@ -412,7 +418,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
       {/* ROW 2 ON MOBILE / CENTER ROW ON DESKTOP: Dedicated Full-Width Slider + Step Controls */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-1 w-full min-w-0 md:order-2">
         {/* Step Backward + Configuration Group */}
-        <div className="relative flex items-center shrink-0" ref={stepMenuRef}>
+        <div className="relative flex items-center shrink-0" ref={backStepMenuRef}>
           <div className="flex items-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition shadow-sm overflow-hidden">
             <button
               type="button"
@@ -425,7 +431,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setIsStepMenuOpen(!isStepMenuOpen)}
+              onClick={() => setActiveStepMenu(activeStepMenu === 'back' ? null : 'back')}
               className="px-1 py-1 text-slate-400 hover:text-sky-500 dark:text-slate-500 dark:hover:text-sky-400 border-l border-slate-200 dark:border-slate-700 transition"
               title={t('timemachine.step_config_tooltip') || 'Configura intervallo di navigazione'}
             >
@@ -434,7 +440,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
           </div>
 
           {/* Contextual Popover to configure step amount & unit (anchor left) */}
-          {isStepMenuOpen && (
+          {activeStepMenu === 'back' && (
             <div className="absolute left-0 bottom-full mb-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-3 w-[240px] animate-in fade-in zoom-in-95 backdrop-blur-xl">
               <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-100 dark:border-slate-800">
                 <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -443,7 +449,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setIsStepMenuOpen(false)}
+                  onClick={() => setActiveStepMenu(null)}
                   className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <X className="w-3 h-3" />
@@ -487,7 +493,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
                     { a: 1, u: 'h' as StepUnit, label: '1h' },
                   ].map((preset) => (
                     <button
-                      key={`${preset.a}${preset.u}`}
+                      key={`back-${preset.a}${preset.u}`}
                       type="button"
                       onClick={() => handleUpdateStep(preset.a, preset.u)}
                       className={`px-1.5 py-0.5 text-[10px] rounded font-mono font-medium transition ${
@@ -503,7 +509,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setIsStepMenuOpen(false)}
+                  onClick={() => setActiveStepMenu(null)}
                   className="w-full mt-1 py-1 bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-1"
                 >
                   <Check className="w-3 h-3" />
@@ -538,7 +544,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
         </span>
 
         {/* Step Forward button with configured delta + Configuration Group */}
-        <div className="relative flex items-center shrink-0">
+        <div className="relative flex items-center shrink-0" ref={forwardStepMenuRef}>
           <div className="flex items-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition shadow-sm overflow-hidden">
             <button
               type="button"
@@ -551,7 +557,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setIsStepMenuOpen(!isStepMenuOpen)}
+              onClick={() => setActiveStepMenu(activeStepMenu === 'forward' ? null : 'forward')}
               className="px-1 py-1 text-slate-400 hover:text-sky-500 dark:text-slate-500 dark:hover:text-sky-400 border-l border-slate-200 dark:border-slate-700 transition"
               title={t('timemachine.step_config_tooltip') || 'Configura intervallo di navigazione'}
             >
@@ -560,7 +566,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
           </div>
 
           {/* Contextual Popover to configure step amount & unit (anchor right) */}
-          {isStepMenuOpen && (
+          {activeStepMenu === 'forward' && (
             <div className="absolute right-0 bottom-full mb-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-3 w-[240px] animate-in fade-in zoom-in-95 backdrop-blur-xl">
               <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-100 dark:border-slate-800">
                 <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -569,7 +575,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setIsStepMenuOpen(false)}
+                  onClick={() => setActiveStepMenu(null)}
                   className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <X className="w-3 h-3" />
@@ -613,7 +619,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
                     { a: 1, u: 'h' as StepUnit, label: '1h' },
                   ].map((preset) => (
                     <button
-                      key={`${preset.a}${preset.u}`}
+                      key={`forward-${preset.a}${preset.u}`}
                       type="button"
                       onClick={() => handleUpdateStep(preset.a, preset.u)}
                       className={`px-1.5 py-0.5 text-[10px] rounded font-mono font-medium transition ${
@@ -629,7 +635,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setIsStepMenuOpen(false)}
+                  onClick={() => setActiveStepMenu(null)}
                   className="w-full mt-1 py-1 bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-1"
                 >
                   <Check className="w-3 h-3" />
