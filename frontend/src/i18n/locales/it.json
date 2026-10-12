@@ -356,7 +356,7 @@
   },
   "device_detail": {
     "tab_overview": "Panoramica",
-    "tab_checks": "Controlli & Test",
+    "tab_checks": "Test",
     "tab_dependencies": "Dipendenze",
     "tab_events": "Eventi",
     "edit_notice": "Modifica parametri dell'apparato (IP, nome, ruoli di rete).",

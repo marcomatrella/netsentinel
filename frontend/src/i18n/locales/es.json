@@ -344,7 +344,7 @@
   },
   "device_detail": {
     "tab_overview": "Resumen",
-    "tab_checks": "Comprobaciones & Pruebas",
+    "tab_checks": "Tests",
     "tab_dependencies": "Dependencias",
     "tab_events": "Eventos",
     "edit_notice": "Modificar parámetros del dispositivo (IP, nombre, roles de red).",

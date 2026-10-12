@@ -344,7 +344,7 @@
   },
   "device_detail": {
     "tab_overview": "Übersicht",
-    "tab_checks": "Prüfungen & Tests",
+    "tab_checks": "Tests",
     "tab_dependencies": "Abhängigkeiten",
     "tab_events": "Ereignisse",
     "edit_notice": "Geräteparameter bearbeiten (IP, Name, Netzwerkrollen).",
