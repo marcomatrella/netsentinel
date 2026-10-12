@@ -281,13 +281,15 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
             </span>
           )}
           {nodeData.roles?.includes('dns_resolver') && (
-            <span className="bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 px-1 rounded text-[8px] font-bold" title="Server DNS / AdGuard Home">
-              DNS
+            <span className="inline-flex items-center gap-0.5 bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 px-1 py-0.2 rounded text-[8px] font-bold" title="Server DNS / AdGuard Home">
+              <Globe className="w-2.5 h-2.5 stroke-[2.5]" />
+              <span>DNS</span>
             </span>
           )}
           {nodeData.roles?.includes('dhcp_server') && (
-            <span className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-1 rounded text-[8px] font-bold" title="Server DHCP">
-              DHCP
+            <span className="inline-flex items-center gap-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-1 py-0.2 rounded text-[8px] font-bold" title="Server DHCP">
+              <Radio className="w-2.5 h-2.5 stroke-[2.5]" />
+              <span>DHCP</span>
             </span>
           )}
           {nodeData.roles?.includes('gateway') && (

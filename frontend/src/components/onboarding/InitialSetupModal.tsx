@@ -884,14 +884,14 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                             onChange={(e) => setIsDnsServer(e.target.checked)}
                             className="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0"
                           />
-                          <Shield className={`w-3.5 h-3.5 ${isDnsServer ? 'text-sky-400' : 'text-slate-500'}`} />
+                          <Globe className={`w-3.5 h-3.5 stroke-[2.5] ${isDnsServer ? 'text-cyan-400' : 'text-slate-500'}`} />
                           <span className="font-medium text-[11px] leading-tight">{t('wizard.dns_server_role')}</span>
                         </label>
 
                         <label
                           className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition text-xs ${
                             isDhcpServer
-                              ? 'bg-teal-600/20 border-teal-500 text-teal-200'
+                              ? 'bg-amber-600/20 border-amber-500 text-amber-200'
                               : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                           }`}
                         >
@@ -899,9 +899,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                             type="checkbox"
                             checked={isDhcpServer}
                             onChange={(e) => setIsDhcpServer(e.target.checked)}
-                            className="rounded bg-slate-900 border-slate-700 text-teal-500 focus:ring-0"
+                            className="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-0"
                           />
-                          <Server className={`w-3.5 h-3.5 ${isDhcpServer ? 'text-teal-400' : 'text-slate-500'}`} />
+                          <Radio className={`w-3.5 h-3.5 stroke-[2.5] ${isDhcpServer ? 'text-amber-400' : 'text-slate-500'}`} />
                           <span className="font-medium text-[11px] leading-tight">{t('wizard.dhcp_server_role')}</span>
                         </label>
                       </div>
@@ -1126,13 +1126,15 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                                           </span>
                                         )}
                                         {d.roles.includes('dns_resolver') && (
-                                          <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[9px] font-mono">
-                                            {t('wizard.dns_badge')}
+                                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[9px] font-mono">
+                                            <Globe className="w-2.5 h-2.5 text-cyan-400 stroke-[2.5]" />
+                                            <span>{t('wizard.dns_badge')}</span>
                                           </span>
                                         )}
                                         {d.roles.includes('dhcp_server') && (
-                                          <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[9px] font-mono">
-                                            {t('wizard.dhcp_badge')}
+                                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-mono">
+                                            <Radio className="w-2.5 h-2.5 text-amber-400 stroke-[2.5]" />
+                                            <span>{t('wizard.dhcp_badge')}</span>
                                           </span>
                                         )}
                                         {isPassive && (
@@ -1402,8 +1404,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
                     <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/80">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">
-                          Server DNS Primario:
+                        <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-cyan-400 stroke-[2.5]" />
+                          <span>Server DNS Primario:</span>
                         </label>
                         <p className="text-[11px] text-slate-400 mb-1.5">
                           AdGuard Home, Pi-hole o Router:
@@ -1432,8 +1435,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">
-                          Server DHCP (Assegnazione IP):
+                        <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                          <Radio className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
+                          <span>Server DHCP (Assegnazione IP):</span>
                         </label>
                         <p className="text-[11px] text-slate-400 mb-1.5">
                           Router, NAS o Server DHCP:
