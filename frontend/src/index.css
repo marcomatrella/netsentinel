@@ -154,13 +154,13 @@
   overflow: visible !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
   border: 1px solid rgba(226, 232, 240, 0.8) !important;
-  bottom: 84px !important; /* Ensure controls sit above the bottom time machine slider on mobile */
+  bottom: 92px !important; /* Ensure controls sit comfortably above the 2-row time machine slider on mobile */
   left: 12px !important;
 }
 
 @media (min-width: 768px) {
   .react-flow__controls {
-    bottom: 88px !important;
+    bottom: 84px !important;
     left: 16px !important;
   }
 }
