@@ -299,86 +299,118 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
   };
 
   return (
-    <div className="w-full bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md px-2 sm:px-4 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl shadow-2xl flex flex-wrap md:flex-nowrap items-center gap-1.5 sm:gap-3 text-xs select-none transition-all relative">
-      {/* Title & Clickable Live/Historical Badge for manual datetime selection */}
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative" ref={pickerRef}>
-        <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 dark:text-sky-400" />
-        <span className="font-semibold text-slate-700 dark:text-slate-200 hidden xs:inline">{t('timemachine.title')}:</span>
-        <button
-          type="button"
-          onClick={handleOpenPicker}
-          title={t('timemachine.pick_datetime_tooltip')}
-          className={`font-mono px-2 py-0.5 rounded text-[11px] whitespace-nowrap tabular-nums cursor-pointer transition-transform hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
-            !isHistoricalActive && isLive
-              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold hover:bg-emerald-500/30'
-              : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold animate-pulse hover:bg-amber-500/30'
-          }`}
-        >
-          <Calendar className="w-3 h-3 text-sky-500 dark:text-sky-400" />
-          <span>{currentDateDisplay}</span>
-        </button>
+    <div className="w-full bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl shadow-2xl flex flex-col md:flex-row md:items-center gap-2 md:gap-3 text-xs select-none transition-all relative">
+      {/* ROW 1 ON MOBILE / LEFT & RIGHT SIDES ON DESKTOP: Controls & Action badges */}
+      <div className="flex items-center justify-between gap-1.5 sm:gap-2 shrink-0 md:contents">
+        {/* Title & Clickable Live/Historical Badge for manual datetime selection */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative" ref={pickerRef}>
+          <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 dark:text-sky-400" />
+          <span className="font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline">{t('timemachine.title')}:</span>
+          <button
+            type="button"
+            onClick={handleOpenPicker}
+            title={t('timemachine.pick_datetime_tooltip')}
+            className={`font-mono px-2 py-0.5 rounded text-[11px] whitespace-nowrap tabular-nums cursor-pointer transition-transform hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
+              !isHistoricalActive && isLive
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold hover:bg-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold animate-pulse hover:bg-amber-500/30'
+            }`}
+          >
+            <Calendar className="w-3 h-3 text-sky-500 dark:text-sky-400" />
+            <span>{currentDateDisplay}</span>
+          </button>
 
-        {/* Modal / Popover Calendar for manual date-time picking */}
-        {isPickerOpen && (
-          <div className="absolute left-0 bottom-full mb-3 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-4 w-[280px] animate-in fade-in zoom-in-95 backdrop-blur-xl">
-            <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-sky-500" />
-                {t('timemachine.select_datetime_title')}
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsPickerOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+          {/* Modal / Popover Calendar for manual date-time picking */}
+          {isPickerOpen && (
+            <div className="absolute left-0 bottom-full mb-3 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-4 w-[280px] animate-in fade-in zoom-in-95 backdrop-blur-xl">
+              <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
+                <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-sky-500" />
                   {t('timemachine.select_datetime_title')}
-                </label>
-                <input
-                  type="datetime-local"
-                  step="1"
-                  min={formatForDateTimeInput(minAllowedDate)}
-                  max={formatForDateTimeInput(maxAllowedDate)}
-                  value={pickerInputValue}
-                  onChange={(e) => setPickerInputValue(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-
-              <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
-                {t('timemachine.retention_min_hint', { date: formatDateTime(minAllowedDate, activeLocale) })}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                </span>
                 <button
                   type="button"
                   onClick={() => setIsPickerOpen(false)}
-                  className="px-2.5 py-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-medium transition"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
-                  {t('timemachine.cancel_custom_time')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleApplyCustomTime}
-                  className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-1"
-                >
-                  <Check className="w-3 h-3" />
-                  {t('timemachine.apply_custom_time')}
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    {t('timemachine.select_datetime_title')}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    step="1"
+                    min={formatForDateTimeInput(minAllowedDate)}
+                    max={formatForDateTimeInput(maxAllowedDate)}
+                    value={pickerInputValue}
+                    onChange={(e) => setPickerInputValue(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
+                  {t('timemachine.retention_min_hint', { date: formatDateTime(minAllowedDate, activeLocale) })}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsPickerOpen(false)}
+                    className="px-2.5 py-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-medium transition"
+                  >
+                    {t('timemachine.cancel_custom_time')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyCustomTime}
+                    className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-1"
+                  >
+                    <Check className="w-3 h-3" />
+                    {t('timemachine.apply_custom_time')}
+                  </button>
+                </div>
+              </div>
             </div>
+          )}
+        </div>
+
+        {/* Action buttons on right (mobile row 1 right side / desktop right side) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 md:order-last">
+          {onOpenLogs && (
+            <button
+              onClick={onOpenLogs}
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] sm:text-xs font-semibold shadow-sm transition"
+              title={t('timemachine.logs_tooltip')}
+            >
+              <ScrollText className="w-3.5 h-3.5 text-sky-500" />
+              <span className="hidden sm:inline">{t('header.event_logs')}</span>
+            </button>
+          )}
+
+          {/* Return to Live button */}
+          <div className="flex justify-end">
+            <button
+              onClick={resetToLive}
+              tabIndex={isHistoricalActive ? 0 : -1}
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] sm:text-xs font-semibold shadow whitespace-nowrap transition-all duration-200 ${
+                isHistoricalActive
+                  ? 'opacity-100 scale-100 pointer-events-auto'
+                  : 'opacity-0 scale-95 pointer-events-none w-0 px-0 overflow-hidden md:w-[110px] md:opacity-0'
+              }`}
+            >
+              <RotateCcw className="w-3 h-3" /> {t('timemachine.return_live')}
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Scrubbing slider with configurable backward/forward step buttons */}
-      <div className="flex items-center gap-2 flex-1 min-w-[200px] w-full">
+      {/* ROW 2 ON MOBILE / CENTER ROW ON DESKTOP: Dedicated Full-Width Slider + Step Controls */}
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-1 w-full min-w-0 md:order-2">
         {/* Step Backward + Configuration Group */}
         <div className="relative flex items-center shrink-0" ref={stepMenuRef}>
           <div className="flex items-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition shadow-sm overflow-hidden">
@@ -486,6 +518,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
           {rangeLabel}
         </span>
 
+        {/* Full-width slider */}
         <input
           type="range"
           min="0"
@@ -605,35 +638,6 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Action buttons with stable width to completely avoid layout reflow/glitches */}
-      <div className="flex items-center gap-2 shrink-0">
-        {onOpenLogs && (
-          <button
-            onClick={onOpenLogs}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold shadow-sm transition"
-            title={t('timemachine.logs_tooltip')}
-          >
-            <ScrollText className="w-3.5 h-3.5 text-sky-500" />
-            <span className="hidden sm:inline">{t('header.event_logs')}</span>
-          </button>
-        )}
-
-        {/* Stable Return to Live button: kept in layout with opacity/pointer-events toggle to eliminate any slider width shifting */}
-        <div className="w-[110px] flex justify-end">
-          <button
-            onClick={resetToLive}
-            tabIndex={isHistoricalActive ? 0 : -1}
-            className={`flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow whitespace-nowrap transition-all duration-200 ${
-              isHistoricalActive
-                ? 'opacity-100 scale-100 pointer-events-auto'
-                : 'opacity-0 scale-95 pointer-events-none'
-            }`}
-          >
-            <RotateCcw className="w-3 h-3" /> {t('timemachine.return_live')}
-          </button>
         </div>
       </div>
     </div>
