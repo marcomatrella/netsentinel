@@ -83,20 +83,21 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   const buildNodeData = useCallback(
     (d: Device) => {
       const isSimulatedRoot = simulatedIncident?.root_cause_device_id === d.id;
-      const isSimulatedImpacted = Boolean(
-        simulatedIncident?.impacted_devices?.includes(d.id) ||
-        (simulatedIncident?.symptoms && simulatedIncident.symptoms[d.id])
+      // In simulation, symptoms are explicitly in symptoms dictionary or impacted_devices excluding root_cause
+      const isSimulatedDownstream = Boolean(
+        (simulatedIncident?.symptoms && simulatedIncident.symptoms[d.id]) ||
+        (simulatedIncident?.impacted_devices?.includes(d.id) && !isSimulatedRoot)
       );
 
       const isRoot = isSimulatedRoot || activeIncident?.root_cause_device_id === d.id;
-      const isImpacted = isSimulatedImpacted || Boolean(activeIncident?.impacted?.includes(d.id));
+      const isImpacted = isSimulatedDownstream || Boolean(activeIncident?.impacted?.includes(d.id) && activeIncident?.root_cause_device_id !== d.id);
       const maintWin = deviceMaintMap.get(d.id);
 
       // In simulation mode, dynamically reflect simulated status
       let effectiveStatus = d.status;
       if (isSimulatedRoot) {
         effectiveStatus = 'down';
-      } else if (isSimulatedImpacted) {
+      } else if (isSimulatedDownstream) {
         effectiveStatus = (simulatedIncident?.symptoms?.[d.id] as any) || 'unreachable';
       }
 
@@ -160,7 +161,10 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     for (const d of devices) {
       if (simulatedIncident?.root_cause_device_id === d.id) {
         map.set(d.id, 'down');
-      } else if (simulatedIncident?.impacted_devices?.includes(d.id)) {
+      } else if (
+        simulatedIncident?.symptoms?.[d.id] ||
+        (simulatedIncident?.impacted_devices?.includes(d.id) && simulatedIncident.root_cause_device_id !== d.id)
+      ) {
         map.set(d.id, (simulatedIncident?.symptoms?.[d.id] as any) || 'unreachable');
       } else {
         map.set(d.id, d.status);
@@ -175,12 +179,16 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       const fromStatus = deviceStatusMap.get(l.from_device_id) || 'ok';
       const toStatus = deviceStatusMap.get(l.to_device_id) || 'ok';
 
+      // A link is a fault link ONLY if it connects directly to a down or unreachable node!
       const isFault =
         activeIncident?.root_cause_device_id === l.from_device_id ||
         activeIncident?.root_cause_device_id === l.to_device_id ||
         simulatedIncident?.root_cause_device_id === l.from_device_id ||
         simulatedIncident?.root_cause_device_id === l.to_device_id ||
-        Boolean(simulatedIncident?.fault_path?.includes(l.from_device_id) && simulatedIncident?.fault_path?.includes(l.to_device_id));
+        fromStatus === 'down' ||
+        fromStatus === 'unreachable' ||
+        toStatus === 'down' ||
+        toStatus === 'unreachable';
 
       return {
         id: l.id,
