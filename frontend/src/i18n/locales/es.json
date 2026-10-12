@@ -212,7 +212,15 @@
     "select_datetime_title": "Seleccionar Fecha y Hora Histórica",
     "retention_min_hint": "Fecha mínima permitida por la política de retención: {{date}}",
     "non_live_badge": "VISTA HISTÓRICA — NO EN VIVO",
-    "non_live_badge_sub": "Estás visualizando el estado de la red en el pasado"
+    "non_live_badge_sub": "Estás visualizando el estado de la red en el pasado",
+    "step_config_title": "Intervalo de Paso",
+    "step_config_tooltip": "Configurar duración del paso de navegación",
+    "step_amount_label": "Valor y Unidad:",
+    "unit_seconds": "Segundos",
+    "unit_minutes": "Minutos",
+    "unit_hours": "Horas",
+    "unit_days": "Días",
+    "confirm_step": "Confirmar"
   },
   "events": {
     "modal_title": "Registro de Eventos y Diagnóstico de Red",

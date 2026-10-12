@@ -212,7 +212,15 @@
     "select_datetime_title": "Sélectionner Date & Heure Historique",
     "retention_min_hint": "Date minimale autorisée par la politique de rétention : {{date}}",
     "non_live_badge": "VUE HISTORIQUE — PAS EN DIRECT",
-    "non_live_badge_sub": "Vous visualisez l'état du réseau dans le passé"
+    "non_live_badge_sub": "Vous visualisez l'état du réseau dans le passé",
+    "step_config_title": "Intervalle de Pas",
+    "step_config_tooltip": "Configurer l'intervalle de navigation",
+    "step_amount_label": "Valeur et Unité :",
+    "unit_seconds": "Secondes",
+    "unit_minutes": "Minutes",
+    "unit_hours": "Heures",
+    "unit_days": "Jours",
+    "confirm_step": "Confirmer"
   },
   "events": {
     "modal_title": "Journal des Événements & Diagnostic Réseau",

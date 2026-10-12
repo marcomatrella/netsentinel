@@ -224,7 +224,15 @@
     "select_datetime_title": "Seleziona Data e Ora Storica",
     "retention_min_hint": "Minima data consentita dalla retention policy: {{date}}",
     "non_live_badge": "VISTA STORICA — NON SEI IN LIVE",
-    "non_live_badge_sub": "Stai visualizzando lo stato della rete nel passato"
+    "non_live_badge_sub": "Stai visualizzando lo stato della rete nel passato",
+    "step_config_title": "Intervallo Avanzamento",
+    "step_config_tooltip": "Configura intervallo di navigazione",
+    "step_amount_label": "Valore e Unità:",
+    "unit_seconds": "Secondi",
+    "unit_minutes": "Minuti",
+    "unit_hours": "Ore",
+    "unit_days": "Giorni",
+    "confirm_step": "Conferma"
   },
   "events": {
     "modal_title": "Registro Eventi & Diagnostica di Rete",

@@ -212,7 +212,15 @@
     "select_datetime_title": "Historisches Datum & Uhrzeit Auswählen",
     "retention_min_hint": "Frühestes durch die Aufbewahrungsrichtlinie erlaubtes Datum: {{date}}",
     "non_live_badge": "HISTORISCHE ANSICHT — NICHT LIVE",
-    "non_live_badge_sub": "Sie betrachten den Netzwerkstatus in der Vergangenheit"
+    "non_live_badge_sub": "Sie betrachten den Netzwerkstatus in der Vergangenheit",
+    "step_config_title": "Schritt-Intervall",
+    "step_config_tooltip": "Navigationsschritt-Dauer anpassen",
+    "step_amount_label": "Wert und Einheit:",
+    "unit_seconds": "Sekunden",
+    "unit_minutes": "Minuten",
+    "unit_hours": "Stunden",
+    "unit_days": "Tage",
+    "confirm_step": "Bestätigen"
   },
   "events": {
     "modal_title": "Ereignisprotokoll & Netzwerkdiagnose",
