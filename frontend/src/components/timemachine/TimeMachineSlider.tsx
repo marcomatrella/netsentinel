@@ -299,7 +299,7 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
   };
 
   return (
-    <div className="w-full bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-2xl flex flex-wrap md:flex-nowrap items-center gap-2 sm:gap-3 text-xs select-none transition-all relative">
+    <div className="w-full bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md px-2 sm:px-4 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl shadow-2xl flex flex-wrap md:flex-nowrap items-center gap-1.5 sm:gap-3 text-xs select-none transition-all relative">
       {/* Title & Clickable Live/Historical Badge for manual datetime selection */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative" ref={pickerRef}>
         <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 dark:text-sky-400" />

@@ -423,7 +423,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         <MiniMap
           nodeColor={() => '#38bdf8'}
           maskColor={theme === 'dark' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.7)'}
-          className="!bg-white dark:!bg-slate-900 !border-slate-200 dark:!border-slate-800 rounded-lg overflow-hidden shadow-xl"
+          className="!hidden sm:!block !bg-white dark:!bg-slate-900 !border-slate-200 dark:!border-slate-800 rounded-lg overflow-hidden shadow-xl"
         />
       </ReactFlow>
     </div>
