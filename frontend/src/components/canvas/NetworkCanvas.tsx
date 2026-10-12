@@ -11,6 +11,7 @@ import {
   Connection,
   Edge,
   Node,
+  FitViewOptions,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -55,6 +56,15 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
 
   const nodeTypes = useMemo(() => ({ customNode: CustomNode as any }), []);
   const edgeTypes = useMemo(() => ({ customEdge: CustomEdge as any }), []);
+
+  // Ensure fitView leaves sufficient padding at the bottom for the floating TimeMachine bar
+  const fitViewOptions = useMemo<FitViewOptions>(
+    () => ({
+      padding: { top: '50px', bottom: '130px', left: '50px', right: '50px' },
+      duration: 300,
+    }),
+    []
+  );
 
   // Map active maintenance windows by deviceId
   const deviceMaintMap = useMemo(() => {
@@ -424,7 +434,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        fitViewOptions={{ padding: 0.28 }}
+        fitViewOptions={fitViewOptions}
         minZoom={0.2}
         maxZoom={2.5}
         nodesDraggable={isEditMode}
@@ -437,6 +447,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           color={theme === 'dark' ? '#334155' : '#cbd5e1'}
         />
         <Controls
+          fitViewOptions={fitViewOptions}
           className="!bg-white dark:!bg-slate-900 !border-slate-200 dark:!border-slate-800 !text-slate-700 dark:!text-slate-300 [&>button]:!w-8 [&>button]:!h-8 [&>button]:!bg-slate-50 dark:[&>button]:!bg-slate-850 [&>button]:!border-slate-200 dark:[&>button]:!border-slate-700 hover:[&>button]:!bg-slate-200 dark:hover:[&>button]:!bg-slate-750 [&>button]:transition-all [&>button]:shadow-sm"
           aria-label={t('canvas.fit_view')}
           position="bottom-left"
