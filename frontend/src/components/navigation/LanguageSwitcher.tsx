@@ -46,7 +46,7 @@ export const LanguageSwitcher: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm ${
+        className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 sm:gap-1.5 border shadow-sm ${
           isOpen
             ? 'bg-sky-600 text-white border-sky-400 shadow-sky-500/20'
             : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700'

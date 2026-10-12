@@ -414,7 +414,7 @@ export const App: React.FC = () => {
     }
 
     return (
-      <div className="relative group">
+      <div className="relative group hidden sm:block">
         <button
           type="button"
           onClick={() => {
@@ -520,9 +520,7 @@ export const App: React.FC = () => {
             <ThemeSwitcher />
 
             {/* 4 - Lingua (con bandiera della lingua) */}
-            <div className="hidden sm:block">
-              <LanguageSwitcher />
-            </div>
+            <LanguageSwitcher />
 
             {/* 5 - Tasto per menu contestuale con tutte le voci */}
             <HeaderMenuDropdown

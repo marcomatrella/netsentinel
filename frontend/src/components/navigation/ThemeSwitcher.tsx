@@ -13,7 +13,7 @@ export const ThemeSwitcher: React.FC = () => {
     <button
       type="button"
       onClick={toggleTheme}
-      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700"
+      className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700"
       title={isDark ? t('header.theme_switch_to_light') : t('header.theme_switch_to_dark')}
       aria-label={isDark ? t('header.theme_switch_to_light') : t('header.theme_switch_to_dark')}
     >
