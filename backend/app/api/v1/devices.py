@@ -1,6 +1,7 @@
 """Devices REST API endpoints."""
 
 import json
+from typing import Any
 
 from app.db.models import CanvasLayout, Check, Device, Incident, Link, Observation, utcnow
 from app.db.session import get_db
