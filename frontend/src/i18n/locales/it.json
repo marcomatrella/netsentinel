@@ -571,8 +571,45 @@
     "confirm_delete": "Rimuovere questo slot di manutenzione programmata?",
     "canvas_global_badge": "MANUTENZIONE PROGRAMMATA ATTIVA",
     "canvas_global_badge_sub": "Rete in manutenzione globale • Gli allarmi e le notifiche sono soppressi.",
-    "active_badge_tooltip": "Intervento di manutenzione programmata in corso",
     "long_duration_warning": "Attenzione: questo intervento dura {{hours}} ore. Durante tutto questo periodo gli allarmi saranno soppressi. Sei sicuro di voler proseguire?",
     "overlap_error": "Questo intervallo si sovrappone a una manutenzione già programmata."
+  },
+  "backup": {
+    "modal_title": "Backup & Ripristino Plancia",
+    "modal_desc": "Esporta o ripristina con 1 click la topologia, le coordinate e le dipendenze in formato JSON.",
+    "export_title": "Esporta Backup JSON",
+    "export_hint": "Scarica un file contenente tutti i dispositivi, link e layout correnti.",
+    "btn_export": "Scarica JSON",
+    "export_success": "Backup scaricato con successo!",
+    "import_title": "Ripristina da File JSON",
+    "import_hint": "Carica un file di backup precedente per sovrascrivere o ripristinare la plancia.",
+    "btn_import": "Carica JSON",
+    "import_success": "Plancia ripristinata con successo! Ricaricamento in corso...",
+    "invalid_format": "File JSON non valido: array 'devices' mancante."
+  },
+  "discovery": {
+    "modal_title": "Rilevamento Automatico Subnet & Dispositivi",
+    "modal_desc": "Scansiona la rete locale, individua apparati attivi e importali con un click sulla plancia.",
+    "subnet_label": "Subnet:",
+    "start_scan": "Avvia Scansione",
+    "rescan": "Riesegui Scansione",
+    "scanning": "Scansione in corso...",
+    "sweeping": "Sondaggio sweep ICMP/ARP e profilazione porte in corso sulla subnet...",
+    "sweep_note": "Analisi fingerprint dei router, server, NAS e dispositivi IoT in corso",
+    "empty_hint": "Clicca 'Avvia Scansione' per rilevare automaticamente tutti i dispositivi attivi nella tua LAN.",
+    "found_count": "Rilevati {{count}} dispositivi",
+    "select_all": "Seleziona tutti i nuovi",
+    "deselect_all": "Deseleziona tutti",
+    "already_in_topology": "Già in plancia",
+    "selected_count": "{{count}} apparati selezionati",
+    "add_selected": "Aggiungi alla plancia ({{count}})"
+  },
+  "simulation": {
+    "btn_simulate_device": "Simula Guasto (What-If)",
+    "btn_simulate_device_hint": "Simula istantaneamente il guasto di questo apparato sulla plancia per testare l'impatto e le notifiche",
+    "banner_title": "🧪 Simulazione What-If attiva",
+    "banner_root_cause": "Causa radice simulata:",
+    "banner_impacted": "Apparati impattati: {{count}}",
+    "btn_exit": "Termina Simulazione"
   }
 }

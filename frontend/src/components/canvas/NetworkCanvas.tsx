@@ -17,7 +17,7 @@ import '@xyflow/react/dist/style.css';
 
 import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
-import { Device, Link, Incident, CanvasLayout } from '../../types';
+import { Device, Link, Incident, CanvasLayout, SimulationResponse } from '../../types';
 import { getLayoutedElements } from '../../utils/elkLayout';
 import { useTheme } from '../../theme/ThemeContext';
 import { getDeviceColorId, getDefaultColorForKind } from '../../constants/colors';
@@ -27,6 +27,7 @@ interface NetworkCanvasProps {
   devices: Device[];
   links: Link[];
   activeIncident: Incident | null;
+  simulatedIncident?: SimulationResponse | null;
   activeMaintenanceWindows?: any[];
   layout?: CanvasLayout | null;
   isEditMode?: boolean;
@@ -41,6 +42,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   devices,
   links,
   activeIncident,
+  simulatedIncident,
   activeMaintenanceWindows = [],
   layout,
   isEditMode = false,
@@ -80,17 +82,32 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   // Helper to construct custom node data
   const buildNodeData = useCallback(
     (d: Device) => {
-      const isRoot = activeIncident?.root_cause_device_id === d.id;
-      const isImpacted = activeIncident?.impacted?.includes(d.id);
+      const isSimulatedRoot = simulatedIncident?.root_cause_device_id === d.id;
+      const isSimulatedImpacted = Boolean(
+        simulatedIncident?.impacted_devices?.includes(d.id) ||
+        (simulatedIncident?.symptoms && simulatedIncident.symptoms[d.id])
+      );
+
+      const isRoot = isSimulatedRoot || activeIncident?.root_cause_device_id === d.id;
+      const isImpacted = isSimulatedImpacted || Boolean(activeIncident?.impacted?.includes(d.id));
       const maintWin = deviceMaintMap.get(d.id);
+
+      // In simulation mode, dynamically reflect simulated status
+      let effectiveStatus = d.status;
+      if (isSimulatedRoot) {
+        effectiveStatus = 'down';
+      } else if (isSimulatedImpacted) {
+        effectiveStatus = (simulatedIncident?.symptoms?.[d.id] as any) || 'unreachable';
+      }
+
       return {
         id: d.id,
         name: d.name,
         kind: d.kind,
         ip: d.addresses?.ip,
-        status: d.status,
+        status: effectiveStatus,
         roles: d.roles,
-        rtt_ms: d.rtt_ms,
+        rtt_ms: isSimulatedRoot ? null : d.rtt_ms,
         isRootCause: isRoot,
         isImpacted: isImpacted,
         isVantagePoint: d.roles?.includes('vantage_point'),
@@ -105,7 +122,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         color: getDeviceColorId(d.tags),
       };
     },
-    [activeIncident, isEditMode, deviceMaintMap]
+    [activeIncident, simulatedIncident, isEditMode, deviceMaintMap]
   );
 
   // Lookup map of saved node positions from backend layout
@@ -141,10 +158,16 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   const deviceStatusMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const d of devices) {
-      map.set(d.id, d.status);
+      if (simulatedIncident?.root_cause_device_id === d.id) {
+        map.set(d.id, 'down');
+      } else if (simulatedIncident?.impacted_devices?.includes(d.id)) {
+        map.set(d.id, (simulatedIncident?.symptoms?.[d.id] as any) || 'unreachable');
+      } else {
+        map.set(d.id, d.status);
+      }
     }
     return map;
-  }, [devices]);
+  }, [devices, simulatedIncident]);
 
   // Initial edges
   const initialEdges: Edge[] = useMemo(() => {
@@ -154,7 +177,11 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
 
       const isFault =
         activeIncident?.root_cause_device_id === l.from_device_id ||
-        activeIncident?.root_cause_device_id === l.to_device_id;
+        activeIncident?.root_cause_device_id === l.to_device_id ||
+        simulatedIncident?.root_cause_device_id === l.from_device_id ||
+        simulatedIncident?.root_cause_device_id === l.to_device_id ||
+        Boolean(simulatedIncident?.fault_path?.includes(l.from_device_id) && simulatedIncident?.fault_path?.includes(l.to_device_id));
+
       return {
         id: l.id,
         source: l.from_device_id,
@@ -173,7 +200,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         },
       };
     });
-  }, [links, activeIncident, deviceStatusMap]);
+  }, [links, activeIncident, simulatedIncident, deviceStatusMap]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);

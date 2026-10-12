@@ -11,11 +11,15 @@ import {
   ScrollText,
   Settings,
   Calendar,
+  Search,
+  FileJson,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 
 interface HeaderMenuDropdownProps {
   onOpenInitialSetup: () => void;
+  onOpenDiscovery: () => void;
+  onOpenBackupRestore: () => void;
   onOpenRolesModal: () => void;
   onOpenWizard: () => void;
   onOpenNotificationModal: () => void;
@@ -28,6 +32,8 @@ interface HeaderMenuDropdownProps {
 
 export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
   onOpenInitialSetup,
+  onOpenDiscovery,
+  onOpenBackupRestore,
   onOpenRolesModal,
   onOpenWizard,
   onOpenNotificationModal,
@@ -152,6 +158,42 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
                 </div>
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   {t('menu.wizard_8_steps_desc')}
+                </div>
+              </div>
+            </button>
+
+            {/* Rilevamento Automatico Rete (Discovery) */}
+            <button
+              onClick={() => handleAction(onOpenDiscovery)}
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group"
+            >
+              <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                <Search className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">
+                  {t('menu.network_discovery') || 'Scansione & Rilevamento Rete'}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {t('menu.network_discovery_desc') || 'Scansiona la subnet LAN e aggiungi apparati con 1 click'}
+                </div>
+              </div>
+            </button>
+
+            {/* Backup & Ripristino Plancia */}
+            <button
+              onClick={() => handleAction(onOpenBackupRestore)}
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group"
+            >
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                <FileJson className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
+                  {t('menu.backup_restore') || 'Backup & Ripristino Plancia'}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {t('menu.backup_restore_desc') || 'Esporta o ripristina la topologia e layout via JSON'}
                 </div>
               </div>
             </button>

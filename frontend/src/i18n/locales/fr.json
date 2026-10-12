@@ -571,8 +571,45 @@
     "confirm_delete": "Supprimer ce créneau de maintenance programmée ?",
     "canvas_global_badge": "MAINTENANCE PLANIFIÉE ACTIVE",
     "canvas_global_badge_sub": "Maintenance globale du réseau active • Alertes et notifications supprimées.",
-    "active_badge_tooltip": "Intervention de maintenance planifiée en cours",
     "long_duration_warning": "Attention : cette intervention dure {{hours}} heures. Les alertes seront supprimées pendant toute cette période. Voulez-vous continuer ?",
     "overlap_error": "Ce créneau chevauche une maintenance déjà planifiée."
+  },
+  "backup": {
+    "modal_title": "Sauvegarde & Restauration Topologie",
+    "modal_desc": "Exportez ou restaurez la topologie et le placement en 1 clic JSON.",
+    "export_title": "Exporter Sauvegarde JSON",
+    "export_hint": "Téléchargez un fichier contenant tous les équipements, liens et disposition actuels.",
+    "btn_export": "Télécharger JSON",
+    "export_success": "Sauvegarde téléchargée avec succès !",
+    "import_title": "Restaurer depuis un Fichier JSON",
+    "import_hint": "Chargez une sauvegarde précédente pour restaurer ou écraser la disposition.",
+    "btn_import": "Charger JSON",
+    "import_success": "Topologie restaurée avec succès ! Rechargement en cours...",
+    "invalid_format": "Fichier JSON invalide : tableau 'devices' manquant."
+  },
+  "discovery": {
+    "modal_title": "Détection Automatique Sous-Réseau & Appareils",
+    "modal_desc": "Analysez le réseau local, identifiez les appareils actifs et importez-les en 1 clic.",
+    "subnet_label": "Sous-réseau :",
+    "start_scan": "Lancer le Scan",
+    "rescan": "Relancer le Scan",
+    "scanning": "Scan en cours...",
+    "sweeping": "Balayage ICMP/ARP et analyse des ports en cours sur le sous-réseau...",
+    "sweep_note": "Empreinte numérique des routeurs, serveurs, NAS et appareils IoT en cours",
+    "empty_hint": "Cliquez sur 'Lancer le Scan' pour détecter automatiquement tous les appareils actifs de votre réseau.",
+    "found_count": "{{count}} appareils détectés",
+    "select_all": "Tout sélectionner (nouveaux)",
+    "deselect_all": "Tout désélectionner",
+    "already_in_topology": "Déjà présent",
+    "selected_count": "{{count}} appareils sélectionnés",
+    "add_selected": "Ajouter à la topologie ({{count}})"
+  },
+  "simulation": {
+    "btn_simulate_device": "Simuler une Panne (What-If)",
+    "btn_simulate_device_hint": "Simulez instantanément la panne de cet appareil sur la carte",
+    "banner_title": "🧪 Simulation What-If active",
+    "banner_root_cause": "Cause racine simulée :",
+    "banner_impacted": "Appareils impactés : {{count}}",
+    "btn_exit": "Quitter la Simulation"
   }
 }

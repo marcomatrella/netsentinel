@@ -571,8 +571,45 @@
     "confirm_delete": "Remove this scheduled maintenance window?",
     "canvas_global_badge": "SCHEDULED MAINTENANCE ACTIVE",
     "canvas_global_badge_sub": "Global network maintenance active • Alerts and notifications are suppressed.",
-    "active_badge_tooltip": "Scheduled maintenance in progress",
     "long_duration_warning": "Warning: this maintenance window lasts {{hours}} hours. Alerts will be suppressed for this entire duration. Are you sure you want to proceed?",
     "overlap_error": "This timeframe overlaps with an already scheduled maintenance window."
+  },
+  "backup": {
+    "modal_title": "Topology Backup & Restore",
+    "modal_desc": "Export or restore topology, positions, and dependencies with 1-click JSON format.",
+    "export_title": "Export JSON Backup",
+    "export_hint": "Download a file containing current devices, links, and canvas layout.",
+    "btn_export": "Download JSON",
+    "export_success": "Backup downloaded successfully!",
+    "import_title": "Restore from JSON File",
+    "import_hint": "Upload a previous backup file to restore or overwrite the canvas topology.",
+    "btn_import": "Upload JSON",
+    "import_success": "Topology restored successfully! Reloading...",
+    "invalid_format": "Invalid JSON file: missing 'devices' array."
+  },
+  "discovery": {
+    "modal_title": "Automatic Subnet & Device Discovery",
+    "modal_desc": "Scan your local network, detect active devices and import them to the canvas with 1-click.",
+    "subnet_label": "Subnet:",
+    "start_scan": "Start Scan",
+    "rescan": "Rescan Network",
+    "scanning": "Scanning in progress...",
+    "sweeping": "Concurrent ICMP/ARP sweep and port profiling in progress on subnet...",
+    "sweep_note": "Fingerprinting routers, servers, NAS and IoT devices in progress",
+    "empty_hint": "Click 'Start Scan' to automatically discover all active devices in your LAN.",
+    "found_count": "Discovered {{count}} devices",
+    "select_all": "Select all new",
+    "deselect_all": "Deselect all",
+    "already_in_topology": "Already on canvas",
+    "selected_count": "{{count}} devices selected",
+    "add_selected": "Add to canvas ({{count}})"
+  },
+  "simulation": {
+    "btn_simulate_device": "Simulate Failure (What-If)",
+    "btn_simulate_device_hint": "Instantly simulate failure of this device on canvas to test impact and alert previews",
+    "banner_title": "🧪 What-If Simulation Active",
+    "banner_root_cause": "Simulated root cause:",
+    "banner_impacted": "Impacted devices: {{count}}",
+    "btn_exit": "Exit Simulation"
   }
 }

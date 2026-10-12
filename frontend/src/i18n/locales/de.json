@@ -571,8 +571,45 @@
     "confirm_delete": "Dieses Wartungsfenster entfernen?",
     "canvas_global_badge": "GEPLANTE WARTUNG AKTIV",
     "canvas_global_badge_sub": "Globale Netzwerkwartung aktiv • Alarme und Benachrichtigungen sind unterdrückt.",
-    "active_badge_tooltip": "Geplantes Wartungsfenster läuft",
     "long_duration_warning": "Warnung: Dieses Wartungsfenster dauert {{hours}} Stunden. In diesem gesamten Zeitraum werden Alarme unterdrückt. Möchten Sie wirklich fortfahren?",
     "overlap_error": "Dieser Zeitraum überschneidet sich mit einem bereits geplanten Wartungsfenster."
+  },
+  "backup": {
+    "modal_title": "Topologie-Sicherung & Wiederherstellung",
+    "modal_desc": "Exportieren oder Wiederherstellen von Topologie und Layout mit 1-Klick-JSON.",
+    "export_title": "JSON-Backup exportieren",
+    "export_hint": "Laden Sie eine Datei mit aktuellen Geräten, Verbindungen und Canvas-Layout herunter.",
+    "btn_export": "JSON herunterladen",
+    "export_success": "Sicherung erfolgreich heruntergeladen!",
+    "import_title": "Aus JSON-Datei wiederherstellen",
+    "import_hint": "Laden Sie ein Backup hoch, um das Canvas wiederherzustellen.",
+    "btn_import": "JSON hochladen",
+    "import_success": "Topologie erfolgreich wiederhergestellt! Aktualisierung...",
+    "invalid_format": "Ungültige JSON-Datei: 'devices'-Array fehlt."
+  },
+  "discovery": {
+    "modal_title": "Automatische Subnetz- & Geräteerkennung",
+    "modal_desc": "Scannen Sie das lokale Netzwerk und importieren Sie aktive Geräte mit einem Klick.",
+    "subnet_label": "Subnetz:",
+    "start_scan": "Scan starten",
+    "rescan": "Erneut scannen",
+    "scanning": "Scan läuft...",
+    "sweeping": "ICMP/ARP-Sweep und Port-Analyse im Subnetz laufen...",
+    "sweep_note": "Erkennung von Routern, Servern, NAS und IoT-Geräten läuft",
+    "empty_hint": "Klicken Sie auf 'Scan starten', um alle aktiven LAN-Geräte automatisch zu erkennen.",
+    "found_count": "{{count}} Geräte gefunden",
+    "select_all": "Alle neuen auswählen",
+    "deselect_all": "Alle abwählen",
+    "already_in_topology": "Bereits vorhanden",
+    "selected_count": "{{count}} Geräte ausgewählt",
+    "add_selected": "Zur Topologie hinzufügen ({{count}})"
+  },
+  "simulation": {
+    "btn_simulate_device": "Ausfall simulieren (What-If)",
+    "btn_simulate_device_hint": "Simulieren Sie sofort den Ausfall dieses Geräts auf der Leinwand",
+    "banner_title": "🧪 What-If-Simulation aktiv",
+    "banner_root_cause": "Simulierte Ursache:",
+    "banner_impacted": "Betroffene Geräte: {{count}}",
+    "btn_exit": "Simulation beenden"
   }
 }

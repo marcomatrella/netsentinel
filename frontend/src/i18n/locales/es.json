@@ -574,5 +574,43 @@
     "active_badge_tooltip": "Mantenimiento programado en curso",
     "long_duration_warning": "Atención: este mantenimiento dura {{hours}} horas. Durante todo este periodo se suprimirán las alertas. ¿Está seguro de continuar?",
     "overlap_error": "Esta franja se solapa con un mantenimiento ya programado."
+  },
+  "backup": {
+    "modal_title": "Copia de Seguridad & Restauración",
+    "modal_desc": "Exporta o restaura la topología, posiciones y dependencias en 1 clic JSON.",
+    "export_title": "Exportar Copia de Seguridad JSON",
+    "export_hint": "Descarga un archivo con todos los dispositivos, enlaces y diseño actuales.",
+    "btn_export": "Descargar JSON",
+    "export_success": "¡Copia de seguridad descargada con éxito!",
+    "import_title": "Restaurar desde Archivo JSON",
+    "import_hint": "Carga un archivo previo para restaurar o sobrescribir la topología.",
+    "btn_import": "Cargar JSON",
+    "import_success": "¡Topología restaurada con éxito! Recargando...",
+    "invalid_format": "Archivo JSON no válido: falta el array 'devices'."
+  },
+  "discovery": {
+    "modal_title": "Detección Automática de Subred & Dispositivos",
+    "modal_desc": "Escanea la red local, detecta equipos activos e impórtalos con un clic.",
+    "subnet_label": "Subred:",
+    "start_scan": "Iniciar Escaneo",
+    "rescan": "Reescanear Red",
+    "scanning": "Escaneo en curso...",
+    "sweeping": "Barrido ICMP/ARP y análisis de puertos en la subred...",
+    "sweep_note": "Identificación de routers, servidores, NAS y dispositivos IoT en curso",
+    "empty_hint": "Haz clic en 'Iniciar Escaneo' para detectar automáticamente los dispositivos activos de tu red.",
+    "found_count": "{{count}} dispositivos detectados",
+    "select_all": "Seleccionar todos los nuevos",
+    "deselect_all": "Deseleccionar todos",
+    "already_in_topology": "Ya en el mapa",
+    "selected_count": "{{count}} dispositivos seleccionados",
+    "add_selected": "Añadir a la topología ({{count}})"
+  },
+  "simulation": {
+    "btn_simulate_device": "Simular Fallo (What-If)",
+    "btn_simulate_device_hint": "Simula instantáneamente el fallo de este dispositivo en la red",
+    "banner_title": "🧪 Simulación What-If activa",
+    "banner_root_cause": "Causa raíz simulada:",
+    "banner_impacted": "Dispositivos afectados: {{count}}",
+    "btn_exit": "Salir de la Simulación"
   }
 }

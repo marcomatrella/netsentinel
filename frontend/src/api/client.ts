@@ -397,4 +397,23 @@ export async function fetchActiveScheduledMaintenance(atTs?: string): Promise<{
   return res.json();
 }
 
+export async function exportTopologyJson(): Promise<any> {
+  const res = await fetch(`${API_BASE}/topology/export/json`);
+  if (!res.ok) throw new Error('Errore durante l\'esportazione del backup della plancia.');
+  return res.json();
+}
+
+export async function importTopologyJson(backupData: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/topology/import/json`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(backupData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Errore durante il ripristino del backup della plancia.');
+  }
+  return res.json();
+}
+
 

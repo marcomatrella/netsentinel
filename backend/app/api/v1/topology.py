@@ -488,6 +488,104 @@ async def export_topology_yaml(db: AsyncSession = Depends(get_db)) -> Response:
     )
 
 
+class TopologyJsonBackup(BaseModel):
+    version: str = "1.0"
+    exported_at: str
+    vantage_point_id: str | None = None
+    devices: list[dict[str, Any]]
+    links: list[dict[str, Any]]
+    dependencies: list[dict[str, Any]]
+    layout: dict[str, Any] | None = None
+
+
+@router.get("/export/json", summary="Esporta il backup completo della plancia in formato JSON")
+async def export_topology_json(db: AsyncSession = Depends(get_db)) -> TopologyJsonBackup:
+    """Download full snapshot of devices, links, dependencies and canvas layout as JSON."""
+    topo_res = await get_full_topology(db)
+    layout_data = None
+    if topo_res.layout:
+        layout_data = {
+            "id": topo_res.layout.id,
+            "nodes": topo_res.layout.nodes,
+            "edges": topo_res.layout.edges,
+            "groups": topo_res.layout.groups,
+        }
+
+    return TopologyJsonBackup(
+        version="1.0",
+        exported_at=utcnow().isoformat(),
+        vantage_point_id=topo_res.vantage_point_id,
+        devices=[
+            {
+                "id": d.id,
+                "name": d.name,
+                "kind": d.kind,
+                "location": d.location,
+                "criticality": d.criticality,
+                "addresses": {"ip": d.addresses.ip, "mac": d.addresses.mac, "hostname": d.addresses.hostname},
+                "roles": d.roles,
+                "tags": d.tags,
+                "notes": d.notes,
+            }
+            for d in topo_res.devices
+        ],
+        links=[
+            {
+                "id": lnk.id,
+                "from_device_id": lnk.from_device_id,
+                "to_device_id": lnk.to_device_id,
+                "from_port": lnk.from_port,
+                "to_port": lnk.to_port,
+                "medium": lnk.medium,
+                "poe": lnk.poe,
+                "cable_notes": lnk.cable_notes,
+            }
+            for lnk in topo_res.links
+        ],
+        dependencies=[
+            {
+                "id": dp.id,
+                "dependent_id": dp.dependent_id,
+                "provider_id": dp.provider_id,
+                "kind": dp.kind,
+                "strength": dp.strength,
+                "source": dp.source,
+                "reason": dp.reason,
+            }
+            for dp in topo_res.dependencies
+        ],
+        layout=layout_data,
+    )
+
+
+@router.post("/import/json", summary="Ripristina la plancia da backup JSON")
+async def import_topology_json(
+    payload: TopologyJsonBackup,
+    db: AsyncSession = Depends(get_db),
+) -> TopologyFullResponse:
+    """Restores full devices, links, dependencies and canvas layout from a JSON backup."""
+    vp_id = payload.vantage_point_id or (payload.devices[0]["id"] if payload.devices else "vp")
+
+    layout_save = CanvasLayoutSave(
+        nodes=payload.layout.get("nodes", []) if payload.layout else [],
+        edges=payload.layout.get("edges", []) if payload.layout else [],
+        groups=payload.layout.get("groups", []) if payload.layout else [],
+    )
+
+    apply_req = TopologyApplyRequest(
+        vantage_point_id=vp_id,
+        description="Ripristino da file di backup JSON",
+        devices=payload.devices,
+        links=payload.links,
+        dependencies=payload.dependencies,
+        layout=layout_save,
+    )
+
+    await apply_topology(apply_req, db)
+    return await get_full_topology(db)
+
+
+
 @router.get("/templates", summary="Restituisce modelli di topologia di rete preconfigurati")
 async def get_topology_templates() -> list[dict[str, Any]]:
     """Return preconfigured general-purpose network topology templates."""

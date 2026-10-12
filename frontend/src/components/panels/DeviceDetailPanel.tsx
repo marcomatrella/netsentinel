@@ -21,6 +21,7 @@ import {
   Palette as PaletteIcon,
   Calendar,
   Eye,
+  FlaskConical,
 } from 'lucide-react';
 import { Check, Device, Dependency, DeviceKind } from '../../types';
 import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck } from '../../api/client';
@@ -40,6 +41,7 @@ interface DeviceDetailPanelProps {
   onUpdateDevice?: (deviceId: string, updatedData: Partial<Device>) => Promise<void>;
   onRefreshTopology?: () => void;
   onOpenMaintenance?: (deviceId?: string) => void;
+  onSimulateDevice?: (deviceId: string) => void;
 }
 
 const DEVICE_KIND_KEYS: DeviceKind[] = [
@@ -149,6 +151,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   onUpdateDevice,
   onRefreshTopology,
   onOpenMaintenance,
+  onSimulateDevice,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'checks' | 'deps' | 'events'>('overview');
@@ -834,6 +837,18 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                     <span className={`w-2.5 h-2.5 rounded-full ${getColorConfig(getDeviceColorId(device.tags)).dotClass} ring-1 ring-white/20 shrink-0`} />
                   </button>
                 </div>
+
+                {onSimulateDevice && (
+                  <button
+                    type="button"
+                    onClick={() => onSimulateDevice(device.id)}
+                    className="w-full py-2.5 px-3 bg-rose-500/10 hover:bg-rose-500/20 active:bg-rose-500/30 text-rose-300 border border-rose-500/30 hover:border-rose-500/50 rounded-xl font-medium transition text-xs flex items-center justify-center gap-2 shadow cursor-pointer"
+                    title={t('simulation.btn_simulate_device_hint') || 'Simula istantaneamente il guasto di questo apparato sulla plancia per testare l\'impatto e le notifiche'}
+                  >
+                    <FlaskConical className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{t('simulation.btn_simulate_device') || 'Simula Guasto (What-If)'}</span>
+                  </button>
+                )}
 
                 {device.roles?.length > 0 && (
                   <div>

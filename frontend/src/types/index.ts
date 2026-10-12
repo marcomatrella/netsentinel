@@ -201,4 +201,26 @@ export interface ScheduledMaintenanceWindow {
   created_at?: string;
 }
 
+export interface SimulatedNotification {
+  channel_name: string;
+  channel_type: string;
+  recipient: string;
+  subject: string;
+  body_preview: string;
+}
+
+export interface SimulationResponse {
+  root_cause_device_id: string | null;
+  root_cause_category: string;
+  confidence: number;
+  diagnosis_title: string;
+  diagnosis_summary: string;
+  recommendations: string[];
+  impacted_devices: string[];
+  symptoms: Record<string, string>;
+  fault_path: string[];
+  simulated_notifications: SimulatedNotification[];
+}
+
+
 
