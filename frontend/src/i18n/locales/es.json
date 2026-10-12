@@ -568,6 +568,11 @@
     "btn_delete_slot": "Eliminar franja",
     "footer_hint": "Las desconexiones durante estas franjas se clasifican como Critical Managed.",
     "btn_device_schedule": "Programar reinicio / mantenimiento para este dispositivo",
-    "confirm_delete": "¿Eliminar esta franja de mantenimiento programado?"
+    "confirm_delete": "¿Eliminar esta franja de mantenimiento programado?",
+    "canvas_global_badge": "MANTENIMIENTO PROGRAMADO ACTIVO",
+    "canvas_global_badge_sub": "Mantenimiento global de red activo • Se suprimen las alertas y notificaciones.",
+    "active_badge_tooltip": "Mantenimiento programado en curso",
+    "long_duration_warning": "Atención: este mantenimiento dura {{hours}} horas. Durante todo este periodo se suprimirán las alertas. ¿Está seguro de continuar?",
+    "overlap_error": "Esta franja se solapa con un mantenimiento ya programado."
   }
 }

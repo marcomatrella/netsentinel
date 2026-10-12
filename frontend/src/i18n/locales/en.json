@@ -568,6 +568,11 @@
     "btn_delete_slot": "Delete window",
     "footer_hint": "Disconnections during these slots are recorded as Critical Managed.",
     "btn_device_schedule": "Schedule maintenance / reboot for this device",
-    "confirm_delete": "Remove this scheduled maintenance window?"
+    "confirm_delete": "Remove this scheduled maintenance window?",
+    "canvas_global_badge": "SCHEDULED MAINTENANCE ACTIVE",
+    "canvas_global_badge_sub": "Global network maintenance active • Alerts and notifications are suppressed.",
+    "active_badge_tooltip": "Scheduled maintenance in progress",
+    "long_duration_warning": "Warning: this maintenance window lasts {{hours}} hours. Alerts will be suppressed for this entire duration. Are you sure you want to proceed?",
+    "overlap_error": "This timeframe overlaps with an already scheduled maintenance window."
   }
 }

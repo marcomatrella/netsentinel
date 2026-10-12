@@ -384,4 +384,17 @@ export async function deleteScheduledMaintenance(windowId: string): Promise<any>
   return res.json();
 }
 
+export async function fetchActiveScheduledMaintenance(atTs?: string): Promise<{
+  is_global_active: boolean;
+  global_window: any | null;
+  active_device_windows: any[];
+}> {
+  const url = atTs
+    ? `${API_BASE}/maintenance/scheduled/active?at_ts=${encodeURIComponent(atTs)}`
+    : `${API_BASE}/maintenance/scheduled/active`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Impossibile verificare lo stato attivo delle manutenzioni.');
+  return res.json();
+}
+
 

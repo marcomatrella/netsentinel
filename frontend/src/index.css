@@ -70,6 +70,38 @@
   animation: vantage-neon-glow 2.2s infinite ease-in-out;
 }
 
+@keyframes maintenance-neon-glow {
+  0% {
+    box-shadow: 0 0 6px #a855f7, 0 0 14px rgba(168, 85, 247, 0.6), 0 0 22px rgba(192, 132, 252, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 12px #c084fc, 0 0 25px rgba(192, 132, 252, 0.95), 0 0 35px rgba(168, 85, 247, 0.7);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 6px #a855f7, 0 0 14px rgba(168, 85, 247, 0.6), 0 0 22px rgba(192, 132, 252, 0.4);
+    transform: scale(1);
+  }
+}
+
+.maintenance-point-glow {
+  animation: maintenance-neon-glow 2s infinite ease-in-out;
+}
+
+@keyframes slow-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: slow-spin 6s linear infinite;
+}
+
 @keyframes dash-flow {
   from {
     stroke-dashoffset: 24;

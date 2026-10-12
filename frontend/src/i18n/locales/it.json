@@ -568,6 +568,11 @@
     "btn_delete_slot": "Elimina slot",
     "footer_hint": "Gli eventi durante questi intervalli vengono classificati come Critical Managed.",
     "btn_device_schedule": "Pianifica riavvio / manutenzione per questo apparato",
-    "confirm_delete": "Rimuovere questo slot di manutenzione programmata?"
+    "confirm_delete": "Rimuovere questo slot di manutenzione programmata?",
+    "canvas_global_badge": "MANUTENZIONE PROGRAMMATA ATTIVA",
+    "canvas_global_badge_sub": "Rete in manutenzione globale • Gli allarmi e le notifiche sono soppressi.",
+    "active_badge_tooltip": "Intervento di manutenzione programmata in corso",
+    "long_duration_warning": "Attenzione: questo intervento dura {{hours}} ore. Durante tutto questo periodo gli allarmi saranno soppressi. Sei sicuro di voler proseguire?",
+    "overlap_error": "Questo intervallo si sovrappone a una manutenzione già programmata."
   }
 }

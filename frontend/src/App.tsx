@@ -21,6 +21,7 @@ import {
   History,
   AlertTriangle,
   RotateCcw,
+  Clock,
 } from 'lucide-react';
 
 import { Device, Link, FullTopology, Incident, CanvasLayout } from './types';
@@ -33,6 +34,7 @@ import {
   updateDevice,
   setupSSEStream,
   fetchSettings,
+  fetchActiveScheduledMaintenance,
 } from './api/client';
 import { NetworkCanvas } from './components/canvas/NetworkCanvas';
 import { Palette } from './components/canvas/Palette';
@@ -83,6 +85,16 @@ export const App: React.FC = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
+  const [activeScheduledMaintenance, setActiveScheduledMaintenance] = useState<{
+    is_global_active: boolean;
+    global_window: any | null;
+    active_device_windows: any[];
+  }>({
+    is_global_active: false,
+    global_window: null,
+    active_device_windows: [],
+  });
+
   const isHistoricalModeRef = React.useRef<boolean>(false);
   useEffect(() => {
     isHistoricalModeRef.current = isHistoricalMode;
@@ -91,14 +103,20 @@ export const App: React.FC = () => {
   // Load topology and incidents
   const loadData = useCallback(async (resetHistorical: boolean = false) => {
     try {
-      const [topoData, incData, settingsData] = await Promise.all([
+      const [topoData, incData, settingsData, maintActiveData] = await Promise.all([
         fetchTopology(),
         fetchIncidents('open'),
         fetchSettings().catch(() => ({ retention_period: '24h', settings: {} })),
+        fetchActiveScheduledMaintenance().catch(() => ({
+          is_global_active: false,
+          global_window: null,
+          active_device_windows: [],
+        })),
       ]);
       setTopology(topoData);
       setIncidents(incData);
       setActiveIncident(incData.length > 0 ? incData[0] : null);
+      setActiveScheduledMaintenance(maintActiveData);
       if (settingsData?.retention_period) {
         setRetentionPeriod(settingsData.retention_period);
       }
@@ -153,6 +171,9 @@ export const App: React.FC = () => {
       if (diff.active_incident !== undefined) {
         setActiveIncident(diff.active_incident);
       }
+      if (diff.maintenance !== undefined) {
+        setActiveScheduledMaintenance(diff.maintenance);
+      }
     });
 
     return () => cleanupSSE();
@@ -186,6 +207,10 @@ export const App: React.FC = () => {
           };
         });
         setActiveIncident(snapshot.active_incident);
+
+        if (snapshot.maintenance) {
+          setActiveScheduledMaintenance(snapshot.maintenance);
+        }
 
         if (snapshot.active_incident?.summary) {
           setHistoricalErrorSummary(snapshot.active_incident.summary);
@@ -648,6 +673,7 @@ export const App: React.FC = () => {
               devices={topology.devices}
               links={topology.links}
               activeIncident={activeIncident}
+              activeMaintenanceWindows={activeScheduledMaintenance.active_device_windows}
               layout={topology.layout}
               isEditMode={isEditMode}
               onSelectDevice={handleSelectDevice}
@@ -657,6 +683,32 @@ export const App: React.FC = () => {
               onLayoutChange={handleLayoutChange}
             />
           ) : null}
+
+          {/* Top-Right Big Violet Badge: ACTIVE GLOBAL SCHEDULED MAINTENANCE */}
+          {activeScheduledMaintenance.is_global_active && (
+            <div className={`absolute ${isHistoricalMode ? 'top-20' : 'top-4'} right-4 z-30 pointer-events-auto flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300`}>
+              <div className="bg-purple-600 dark:bg-purple-600 text-white font-black px-4 py-2.5 rounded-2xl shadow-2xl border-2 border-purple-400 dark:border-purple-300 flex items-center gap-2.5 select-none maintenance-point-glow">
+                <div className="p-1.5 bg-black/20 rounded-xl">
+                  <Clock className="w-5 h-5 text-purple-200 animate-spin-slow" />
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs uppercase tracking-wider font-extrabold text-white">
+                      {t('maintenance.canvas_global_badge') || 'MANUTENZIONE PROGRAMMATA ATTIVA'}
+                    </span>
+                    {activeScheduledMaintenance.global_window?.title && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-black/25 text-[10px] font-mono font-bold text-purple-100">
+                        {activeScheduledMaintenance.global_window.title}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-medium text-purple-100/90 leading-tight">
+                    {t('maintenance.canvas_global_badge_sub') || 'Rete in manutenzione globale • Gli allarmi e le notifiche sono soppressi.'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Top-Right Big Yellow Badge: NON-LIVE HISTORICAL VIEW */}
           {isHistoricalMode && (
