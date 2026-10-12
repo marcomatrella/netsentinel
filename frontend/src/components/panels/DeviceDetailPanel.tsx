@@ -416,7 +416,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
 
 
   return (
-    <div className="w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-2xl z-20 text-slate-800 dark:text-slate-100">
+    <div className="w-full sm:w-96 max-w-full absolute sm:relative inset-y-0 right-0 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-2xl z-30 text-slate-800 dark:text-slate-100 animate-in slide-in-from-right duration-200">
       {/* Header */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between bg-slate-50/70 dark:bg-slate-950/40">
         <div className="flex-1 min-w-0 mr-2">

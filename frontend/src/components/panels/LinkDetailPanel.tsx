@@ -20,7 +20,7 @@ export const LinkDetailPanel: React.FC<LinkDetailPanelProps> = ({ link, devices,
   const dst = devMap.get(link.to_device_id);
 
   return (
-    <div className="w-80 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-2xl z-20 text-slate-800 dark:text-slate-100">
+    <div className="w-full sm:w-80 max-w-full absolute sm:relative inset-y-0 right-0 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-2xl z-30 text-slate-800 dark:text-slate-100 animate-in slide-in-from-right duration-200">
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <div>
           <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{t('link_detail.title')}</h3>

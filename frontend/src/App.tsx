@@ -439,31 +439,31 @@ export const App: React.FC = () => {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* Top Navbar (Hidden in Kiosk Mode) */}
       {!isKioskMode && (
-        <header className="h-14 border-b border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 backdrop-blur-md px-4 flex items-center justify-between z-30">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
-              <Shield className="w-5 h-5" />
+        <header className="h-14 border-b border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 backdrop-blur-md px-2.5 sm:px-4 flex items-center justify-between z-30 transition-all">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20 shrink-0">
+              <Shield className="w-4 h-4 sm:w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white">NetSentinel</h1>
-                <span className="text-[10px] bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-mono px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">
-                  v1.0.0
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className="font-extrabold text-xs sm:text-sm tracking-tight text-slate-900 dark:text-white truncate">NetSentinel</h1>
+                <span className="text-[9px] sm:text-[10px] bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-mono px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-slate-300 dark:border-slate-700 shrink-0">
+                  v1.1.0
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{t('header.subtitle')}</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden md:block truncate">{t('header.subtitle')}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {renderStatusIcon()}
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5 sm:mx-1 hidden sm:block" />
 
             {/* 1 - Modifica plancia */}
             <button
               onClick={() => setIsEditMode(!isEditMode)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm ${
+              className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm ${
                 isEditMode
                   ? 'bg-amber-600 text-white border-amber-500 shadow-amber-500/20'
                   : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700'
@@ -475,24 +475,26 @@ export const App: React.FC = () => {
               ) : (
                 <Edit3 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
               )}
-              <span>{isEditMode ? t('header.view_live') : t('header.edit_canvas')}</span>
+              <span className="hidden md:inline">{isEditMode ? t('header.view_live') : t('header.edit_canvas')}</span>
             </button>
 
             {/* 2 - Registro Eventi (Log) */}
             <button
               onClick={() => setIsEventLogsOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
+              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
               title={t('header.event_logs')}
             >
               <ScrollText className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
-              <span>{t('header.event_logs')}</span>
+              <span className="hidden md:inline">{t('header.event_logs')}</span>
             </button>
 
             {/* 3 - Light/Dark mode */}
             <ThemeSwitcher />
 
             {/* 4 - Lingua (con bandiera della lingua) */}
-            <LanguageSwitcher />
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
 
             {/* 5 - Tasto per menu contestuale con tutte le voci */}
             <HeaderMenuDropdown
@@ -511,25 +513,25 @@ export const App: React.FC = () => {
 
       {/* Edit Mode Top Floating Action Bar */}
       {isEditMode && !isKioskMode && (
-        <div className="bg-sky-50/95 dark:bg-sky-950/70 border-b border-sky-200 dark:border-sky-800/60 px-6 py-2 flex items-center justify-between text-xs z-20 backdrop-blur-md">
-          <div className="flex items-center gap-2 text-sky-900 dark:text-sky-200">
-            <Edit3 className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+        <div className="bg-sky-50/95 dark:bg-sky-950/70 border-b border-sky-200 dark:border-sky-800/60 px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs z-20 backdrop-blur-md">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-sky-900 dark:text-sky-200">
+            <Edit3 className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
             <span className="font-semibold">{t('edit_bar.title')}</span>
-            <span className="text-slate-600 dark:text-slate-400">
+            <span className="text-slate-600 dark:text-slate-400 hidden sm:inline truncate">
               {t('edit_bar.instructions')}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {saveSuccessMsg && (
-              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold animate-pulse">
-                <CheckCircle2 className="w-4 h-4" />
+              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold animate-pulse text-[11px]">
+                <CheckCircle2 className="w-3.5 h-3.5" />
                 {saveSuccessMsg}
               </span>
             )}
             <button
               onClick={() => setIsAddDeviceOpen(true)}
-              className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg font-medium transition flex items-center gap-1.5 shadow-sm"
+              className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg font-medium transition flex items-center gap-1 shadow-sm"
             >
               <Plus className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
               <span>{t('edit_bar.add_device')}</span>
@@ -537,7 +539,7 @@ export const App: React.FC = () => {
             <button
               onClick={handleSaveTopology}
               disabled={isSaving}
-              className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold shadow-md shadow-sky-500/25 transition flex items-center gap-1.5"
+              className="px-3 py-1 sm:px-4 sm:py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold shadow-md shadow-sky-500/25 transition flex items-center gap-1"
             >
               <Save className="w-3.5 h-3.5" />
               <span>{isSaving ? t('edit_bar.saving') : t('edit_bar.save_changes')}</span>
@@ -547,7 +549,7 @@ export const App: React.FC = () => {
                 loadData();
                 setIsEditMode(false);
               }}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-300 dark:border-transparent rounded-lg font-medium transition flex items-center gap-1.5"
+              className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-300 dark:border-transparent rounded-lg font-medium transition flex items-center gap-1"
             >
               <Undo2 className="w-3.5 h-3.5" />
               <span>{t('edit_bar.cancel')}</span>
@@ -578,7 +580,7 @@ export const App: React.FC = () => {
       <div className="flex flex-1 relative overflow-hidden">
         {/* Left Palette in Edit Mode */}
         {isEditMode && !isKioskMode && (
-          <aside className="w-64 z-20 transition-all duration-300">
+          <aside className="w-56 sm:w-64 absolute sm:relative inset-y-0 left-0 z-30 transition-all duration-300 shadow-xl sm:shadow-none animate-in slide-in-from-left duration-200">
             <Palette onAddNode={(kind, label, roles) => {
               handleAddDevice({
                 id: `${kind}-${Math.floor(100 + Math.random() * 900)}`,
