@@ -348,4 +348,40 @@ export async function updateRetentionSetting(retention_period: string): Promise<
   return res.json();
 }
 
+export async function fetchScheduledMaintenance(deviceId?: string): Promise<any[]> {
+  const url = deviceId
+    ? `${API_BASE}/maintenance/scheduled?device_id=${encodeURIComponent(deviceId)}`
+    : `${API_BASE}/maintenance/scheduled`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Impossibile caricare le finestre di manutenzione programmata.');
+  return res.json();
+}
+
+export async function createScheduledMaintenance(payload: {
+  title: string;
+  device_id?: string | null;
+  start_ts: string;
+  end_ts: string;
+  notes?: string;
+}): Promise<any> {
+  const res = await fetch(`${API_BASE}/maintenance/scheduled`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Errore creazione manutenzione programmata.');
+  }
+  return res.json();
+}
+
+export async function deleteScheduledMaintenance(windowId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/maintenance/scheduled/${windowId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Errore eliminazione manutenzione programmata.');
+  return res.json();
+}
+
 

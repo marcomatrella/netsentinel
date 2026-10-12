@@ -184,10 +184,21 @@ export interface EventItem {
   device_kind?: DeviceKind;
   check_id?: string;
   event_type: string;
-  severity: 'crit' | 'warn' | 'info' | string;
+  severity: 'crit' | 'critical_managed' | 'warn' | 'info' | string;
   title: string;
   message: string;
   details: Record<string, any>;
+}
+
+export interface ScheduledMaintenanceWindow {
+  id: string;
+  title: string;
+  device_id?: string | null;
+  start_ts: string;
+  end_ts: string;
+  enabled: boolean;
+  notes: string;
+  created_at?: string;
 }
 
 

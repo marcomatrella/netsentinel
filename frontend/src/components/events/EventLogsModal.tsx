@@ -23,6 +23,7 @@ import {
   Smartphone,
   Download,
   Calendar,
+  Wrench,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 import { EventItem, Device, DeviceKind } from '../../types';
@@ -360,7 +361,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
   const activeLocale = localeMap[language] || 'en-US';
 
   // Filters
-  const [severityFilter, setSeverityFilter] = useState<'all' | 'crit' | 'warn' | 'info'>('all');
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'crit' | 'critical_managed' | 'warn' | 'info'>('all');
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedEventId, setExpandedEventId] = useState<number | null>(null);
@@ -712,6 +713,17 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               {t('events.filter_warn')}
             </button>
             <button
+              onClick={() => setSeverityFilter('critical_managed')}
+              className={`px-3 py-1 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                severityFilter === 'critical_managed'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400'
+              }`}
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              {t('events.filter_managed') || 'Critici Gestiti'}
+            </button>
+            <button
               onClick={() => setSeverityFilter('info')}
               className={`px-3 py-1 rounded-lg font-medium transition flex items-center gap-1.5 ${
                 severityFilter === 'info'
@@ -789,8 +801,9 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               const narrative = getNarrative(ev);
               const timeMeta = formatTime(ev.ts);
               const isCrit = ev.severity === 'crit';
+              const isManaged = ev.severity === 'critical_managed';
               const isWarn = ev.severity === 'warn';
-              const isInfo = !isCrit && !isWarn;
+              const isInfo = !isCrit && !isManaged && !isWarn;
 
               const dev = ev.device_id ? devicesMap.get(ev.device_id) : undefined;
               const DeviceIcon = dev?.kind && kindIcons[dev.kind] ? kindIcons[dev.kind] : (ev.device_kind && kindIcons[ev.device_kind] ? kindIcons[ev.device_kind] : Server);
@@ -802,6 +815,8 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                   className={`rounded-xl border p-4 transition-all duration-150 shadow-sm ${
                     isCrit
                       ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800 hover:border-rose-300 dark:hover:border-rose-700'
+                      : isManaged
+                      ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 hover:border-purple-300 dark:hover:border-purple-700'
                       : isWarn
                       ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700'
                       : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
@@ -814,6 +829,8 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                         className={`p-2 rounded-xl shrink-0 mt-0.5 ${
                           isCrit
                             ? 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400 border border-rose-300 dark:border-rose-700'
+                            : isManaged
+                            ? 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                             : isWarn
                             ? 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400 border border-amber-300 dark:border-amber-700'
                             : 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400 border border-sky-300 dark:border-sky-700'
@@ -821,6 +838,8 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                       >
                         {isCrit ? (
                           <AlertOctagon className="w-5 h-5 animate-pulse" />
+                        ) : isManaged ? (
+                          <Wrench className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         ) : isWarn ? (
                           <AlertTriangle className="w-5 h-5" />
                         ) : (
@@ -835,12 +854,14 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                             className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                               isCrit
                                 ? 'bg-rose-600 text-white'
+                                : isManaged
+                                ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400/50'
                                 : isWarn
                                 ? 'bg-amber-600 text-white'
                                 : 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
                             }`}
                           >
-                            {ev.severity.toUpperCase()}
+                            {isManaged ? (t('events.severity_managed') || 'CRITICAL MANAGED') : ev.severity.toUpperCase()}
                           </span>
 
                           <h3 className="font-bold text-slate-900 dark:text-white text-sm">

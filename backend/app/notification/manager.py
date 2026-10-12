@@ -70,13 +70,15 @@ class NotificationManager:
         logs: list[NotificationLog] = []
 
         async with AsyncSessionLocal() as session:
-            # Check maintenance mode
-            if maintenance_tracker.is_active():
+            # Check maintenance mode (manual global or device scheduled)
+            in_maint, maint_win = await maintenance_tracker.is_device_in_maintenance(session, incident.root_cause_device_id)
+            if in_maint:
+                reason = f"Notifica soppressa: Manutenzione programmata attiva ({maint_win.title if maint_win else 'Globale'})."
                 log = NotificationLog(
                     incident_id=incident.id,
                     channel_id="all",
                     status="suppressed_maintenance",
-                    payload_summary="Notifica soppressa: Modalità manutenzione attiva.",
+                    payload_summary=reason,
                     ts=utcnow(),
                 )
                 session.add(log)

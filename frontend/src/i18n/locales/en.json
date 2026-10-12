@@ -72,7 +72,9 @@
     "toggle_edit_mode": "Switch to Edit Mode",
     "toggle_live_view": "Return to LIVE View",
     "fullscreen": "Fullscreen / Kiosk Mode",
-    "force_refresh": "Force Refresh Data"
+    "force_refresh": "Force Refresh Data",
+    "scheduled_maintenance": "Scheduled Maintenance",
+    "scheduled_maintenance_desc": "Plan reboots and downtime without alerts"
   },
   "edit_bar": {
     "title": "Edit Mode Active:",
@@ -297,7 +299,9 @@
       "firmware_update_explanation": "The firmware version of the device has changed.",
       "packet_loss": "Packet loss",
       "system_event": "System Event"
-    }
+    },
+    "filter_managed": "Critical Managed",
+    "severity_managed": "CRITICAL MANAGED"
   },
   "wizard": {
     "title": "Welcome to NetSentinel! 🛡️",
@@ -532,5 +536,30 @@
     "client": "Client / TV / Workstation",
     "wan_gateway": "Internet WAN Upstream",
     "custom": "Custom"
+  },
+  "maintenance": {
+    "modal_title": "Scheduled Maintenance & Reboots",
+    "modal_desc": "Plan time slots where devices can go offline intentionally without triggering alert cascades.",
+    "active_slots_title": "Configured Maintenance Slots",
+    "btn_add_slot": "New Window",
+    "form_title": "Define Scheduled Maintenance Window",
+    "field_title": "Title / Reason",
+    "title_placeholder": "e.g. Core switch firmware upgrade",
+    "field_target": "Target Scope",
+    "target_global": "🌐 Global (Entire Network)",
+    "devices_group": "Specific Devices",
+    "field_start": "Start Date & Time",
+    "field_end": "End Date & Time",
+    "field_notes": "Additional Notes",
+    "notes_placeholder": "Technical notes or change details",
+    "btn_confirm_slot": "Confirm Window",
+    "no_slots": "No scheduled maintenance windows active.",
+    "no_slots_desc": "Devices will emit standard notifications and alarms if they disconnect.",
+    "status_in_progress": "ACTIVE NOW",
+    "status_concluded": "Completed",
+    "btn_delete_slot": "Delete window",
+    "footer_hint": "Disconnections during these slots are recorded as Critical Managed.",
+    "btn_device_schedule": "Schedule maintenance / reboot for this device",
+    "confirm_delete": "Remove this scheduled maintenance window?"
   }
 }

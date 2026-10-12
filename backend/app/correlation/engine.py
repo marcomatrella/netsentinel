@@ -112,10 +112,22 @@ class CorrelationEngine:
                 key=lambda d: self.topology.get_distance_from_vantage_point(d.id),
             )[:1]
 
-        # 5. Build/Update Incidents for each candidate
+        # 5. Build/Update Incidents for each candidate (skip candidates under planned maintenance)
+        from app.state.maintenance import maintenance_tracker
+
         resulting_incidents: list[Incident] = []
 
         for candidate in candidates:
+            # If the candidate device itself is under planned maintenance, suppress alert generation!
+            is_maint, maint_win = await maintenance_tracker.is_device_in_maintenance(session, candidate.id)
+            if is_maint:
+                logger.info(
+                    "⏸️ [MANUTENZIONE ATTIVA] Soppressione generazione incidente per '%s' (Slot: %s)",
+                    candidate.name,
+                    maint_win.title if maint_win else "Manutenzione globale",
+                )
+                continue
+
             # Gathers all downstream impacted devices
             impacted = list(self.topology.get_all_downstream_impacted(candidate.id))
 

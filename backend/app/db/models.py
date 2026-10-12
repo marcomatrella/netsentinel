@@ -267,3 +267,19 @@ class UserSettings(Base):
 
     key: Mapped[str] = mapped_column(String(128), primary_key=True)
     value_json: Mapped[str] = mapped_column(Text, default="{}")
+
+
+class ScheduledMaintenanceWindow(Base):
+    """Scheduled maintenance slot (global or device-specific) for planned reboots and interventions."""
+
+    __tablename__ = "scheduled_maintenance_windows"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    # None device_id means GLOBAL (entire network)
+    device_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("devices.id", ondelete="CASCADE"), nullable=True, index=True)
+    start_ts: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=False)
+    end_ts: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
