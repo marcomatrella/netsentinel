@@ -356,7 +356,7 @@
   },
   "device_detail": {
     "tab_overview": "Overview",
-    "tab_checks": "Checks & Tests",
+    "tab_checks": "Tests",
     "tab_dependencies": "Dependencies",
     "tab_events": "Events",
     "edit_notice": "Edit device parameters (IP, name, network roles).",
