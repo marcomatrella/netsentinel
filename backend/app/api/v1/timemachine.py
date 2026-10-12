@@ -5,7 +5,14 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from app.db.models import Device, Event, Incident, Observation, to_utc_iso
+from app.db.models import (
+    Device,
+    Event,
+    Incident,
+    Observation,
+    ScheduledMaintenanceWindow,
+    to_utc_iso,
+)
 from app.db.session import get_db
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import desc, select
@@ -207,11 +214,40 @@ async def get_historical_snapshot(
                 "details": json.loads(ev.details_json) if ev.details_json else {},
             })
 
+        # Check active global and device maintenance at target_time
+        global_maint_win = None
+        maint_query = select(ScheduledMaintenanceWindow).where(
+            ScheduledMaintenanceWindow.enabled.is_(True),
+            ScheduledMaintenanceWindow.start_ts <= t_clean,
+            ScheduledMaintenanceWindow.end_ts >= t_clean,
+        )
+        maint_all_res = await db.execute(maint_query)
+        all_active_maint = maint_all_res.scalars().all()
+        active_dev_maint_list = []
+        for mw in all_active_maint:
+            mw_info = {
+                "id": mw.id,
+                "title": mw.title,
+                "device_id": mw.device_id,
+                "start_ts": to_utc_iso(mw.start_ts),
+                "end_ts": to_utc_iso(mw.end_ts),
+                "notes": mw.notes,
+            }
+            if mw.device_id is None:
+                global_maint_win = mw_info
+            else:
+                active_dev_maint_list.append(mw_info)
+
         return {
             "target_time": to_utc_iso(t_clean),
             "active_incident": inc_data,
             "devices": historical_devices,
             "events_around": events_around,
+            "maintenance": {
+                "is_global_active": global_maint_win is not None,
+                "global_window": global_maint_win,
+                "active_device_windows": active_dev_maint_list,
+            },
         }
     except Exception as e:
         logger.warning("Errore durante il recupero dello snapshot storico: %s", e)

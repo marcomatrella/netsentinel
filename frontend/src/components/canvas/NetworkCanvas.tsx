@@ -26,6 +26,7 @@ interface NetworkCanvasProps {
   devices: Device[];
   links: Link[];
   activeIncident: Incident | null;
+  activeMaintenanceWindows?: any[];
   layout?: CanvasLayout | null;
   isEditMode?: boolean;
   onSelectDevice?: (device: Device | null) => void;
@@ -39,6 +40,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   devices,
   links,
   activeIncident,
+  activeMaintenanceWindows = [],
   layout,
   isEditMode = false,
   onSelectDevice,
@@ -54,11 +56,23 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   const nodeTypes = useMemo(() => ({ customNode: CustomNode as any }), []);
   const edgeTypes = useMemo(() => ({ customEdge: CustomEdge as any }), []);
 
+  // Map active maintenance windows by deviceId
+  const deviceMaintMap = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const w of activeMaintenanceWindows) {
+      if (w.device_id) {
+        map.set(w.device_id, w);
+      }
+    }
+    return map;
+  }, [activeMaintenanceWindows]);
+
   // Helper to construct custom node data
   const buildNodeData = useCallback(
     (d: Device) => {
       const isRoot = activeIncident?.root_cause_device_id === d.id;
       const isImpacted = activeIncident?.impacted?.includes(d.id);
+      const maintWin = deviceMaintMap.get(d.id);
       return {
         id: d.id,
         name: d.name,
@@ -70,11 +84,18 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         isRootCause: isRoot,
         isImpacted: isImpacted,
         isVantagePoint: d.roles?.includes('vantage_point'),
+        isMaintenance: Boolean(maintWin || (d as any).is_maintenance),
+        maintenanceTitle: maintWin?.title || (d as any).maintenance_title,
+        maintenanceWindow: maintWin || ((d as any).is_maintenance ? {
+          title: (d as any).maintenance_title || 'Intervento Programmato',
+          start_ts: '',
+          end_ts: '',
+        } : undefined),
         isEditMode: isEditMode,
         color: getDeviceColorId(d.tags),
       };
     },
-    [activeIncident, isEditMode]
+    [activeIncident, isEditMode, deviceMaintMap]
   );
 
   // Lookup map of saved node positions from backend layout

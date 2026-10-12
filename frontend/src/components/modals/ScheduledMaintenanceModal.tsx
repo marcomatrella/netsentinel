@@ -75,10 +75,29 @@ export const ScheduledMaintenanceModal: React.FC<ScheduledMaintenanceModalProps>
     e.preventDefault();
     if (!title.trim() || !startDt || !endDt) return;
 
+    const startDate = new Date(startDt);
+    const endDate = new Date(endDt);
+
+    if (endDate <= startDate) {
+      alert('La data di fine deve essere successiva alla data di inizio.');
+      return;
+    }
+
+    // Check duration: if > 4 hours, warn user with confirmation
+    const durationHours = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+    if (durationHours > 4) {
+      const formattedHours = Math.round(durationHours * 10) / 10;
+      const confirmLong = confirm(
+        t('maintenance.long_duration_warning', { hours: formattedHours }) ||
+        `Attenzione: questo intervento dura ${formattedHours} ore. Durante tutto questo periodo gli allarmi saranno soppressi. Sei sicuro di voler proseguire?`
+      );
+      if (!confirmLong) return;
+    }
+
     setSubmitting(true);
     try {
-      const startIso = new Date(startDt).toISOString();
-      const endIso = new Date(endDt).toISOString();
+      const startIso = startDate.toISOString();
+      const endIso = endDate.toISOString();
       await createScheduledMaintenance({
         title: title.trim(),
         device_id: targetDeviceId === 'global' ? null : targetDeviceId,

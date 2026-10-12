@@ -22,6 +22,7 @@ import {
   Rss,
   Gauge,
   Siren,
+  Clock,
 } from 'lucide-react';
 import { DeviceKind, DeviceStatus } from '../../types';
 import { getColorConfig } from '../../constants/colors';
@@ -37,6 +38,14 @@ interface CustomNodeData {
   isRootCause?: boolean;
   isImpacted?: boolean;
   isVantagePoint?: boolean;
+  isMaintenance?: boolean;
+  maintenanceTitle?: string;
+  maintenanceWindow?: {
+    title: string;
+    start_ts: string;
+    end_ts: string;
+    notes?: string;
+  };
   metricsBadge?: string;
   rtt_ms?: number;
   isEditMode?: boolean;
@@ -173,6 +182,22 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       {isRoot && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1 z-20">
           <AlertTriangle className="w-3 h-3" /> {t('custom_node.root_cause')}
+        </div>
+      )}
+
+      {/* Active Scheduled Maintenance Clock Badge with Neon Violet Glow */}
+      {nodeData.isMaintenance && (
+        <div
+          className={`absolute -top-3.5 ${
+            isOffline ? '-left-8' : nodeData.isVantagePoint ? '-left-3' : '-right-3'
+          } bg-purple-600 text-white p-1.5 rounded-full z-30 ring-2 ring-purple-300 dark:ring-purple-400 maintenance-point-glow flex items-center justify-center cursor-help`}
+          title={
+            nodeData.maintenanceWindow
+              ? `${nodeData.maintenanceWindow.title} (${new Date(nodeData.maintenanceWindow.start_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(nodeData.maintenanceWindow.end_ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+              : (nodeData.maintenanceTitle || t('maintenance.active_badge_tooltip') || 'Intervento di manutenzione programmata in corso')
+          }
+        >
+          <Clock className="w-4 h-4 stroke-[2.5] animate-spin-slow text-purple-100" />
         </div>
       )}
 

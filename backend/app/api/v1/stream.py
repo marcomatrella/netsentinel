@@ -5,8 +5,17 @@ import json
 import logging
 from collections.abc import AsyncGenerator
 
-from app.db.models import Device, Incident, Link, Observation, to_utc_iso, utcnow
+from app.db.models import (
+    Device,
+    Incident,
+    Link,
+    Observation,
+    ScheduledMaintenanceWindow,
+    to_utc_iso,
+    utcnow,
+)
 from app.db.session import AsyncSessionLocal
+from app.state.maintenance import maintenance_tracker
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from sqlalchemy import desc, select
@@ -86,11 +95,52 @@ async def event_generator() -> AsyncGenerator[str, None]:
                             "started_at": to_utc_iso(active_inc.started_at),
                         }
 
+                    # Query active maintenance windows
+                    now_utc = utcnow()
+                    maint_stmt = select(ScheduledMaintenanceWindow).where(
+                        ScheduledMaintenanceWindow.enabled.is_(True),
+                        ScheduledMaintenanceWindow.start_ts <= now_utc,
+                        ScheduledMaintenanceWindow.end_ts >= now_utc,
+                    )
+                    maint_res = await session.execute(maint_stmt)
+                    active_windows = maint_res.scalars().all()
+
+                    global_maint = None
+                    active_device_maint = []
+                    for w in active_windows:
+                        w_info = {
+                            "id": w.id,
+                            "title": w.title,
+                            "device_id": w.device_id,
+                            "start_ts": to_utc_iso(w.start_ts),
+                            "end_ts": to_utc_iso(w.end_ts),
+                            "notes": w.notes,
+                        }
+                        if w.device_id is None:
+                            global_maint = w_info
+                        else:
+                            active_device_maint.append(w_info)
+
+                    if maintenance_tracker.is_active() and not global_maint:
+                        global_maint = {
+                            "id": "manual-global",
+                            "title": "Manutenzione Manuale Globale",
+                            "device_id": None,
+                            "start_ts": to_utc_iso(now_utc),
+                            "end_ts": to_utc_iso(maintenance_tracker.until) if maintenance_tracker.until else None,
+                            "notes": maintenance_tracker.notes,
+                        }
+
                     payload = {
                         "ts": to_utc_iso(utcnow()),
                         "devices": devs,
                         "links": links,
                         "active_incident": inc_data,
+                        "maintenance": {
+                            "is_global_active": global_maint is not None,
+                            "global_window": global_maint,
+                            "active_device_windows": active_device_maint,
+                        },
                     }
 
                     yield f"event: status_diff\ndata: {json.dumps(payload)}\n\n"

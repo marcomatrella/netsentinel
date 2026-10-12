@@ -568,6 +568,11 @@
     "btn_delete_slot": "Fenster löschen",
     "footer_hint": "Ereignisse in diesen Zeiträumen werden als Critical Managed klassifiziert.",
     "btn_device_schedule": "Wartung / Neustart für dieses Gerät planen",
-    "confirm_delete": "Dieses Wartungsfenster entfernen?"
+    "confirm_delete": "Dieses Wartungsfenster entfernen?",
+    "canvas_global_badge": "GEPLANTE WARTUNG AKTIV",
+    "canvas_global_badge_sub": "Globale Netzwerkwartung aktiv • Alarme und Benachrichtigungen sind unterdrückt.",
+    "active_badge_tooltip": "Geplantes Wartungsfenster läuft",
+    "long_duration_warning": "Warnung: Dieses Wartungsfenster dauert {{hours}} Stunden. In diesem gesamten Zeitraum werden Alarme unterdrückt. Möchten Sie wirklich fortfahren?",
+    "overlap_error": "Dieser Zeitraum überschneidet sich mit einem bereits geplanten Wartungsfenster."
   }
 }
