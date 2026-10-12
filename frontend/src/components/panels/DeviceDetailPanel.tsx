@@ -20,6 +20,7 @@ import {
   Trash2,
   Palette as PaletteIcon,
   Calendar,
+  Eye,
 } from 'lucide-react';
 import { Check, Device, Dependency, DeviceKind } from '../../types';
 import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck } from '../../api/client';
@@ -834,28 +835,37 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                       {t('device_detail.roles_active')}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
-                      {device.roles.map((r) => (
-                        <span
-                          key={r}
-                          className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                            r === 'dns_resolver'
-                              ? 'bg-cyan-950 text-cyan-300 border-cyan-800'
+                      {device.roles.map((r) => {
+                        if (r === 'vantage_point') {
+                          return (
+                            <span
+                              key={r}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-500 text-white border border-sky-300 ring-2 ring-sky-300 dark:ring-sky-400 vantage-point-glow shadow-sm"
+                            >
+                              <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <span>{t('device_detail.role_vantage_point_badge')}</span>
+                            </span>
+                          );
+                        }
+                        return (
+                          <span
+                            key={r}
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                              r === 'dns_resolver'
+                                ? 'bg-cyan-950 text-cyan-300 border-cyan-800'
+                                : r === 'dhcp_server'
+                                ? 'bg-amber-950 text-amber-300 border-amber-800'
+                                : 'bg-slate-800 text-slate-300 border-slate-700'
+                            }`}
+                          >
+                            {r === 'dns_resolver'
+                              ? t('device_detail.role_dns_resolver_badge')
                               : r === 'dhcp_server'
-                              ? 'bg-amber-950 text-amber-300 border-amber-800'
-                              : r === 'vantage_point'
-                              ? 'bg-blue-950 text-blue-300 border-blue-800'
-                              : 'bg-slate-800 text-slate-300 border-slate-700'
-                          }`}
-                        >
-                          {r === 'dns_resolver'
-                            ? t('device_detail.role_dns_resolver_badge')
-                            : r === 'dhcp_server'
-                            ? t('device_detail.role_dhcp_server_badge')
-                            : r === 'vantage_point'
-                            ? t('device_detail.role_vantage_point_badge')
-                            : r}
-                        </span>
-                      ))}
+                              ? t('device_detail.role_dhcp_server_badge')
+                              : r}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
