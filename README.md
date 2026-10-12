@@ -37,60 +37,73 @@ In conventional monitoring solutions (Zabbix, Nagios, Uptime Kuma), the failure 
 
 ## 🏗️ Architecture
 
+NetSentinel is designed as a modular, lightweight monolithic container split into two core views:
+
+### 1. System & Component Architecture
+
 ```mermaid
-graph TD
-    %% Frontend Subgraph
-    subgraph Frontend ["🖥️ NetSentinel Frontend (React 18 + TypeScript)"]
-        Canvas["Interactive Canvas<br/><i>xyflow + ELK.js Auto-Layout</i>"]
-        TimeMachine["Time Machine & Replay<br/><i>Historical Timeline & Scrubbing</i>"]
-        Logs["Event Logs & Diagnostics<br/><i>Human-Readable Narratives</i>"]
-        Theme_i18n["Multi-Language & Themes<br/><i>IT · EN · FR · DE · ES | Dark · Light</i>"]
+flowchart LR
+    classDef client fill:#0ea5e9,stroke:#0284c7,stroke-width:2px,color:#ffffff
+    classDef api fill:#6366f1,stroke:#4f46e5,stroke-width:2px,color:#ffffff
+    classDef core fill:#1e293b,stroke:#475569,stroke-width:2px,color:#f8fafc
+    classDef storage fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    classDef plugin fill:#d97706,stroke:#b45309,stroke-width:2px,color:#ffffff
+    classDef notify fill:#e11d48,stroke:#be123c,stroke-width:2px,color:#ffffff
+
+    subgraph UI ["🖥️ Web Client"]
+        direction TB
+        Frontend["React 18 + xyflow<br/><b>Interactive Topology Canvas</b><br/><i>Time Machine · Kiosk · i18n</i>"]:::client
     end
 
-    %% Communication Interface
-    Frontend -->|"REST API v1 + SSE Status Stream"| Backend
+    subgraph Server ["⚙️ FastAPI Core Runtime"]
+        direction TB
+        Gateway["REST API & SSE Stream<br/><b>Real-Time Event Hub</b>"]:::api
+        Engine["Scheduler & State Machine<br/><b>Topology RCA Engine (NetworkX)</b>"]:::core
+        Database[("SQLite WAL Database<br/><b>Async SQLAlchemy</b>")]:::storage
 
-    %% Backend Subgraph
-    subgraph Backend ["⚙️ NetSentinel Backend (FastAPI + Asyncio)"]
-        Scheduler["Async Scheduler Engine<br/><i>Jitter, Batching & Metrics Flush</i>"]
-        StateMachine["State Machine & Tracker<br/><i>Hysteresis, Flapping & Reboot Detector</i>"]
-        Maintenance["Scheduled Maintenance Engine<br/><i>Global & Device-Level Quiet Windows</i>"]
-        Correlation["Topological Correlation (NetworkX)<br/><i>7-Phase Root Cause Analysis Engine</i>"]
-        DB[(SQLite WAL Database<br/><i>SQLAlchemy 2 Async</i>)]
-        AlertQueue["Persistent Alert Queue<br/><i>WAN Blackout Resilient</i>"]
-        Watchdog["Dead-Man's Switch<br/><i>External Healthchecks.io Watchdog</i>"]
-
-        Scheduler --> StateMachine
-        StateMachine --> Maintenance
-        Maintenance --> Correlation
-        Correlation --> DB
-        Correlation --> AlertQueue
-        Watchdog -.->|"Heartbeat Ping"| Scheduler
+        Gateway <--> Engine
+        Engine <--> Database
     end
 
-    %% Notification Targets
-    subgraph Alerts ["🔔 Notification Channels"]
-        SMTP["SMTP Email"]
-        Ntfy["ntfy Push"]
-        HomeAssistant["Home Assistant"]
-        Webhooks["Generic Webhooks"]
-    end
-    AlertQueue --> Alerts
-
-    %% Collectors Subgraph
-    subgraph Collectors ["🔌 Collectors & Multi-Protocol Plugins"]
-        Ping["Ping ICMP<br/><i>Native Raw Socket</i>"]
-        TCP["TCP Port Poller<br/><i>Custom Service Probing</i>"]
-        HTTP["HTTP / JSONPath<br/><i>REST API Healthchecks</i>"]
-        DNS["Direct DNS Resolver<br/><i>Raw UDP Query & Latency</i>"]
-        UniFi["UniFi Controller<br/><i>PoE & AP Client Telemetry</i>"]
-        Synology["Synology DSM<br/><i>Storage Pool, Disk & Temp</i>"]
-        NUT["NUT UPS Daemon<br/><i>Battery, Load & Grid (3493)</i>"]
-        SNMP["SNMP v1/v2c<br/><i>Interface Traffic & MIBs</i>"]
+    subgraph Ingestion ["🔌 Collectors & Plugins"]
+        direction TB
+        Probes["Multi-Protocol Collectors<br/><b>ICMP · TCP · HTTP · DNS</b><br/><i>UniFi · Synology · NUT · SNMP</i>"]:::plugin
     end
 
-    Scheduler --> Collectors
+    subgraph Alerts ["🔔 Notifications"]
+        direction TB
+        Channels["Outbound Channels<br/><b>SMTP · ntfy · HA · Webhooks</b><br/><i>WAN Blackout Resilient Queue</i>"]:::notify
+    end
+
+    UI <-->|"HTTP / SSE"| Gateway
+    Engine -->|"Async Poll"| Probes
+    Engine -->|"Dispatch"| Channels
 ```
+
+### 2. Diagnosis & Correlation Pipeline
+
+```mermaid
+flowchart TD
+    classDef step fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
+    classDef decision fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#ffffff
+    classDef incident fill:#881337,stroke:#fb7185,stroke-width:2px,color:#ffffff
+    classDef ok fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#ffffff
+
+    P1["1. Raw Metrics Collection<br/><i>Parallel asynchronous probes with jitter</i>"]:::step
+    --> P2["2. State Tracking & Hysteresis<br/><i>Flapping prevention & reboot detection</i>"]:::step
+    --> P3{"3. Scheduled Maintenance?"}:::decision
+
+    P3 -- "Yes (Target in quiet window)" --> P4["Suppressed Alert<br/><i>Marked as Maintenance in Canvas & Logs</i>"]:::ok
+    P3 -- "No (Operational traffic)" --> P5["4. Topological Graph Evaluation<br/><i>Traverse NetworkX DAG from Vantage Point</i>"]:::step
+
+    P5 --> P6{"5. Upstream Failure Found?"}:::decision
+
+    P6 -- "Upstream Root Cause (e.g. Switch Down)" --> P7["Incident: Root Cause Identified<br/><i>Downstream nodes marked UNREACHABLE</i>"]:::incident
+    P6 -- "Isolated Failure (No Upstream Down)" --> P8["Incident: Direct Target Failure<br/><i>Specific hardware or service fault</i>"]:::incident
+
+    P7 & P8 --> P9["6. Consolidated Notification Dispatch<br/><i>Single HTML/Markdown report sent to SMTP, ntfy, HA</i>"]:::step
+```
+
 
 ---
 ## Quick Demo
