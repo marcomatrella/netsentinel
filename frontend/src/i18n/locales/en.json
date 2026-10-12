@@ -59,6 +59,10 @@
     "section_config": "Topology Configuration",
     "devices_setup": "Device Setup & Templates",
     "devices_setup_desc": "Manage devices, IP addresses and load home lab templates",
+    "network_discovery": "Network Scan & Discovery",
+    "network_discovery_desc": "Scan LAN subnet and add devices with 1-click",
+    "backup_restore": "Topology Backup & Restore",
+    "backup_restore_desc": "Export or restore topology and canvas layout via JSON",
     "dns_dhcp_roles": "DNS & DHCP Services",
     "dns_dhcp_roles_desc": "Assign network roles, local AdGuard/Pi-hole resolvers & DHCP",
     "wizard_8_steps": "Guided Setup Wizard (8 Steps)",
@@ -571,6 +575,7 @@
     "confirm_delete": "Remove this scheduled maintenance window?",
     "canvas_global_badge": "SCHEDULED MAINTENANCE ACTIVE",
     "canvas_global_badge_sub": "Global network maintenance active • Alerts and notifications are suppressed.",
+    "active_badge_tooltip": "Scheduled maintenance in progress",
     "long_duration_warning": "Warning: this maintenance window lasts {{hours}} hours. Alerts will be suppressed for this entire duration. Are you sure you want to proceed?",
     "overlap_error": "This timeframe overlaps with an already scheduled maintenance window."
   },

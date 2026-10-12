@@ -59,6 +59,10 @@
     "section_config": "Configurazione Topologia",
     "devices_setup": "Configurazione Apparati & Modelli",
     "devices_setup_desc": "Gestisci apparati, indirizzi IP e carica modelli di rete",
+    "network_discovery": "Scansione & Rilevamento Rete",
+    "network_discovery_desc": "Scansiona la subnet LAN e aggiungi apparati con 1 click",
+    "backup_restore": "Backup & Ripristino Plancia",
+    "backup_restore_desc": "Esporta o ripristina la topologia e layout via JSON",
     "dns_dhcp_roles": "Servizi DNS & DHCP",
     "dns_dhcp_roles_desc": "Assegna ruoli di rete, resolver AdGuard/Pi-hole e DHCP",
     "wizard_8_steps": "Wizard Guidato (8 Passi)",
@@ -571,6 +575,7 @@
     "confirm_delete": "Rimuovere questo slot di manutenzione programmata?",
     "canvas_global_badge": "MANUTENZIONE PROGRAMMATA ATTIVA",
     "canvas_global_badge_sub": "Rete in manutenzione globale • Gli allarmi e le notifiche sono soppressi.",
+    "active_badge_tooltip": "Intervento di manutenzione programmata in corso",
     "long_duration_warning": "Attenzione: questo intervento dura {{hours}} ore. Durante tutto questo periodo gli allarmi saranno soppressi. Sei sicuro di voler proseguire?",
     "overlap_error": "Questo intervallo si sovrappone a una manutenzione già programmata."
   },

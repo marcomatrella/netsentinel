@@ -59,6 +59,10 @@
     "section_config": "Topologie-Konfiguration",
     "devices_setup": "Gerätekonfiguration & Vorlagen",
     "devices_setup_desc": "Geräte, IP-Adressen verwalten und Vorlagen laden",
+    "network_discovery": "Netzwerk-Scan & Erkennung",
+    "network_discovery_desc": "LAN-Subnetz scannen und Geräte mit 1 Klick hinzufügen",
+    "backup_restore": "Topologie-Sicherung & Wiederherstellung",
+    "backup_restore_desc": "Topologie und Layout via JSON exportieren oder wiederherstellen",
     "dns_dhcp_roles": "DNS- & DHCP-Dienste",
     "dns_dhcp_roles_desc": "Netzwerkrollen zuweisen, AdGuard/Pi-hole & DHCP",
     "wizard_8_steps": "Geführter Einrichtungsassistent (8 Schritte)",
@@ -571,6 +575,7 @@
     "confirm_delete": "Dieses Wartungsfenster entfernen?",
     "canvas_global_badge": "GEPLANTE WARTUNG AKTIV",
     "canvas_global_badge_sub": "Globale Netzwerkwartung aktiv • Alarme und Benachrichtigungen sind unterdrückt.",
+    "active_badge_tooltip": "Geplantes Wartungsfenster läuft",
     "long_duration_warning": "Warnung: Dieses Wartungsfenster dauert {{hours}} Stunden. In diesem gesamten Zeitraum werden Alarme unterdrückt. Möchten Sie wirklich fortfahren?",
     "overlap_error": "Dieser Zeitraum überschneidet sich mit einem bereits geplanten Wartungsfenster."
   },

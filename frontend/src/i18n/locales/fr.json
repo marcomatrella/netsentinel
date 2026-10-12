@@ -59,6 +59,10 @@
     "section_config": "Configuration de la topologie",
     "devices_setup": "Configuration des appareils et modèles",
     "devices_setup_desc": "Gérer les appareils, adresses IP et modèles de lab",
+    "network_discovery": "Scan & Découverte Réseau",
+    "network_discovery_desc": "Scanner le sous-réseau LAN et ajouter des équipements en 1 clic",
+    "backup_restore": "Sauvegarde & Restauration",
+    "backup_restore_desc": "Exporter ou restaurer la topologie et le placement via JSON",
     "dns_dhcp_roles": "Services DNS & DHCP",
     "dns_dhcp_roles_desc": "Attribuer les rôles réseau, AdGuard/Pi-hole et DHCP",
     "wizard_8_steps": "Assistant guidé (8 étapes)",
@@ -571,6 +575,7 @@
     "confirm_delete": "Supprimer ce créneau de maintenance programmée ?",
     "canvas_global_badge": "MAINTENANCE PLANIFIÉE ACTIVE",
     "canvas_global_badge_sub": "Maintenance globale du réseau active • Alertes et notifications supprimées.",
+    "active_badge_tooltip": "Intervention de maintenance planifiée en cours",
     "long_duration_warning": "Attention : cette intervention dure {{hours}} heures. Les alertes seront supprimées pendant toute cette période. Voulez-vous continuer ?",
     "overlap_error": "Ce créneau chevauche une maintenance déjà planifiée."
   },
