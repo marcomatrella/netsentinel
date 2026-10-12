@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { History, RotateCcw, ScrollText, Calendar, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { History, RotateCcw, ScrollText, Calendar, Check, X, ChevronLeft, ChevronRight, ChevronDown, Settings2 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 import { formatDateTime } from '../../utils/date';
 
@@ -161,8 +161,50 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
     if (onLiveMode) onLiveMode();
   };
 
-  // Step -10 seconds and +10 seconds
-  const stepBySeconds = (deltaSeconds: number) => {
+  // Custom step configuration (value + unit: seconds, minutes, hours, days)
+  type StepUnit = 's' | 'm' | 'h' | 'd';
+  const [stepAmount, setStepAmount] = useState<number>(() => {
+    const saved = localStorage.getItem('netsentinel_tm_step_amount');
+    return saved ? Math.max(1, parseInt(saved, 10) || 10) : 10;
+  });
+  const [stepUnit, setStepUnit] = useState<StepUnit>(() => {
+    const saved = localStorage.getItem('netsentinel_tm_step_unit') as StepUnit;
+    return ['s', 'm', 'h', 'd'].includes(saved) ? saved : 's';
+  });
+  const [isStepMenuOpen, setIsStepMenuOpen] = useState<boolean>(false);
+  const stepMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close step menu popover on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (stepMenuRef.current && !stepMenuRef.current.contains(e.target as Node)) {
+        setIsStepMenuOpen(false);
+      }
+    };
+    if (isStepMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isStepMenuOpen]);
+
+  const stepTotalSeconds = useMemo(() => {
+    const mult = stepUnit === 's' ? 1 : stepUnit === 'm' ? 60 : stepUnit === 'h' ? 3600 : 86400;
+    return Math.max(1, stepAmount * mult);
+  }, [stepAmount, stepUnit]);
+
+  const handleUpdateStep = (amount: number, unit: StepUnit) => {
+    const safeAmount = Math.max(1, Math.min(999, amount));
+    setStepAmount(safeAmount);
+    setStepUnit(unit);
+    localStorage.setItem('netsentinel_tm_step_amount', String(safeAmount));
+    localStorage.setItem('netsentinel_tm_step_unit', unit);
+  };
+
+  // Step backward and forward by user-configured duration
+  const stepByDelta = (direction: -1 | 1) => {
+    const deltaSeconds = direction * stepTotalSeconds;
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 
     // Current effective historical timestamp
@@ -335,18 +377,110 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
         )}
       </div>
 
-      {/* Scrubbing slider with -10s and +10s precision step buttons */}
+      {/* Scrubbing slider with configurable backward/forward step buttons */}
       <div className="flex items-center gap-2 flex-1 min-w-[200px] w-full">
-        {/* Step -10s button */}
-        <button
-          type="button"
-          onClick={() => stepBySeconds(-10)}
-          className="p-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono text-[10px] font-bold shrink-0 transition flex items-center gap-0.5"
-          title={t('timemachine.step_back_tooltip')}
-        >
-          <ChevronLeft className="w-3 h-3 text-sky-500" />
-          <span>{t('timemachine.step_back_10s')}</span>
-        </button>
+        {/* Step Backward + Configuration Group */}
+        <div className="relative flex items-center shrink-0" ref={stepMenuRef}>
+          <div className="flex items-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition shadow-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => stepByDelta(-1)}
+              className="px-1.5 py-1 text-slate-700 dark:text-slate-300 font-mono text-[10px] font-bold flex items-center gap-0.5 hover:text-sky-500 transition"
+              title={`${t('timemachine.step_back_tooltip')}: -${stepAmount}${stepUnit}`}
+            >
+              <ChevronLeft className="w-3 h-3 text-sky-500" />
+              <span>-{stepAmount}{stepUnit}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsStepMenuOpen(!isStepMenuOpen)}
+              className="px-1 py-1 text-slate-400 hover:text-sky-500 dark:text-slate-500 dark:hover:text-sky-400 border-l border-slate-200 dark:border-slate-700 transition"
+              title={t('timemachine.step_config_tooltip') || 'Configura intervallo di navigazione'}
+            >
+              <ChevronDown className="w-2.5 h-2.5" />
+            </button>
+          </div>
+
+          {/* Contextual Popover to configure step amount & unit */}
+          {isStepMenuOpen && (
+            <div className="absolute left-0 bottom-full mb-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-3 w-[240px] animate-in fade-in zoom-in-95 backdrop-blur-xl">
+              <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Settings2 className="w-3 h-3 text-sky-500" />
+                  {t('timemachine.step_config_title') || 'Intervallo Avanzamento'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsStepMenuOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    {t('timemachine.step_amount_label') || 'Valore e Unità:'}
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="999"
+                      value={stepAmount}
+                      onChange={(e) => handleUpdateStep(parseInt(e.target.value, 10) || 1, stepUnit)}
+                      className="w-20 px-2 py-1 text-xs font-mono font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                    <select
+                      value={stepUnit}
+                      onChange={(e) => handleUpdateStep(stepAmount, e.target.value as StepUnit)}
+                      className="flex-1 px-2 py-1 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    >
+                      <option value="s">{t('timemachine.unit_seconds') || 'Secondi'}</option>
+                      <option value="m">{t('timemachine.unit_minutes') || 'Minuti'}</option>
+                      <option value="h">{t('timemachine.unit_hours') || 'Ore'}</option>
+                      <option value="d">{t('timemachine.unit_days') || 'Giorni'}</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  {[
+                    { a: 10, u: 's' as StepUnit, label: '10s' },
+                    { a: 30, u: 's' as StepUnit, label: '30s' },
+                    { a: 1, u: 'm' as StepUnit, label: '1m' },
+                    { a: 5, u: 'm' as StepUnit, label: '5m' },
+                    { a: 1, u: 'h' as StepUnit, label: '1h' },
+                  ].map((preset) => (
+                    <button
+                      key={`${preset.a}${preset.u}`}
+                      type="button"
+                      onClick={() => handleUpdateStep(preset.a, preset.u)}
+                      className={`px-1.5 py-0.5 text-[10px] rounded font-mono font-medium transition ${
+                        stepAmount === preset.a && stepUnit === preset.u
+                          ? 'bg-sky-500 text-white font-bold'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsStepMenuOpen(false)}
+                  className="w-full mt-1 py-1 bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-1"
+                >
+                  <Check className="w-3 h-3" />
+                  {t('timemachine.confirm_step') || 'Fatto'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium shrink-0">
           {rangeLabel}
@@ -370,14 +504,14 @@ export const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({
           {t('timemachine.now')}
         </span>
 
-        {/* Step +10s button */}
+        {/* Step Forward button with configured delta */}
         <button
           type="button"
-          onClick={() => stepBySeconds(10)}
-          className="p-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono text-[10px] font-bold shrink-0 transition flex items-center gap-0.5"
-          title={t('timemachine.step_forward_tooltip')}
+          onClick={() => stepByDelta(1)}
+          className="px-1.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono text-[10px] font-bold shrink-0 transition flex items-center gap-0.5 hover:text-sky-500 shadow-sm"
+          title={`${t('timemachine.step_forward_tooltip')}: +${stepAmount}${stepUnit}`}
         >
-          <span>{t('timemachine.step_forward_10s')}</span>
+          <span>+{stepAmount}{stepUnit}</span>
           <ChevronRight className="w-3 h-3 text-sky-500" />
         </button>
       </div>

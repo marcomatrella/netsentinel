@@ -224,7 +224,15 @@
     "select_datetime_title": "Select Historical Date & Time",
     "retention_min_hint": "Earliest date allowed by retention policy: {{date}}",
     "non_live_badge": "HISTORICAL VIEW — NOT LIVE",
-    "non_live_badge_sub": "You are viewing network state in the past"
+    "non_live_badge_sub": "You are viewing network state in the past",
+    "step_config_title": "Step Interval",
+    "step_config_tooltip": "Configure navigation step duration",
+    "step_amount_label": "Amount and Unit:",
+    "unit_seconds": "Seconds",
+    "unit_minutes": "Minutes",
+    "unit_hours": "Hours",
+    "unit_days": "Days",
+    "confirm_step": "Confirm"
   },
   "events": {
     "modal_title": "Network Event Log & Diagnostics",
