@@ -37,38 +37,59 @@ In conventional monitoring solutions (Zabbix, Nagios, Uptime Kuma), the failure 
 
 ## 🏗️ Architecture
 
-```
-+-------------------------------------------------------------------------------+
-|                             NetSentinel Frontend                              |
-|   React 18 + xyflow (React Flow) + ELK.js Auto-Layout + Server-Sent Events    |
-|   - Draw.io-style Interactive Canvas           - Time Machine Historical Play |
-|   - Operational Live View & Edit Mode          - Fullscreen Kiosk Mode        |
-|   - Multi-Language Dropdown (IT/EN/FR/DE/ES)   - Dark & Light Themes          |
-|   - Human-Readable Event Logs & Diagnostics    - Custom Checks & Timed Toasts |
-+---------------------------------------+---------------------------------------+
-                                        | (REST API v1 + SSE Stream)
-+---------------------------------------v---------------------------------------+
-|                             NetSentinel Backend                               |
-|   FastAPI + Asyncio + Pydantic v2 + SQLAlchemy 2 + SQLite WAL                 |
-|                                                                               |
-|  +------------------+  +-------------------+  +----------------------------+  |
-|  | Async Scheduler  |  | State Machine     |  | Topological Correlation    |  |
-|  | Jitter & Batch   |->| Hysteresis & Flap |->| NetworkX Graph (7 Phases)  |  |
-|  +------------------+  +-------------------+  +----------------------------+  |
-|                                                             |                 |
-|  +------------------+  +-------------------+  +-------------v--------------+  |
-|  | Dead-Man Switch  |  | Internal Watchdog |  | Persistent Alert Queue     |  |
-|  | Healthchecks.io  |<-| Loop & DB Health  |  | SMTP, ntfy, Webhook, HA    |  |
-|  +------------------+  +-------------------+  +----------------------------+  |
-+---------------------------------------+---------------------------------------+
-                                        |
-+---------------------------------------v---------------------------------------+
-|                         Collector & Protocol Plugins                          |
-|   Ping ICMP (Raw socket)  - UniFi Controller & PoE   - Synology DSM Storage   |
-|   TCP Port Poller         - NUT UPS Daemon (TCP 3493) - AdGuard Home DNS Stats |
-|   HTTP/S Healthchecks     - SNMP v1/v2c (UDP 161)    - Home Assistant API     |
-|   DNS Direct UDP Resolver - Generic HTTP JSONPath                             |
-+-------------------------------------------------------------------------------+
+```mermaid
+graph TD
+    %% Frontend Subgraph
+    subgraph Frontend ["🖥️ NetSentinel Frontend (React 18 + TypeScript)"]
+        Canvas["Interactive Canvas<br/><i>xyflow + ELK.js Auto-Layout</i>"]
+        TimeMachine["Time Machine & Replay<br/><i>Historical Timeline & Scrubbing</i>"]
+        Logs["Event Logs & Diagnostics<br/><i>Human-Readable Narratives</i>"]
+        Theme_i18n["Multi-Language & Themes<br/><i>IT · EN · FR · DE · ES | Dark · Light</i>"]
+    end
+
+    %% Communication Interface
+    Frontend -->|"REST API v1 + SSE Status Stream"| Backend
+
+    %% Backend Subgraph
+    subgraph Backend ["⚙️ NetSentinel Backend (FastAPI + Asyncio)"]
+        Scheduler["Async Scheduler Engine<br/><i>Jitter, Batching & Metrics Flush</i>"]
+        StateMachine["State Machine & Tracker<br/><i>Hysteresis, Flapping & Reboot Detector</i>"]
+        Maintenance["Scheduled Maintenance Engine<br/><i>Global & Device-Level Quiet Windows</i>"]
+        Correlation["Topological Correlation (NetworkX)<br/><i>7-Phase Root Cause Analysis Engine</i>"]
+        DB[(SQLite WAL Database<br/><i>SQLAlchemy 2 Async</i>)]
+        AlertQueue["Persistent Alert Queue<br/><i>WAN Blackout Resilient</i>"]
+        Watchdog["Dead-Man's Switch<br/><i>External Healthchecks.io Watchdog</i>"]
+
+        Scheduler --> StateMachine
+        StateMachine --> Maintenance
+        Maintenance --> Correlation
+        Correlation --> DB
+        Correlation --> AlertQueue
+        Watchdog -.->|"Heartbeat Ping"| Scheduler
+    end
+
+    %% Notification Targets
+    subgraph Alerts ["🔔 Notification Channels"]
+        SMTP["SMTP Email"]
+        Ntfy["ntfy Push"]
+        HomeAssistant["Home Assistant"]
+        Webhooks["Generic Webhooks"]
+    end
+    AlertQueue --> Alerts
+
+    %% Collectors Subgraph
+    subgraph Collectors ["🔌 Collectors & Multi-Protocol Plugins"]
+        Ping["Ping ICMP<br/><i>Native Raw Socket</i>"]
+        TCP["TCP Port Poller<br/><i>Custom Service Probing</i>"]
+        HTTP["HTTP / JSONPath<br/><i>REST API Healthchecks</i>"]
+        DNS["Direct DNS Resolver<br/><i>Raw UDP Query & Latency</i>"]
+        UniFi["UniFi Controller<br/><i>PoE & AP Client Telemetry</i>"]
+        Synology["Synology DSM<br/><i>Storage Pool, Disk & Temp</i>"]
+        NUT["NUT UPS Daemon<br/><i>Battery, Load & Grid (3493)</i>"]
+        SNMP["SNMP v1/v2c<br/><i>Interface Traffic & MIBs</i>"]
+    end
+
+    Scheduler --> Collectors
 ```
 
 ---
