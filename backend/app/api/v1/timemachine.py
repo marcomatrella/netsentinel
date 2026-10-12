@@ -122,6 +122,10 @@ async def get_historical_snapshot(
             if not status:
                 status = d.status
 
+            # Check if device was in a planned maintenance slot at target_time
+            from app.state.maintenance import maintenance_tracker
+            was_in_maint, maint_w = await maintenance_tracker.is_device_in_maintenance(db, d.id, at_time=t_clean)
+
             # If an incident was active at target_time and this device was the root cause:
             if active_incident and active_incident.root_cause_device_id == d.id:
                 status = "down"
@@ -137,6 +141,8 @@ async def get_historical_snapshot(
                 "name": d.name,
                 "kind": d.kind,
                 "status": status,
+                "is_maintenance": was_in_maint,
+                "maintenance_title": maint_w.title if maint_w else ("Manutenzione Globale" if was_in_maint else None),
                 "last_metric": last_obs.value if last_obs else None,
                 "observation_ts": to_utc_iso(last_obs.ts) if last_obs else None,
             })

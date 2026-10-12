@@ -72,7 +72,9 @@
     "fullscreen": "Mode Kiosk / Plein écran",
     "force_refresh": "Forcer l'actualisation",
     "system_settings": "Paramètres Système & Rétention",
-    "system_settings_desc": "Configurer la rétention des données et l'historique"
+    "system_settings_desc": "Configurer la rétention des données et l'historique",
+    "scheduled_maintenance": "Maintenances Programmées",
+    "scheduled_maintenance_desc": "Planifier les redémarrages sans alertes"
   },
   "edit_bar": {
     "title": "Mode Édition Actif :",
@@ -293,7 +295,9 @@
       "firmware_update_explanation": "La version du micrologiciel de l'appareil a changé.",
       "packet_loss": "Perte de paquets",
       "system_event": "Événement système"
-    }
+    },
+    "filter_managed": "Critiques Gérés",
+    "severity_managed": "CRITIQUE GÉRÉ"
   },
   "wizard": {
     "title": "Bienvenue sur NetSentinel ! 🛡️",
@@ -540,5 +544,30 @@
     "status_down": "KO",
     "tooltip_link": "Lien {{medium}} — État : {{status}} ({{source}})",
     "source_deduced": "déduit"
+  },
+  "maintenance": {
+    "modal_title": "Maintenances Programmées & Redémarrages",
+    "modal_desc": "Planifiez des plages horaires sans cascade d'alertes.",
+    "active_slots_title": "Créneaux de maintenance enregistrés",
+    "btn_add_slot": "Nouvelle Plage",
+    "form_title": "Définir une plage de maintenance",
+    "field_title": "Titre / Raison",
+    "title_placeholder": "ex. Mise à jour micrologiciel commutateur",
+    "field_target": "Cible",
+    "target_global": "🌐 Global (Tout le Réseau)",
+    "devices_group": "Équipements Spécifiques",
+    "field_start": "Date et Heure de Début",
+    "field_end": "Date et Heure de Fin",
+    "field_notes": "Notes Additionnelles",
+    "notes_placeholder": "Détails techniques",
+    "btn_confirm_slot": "Confirmer la Plage",
+    "no_slots": "Aucune maintenance programmée.",
+    "no_slots_desc": "Les équipements émettront des alertes normales en cas de déconnexion.",
+    "status_in_progress": "EN COURS",
+    "status_concluded": "Terminé",
+    "btn_delete_slot": "Supprimer le créneau",
+    "footer_hint": "Les coupures durant ces plages sont classées comme Critical Managed.",
+    "btn_device_schedule": "Planifier une maintenance pour cet équipement",
+    "confirm_delete": "Supprimer ce créneau de maintenance programmée ?"
   }
 }

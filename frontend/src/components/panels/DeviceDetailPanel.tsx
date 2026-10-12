@@ -19,6 +19,7 @@ import {
   Plus,
   Trash2,
   Palette as PaletteIcon,
+  Calendar,
 } from 'lucide-react';
 import { Check, Device, Dependency, DeviceKind } from '../../types';
 import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck } from '../../api/client';
@@ -37,6 +38,7 @@ interface DeviceDetailPanelProps {
   onDeleteDevice?: (deviceId: string) => void;
   onUpdateDevice?: (deviceId: string, updatedData: Partial<Device>) => Promise<void>;
   onRefreshTopology?: () => void;
+  onOpenMaintenance?: (deviceId?: string) => void;
 }
 
 const DEVICE_KIND_KEYS: DeviceKind[] = [
@@ -145,6 +147,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   onDeleteDevice,
   onUpdateDevice,
   onRefreshTopology,
+  onOpenMaintenance,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'checks' | 'deps' | 'events'>('overview');
@@ -444,6 +447,15 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
         </div>
 
         <div className="flex items-center gap-1 shrink-0 ml-2">
+          {onOpenMaintenance && (
+            <button
+              onClick={() => onOpenMaintenance(device.id)}
+              className="p-1.5 rounded-lg border bg-white hover:bg-purple-50 text-purple-600 border-purple-200 dark:bg-slate-800 dark:hover:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/80 transition"
+              title={t('maintenance.btn_device_schedule') || 'Pianifica riavvio / manutenzione per questo apparato'}
+            >
+              <Calendar className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setIsEditing(!isEditing)}
             className={`p-1.5 rounded-lg border transition ${

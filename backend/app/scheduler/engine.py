@@ -334,16 +334,33 @@ class SchedulerEngine:
                         new_dev_status.upper(),
                     )
 
-                # Passive devices (clients) only emit info severity events
-                severity = "info" if is_passive else ("crit" if new_dev_status in ["down", "flapping"] else "info")
+                # Check if device is under planned maintenance window
+                from app.state.maintenance import maintenance_tracker
+                in_maint, maint_win = await maintenance_tracker.is_device_in_maintenance(session, device_id)
+
+                # Passive devices emit info; offline devices under maintenance emit "critical_managed"
+                if is_passive:
+                    severity = "info"
+                elif new_dev_status in ["down", "flapping"]:
+                    severity = "critical_managed" if in_maint else "crit"
+                else:
+                    severity = "info"
+
+                maint_suffix = f" [Manutenzione Programmata: {maint_win.title}]" if (in_maint and maint_win) else (" [Manutenzione Attiva]" if in_maint else "")
                 ev_dev = Event(
                     ts=utcnow(),
                     device_id=device_id,
                     event_type="device_state_change",
                     severity=severity,
-                    title=f"Apparato {device.name}: {old_dev_status.upper()} -> {new_dev_status.upper()}",
-                    message=f"Lo stato di '{device.name}' (tracciamento passivo) è {new_dev_status.upper()}." if is_passive else f"Lo stato complessivo di '{device.name}' è ora {new_dev_status.upper()}.",
-                    details_json=json.dumps({"old_status": old_dev_status, "new_status": new_dev_status, "passive": is_passive}),
+                    title=f"Apparato {device.name}: {old_dev_status.upper()} -> {new_dev_status.upper()}{maint_suffix}",
+                    message=f"Lo stato di '{device.name}' (tracciamento passivo) è {new_dev_status.upper()}." if is_passive else f"Lo stato complessivo di '{device.name}' è ora {new_dev_status.upper()}{maint_suffix}.",
+                    details_json=json.dumps({
+                        "old_status": old_dev_status,
+                        "new_status": new_dev_status,
+                        "passive": is_passive,
+                        "maintenance": in_maint,
+                        "maintenance_title": maint_win.title if maint_win else None,
+                    }),
                 )
                 session.add(ev_dev)
                 self._broadcast_event({
@@ -352,6 +369,7 @@ class SchedulerEngine:
                     "old_status": old_dev_status,
                     "new_status": new_dev_status,
                     "passive": is_passive,
+                    "severity": severity,
                 })
 
             if obs.status == "ok":

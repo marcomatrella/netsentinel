@@ -72,7 +72,9 @@
     "fullscreen": "Modo Kiosco / Pantalla Completa",
     "force_refresh": "Forzar Actualización",
     "system_settings": "Ajustes del Sistema y Retención",
-    "system_settings_desc": "Configura la retención de datos y preferencias históricas"
+    "system_settings_desc": "Configura la retención de datos y preferencias históricas",
+    "scheduled_maintenance": "Mantenimientos Programados",
+    "scheduled_maintenance_desc": "Planifica reinicios sin alertas"
   },
   "edit_bar": {
     "title": "Modo Edición Activo:",
@@ -293,7 +295,9 @@
       "firmware_update_explanation": "La versión de firmware del dispositivo ha cambiado.",
       "packet_loss": "Pérdida de paquetes",
       "system_event": "Evento del sistema"
-    }
+    },
+    "filter_managed": "Críticos Gestionados",
+    "severity_managed": "CRÍTICO GESTIONADO"
   },
   "wizard": {
     "title": "¡Bienvenido a NetSentinel! 🛡️",
@@ -540,5 +544,30 @@
     "status_down": "Caído",
     "tooltip_link": "Enlace {{medium}} — Estado: {{status}} ({{source}})",
     "source_deduced": "deducido"
+  },
+  "maintenance": {
+    "modal_title": "Mantenimientos Programados y Reinicios",
+    "modal_desc": "Planifica franjas horarias en las que los dispositivos pueden desconectarse sin generar alarmas.",
+    "active_slots_title": "Franjas de mantenimiento registradas",
+    "btn_add_slot": "Nueva Franja",
+    "form_title": "Definir Nueva Franja Programada",
+    "field_title": "Título / Motivo",
+    "title_placeholder": "ej. Actualización firmware switch core",
+    "field_target": "Destinatario",
+    "target_global": "🌐 Global (Toda la Red)",
+    "devices_group": "Dispositivos Específicos",
+    "field_start": "Fecha y Hora de Inicio",
+    "field_end": "Fecha y Hora de Fin",
+    "field_notes": "Notas Adicionales",
+    "notes_placeholder": "Detalles técnicos",
+    "btn_confirm_slot": "Confirmar Franja",
+    "no_slots": "No hay mantenimientos programados.",
+    "no_slots_desc": "Los dispositivos generarán alertas habituales si se desconectan.",
+    "status_in_progress": "EN CURSO AHORA",
+    "status_concluded": "Concluido",
+    "btn_delete_slot": "Eliminar franja",
+    "footer_hint": "Las desconexiones durante estas franjas se clasifican como Critical Managed.",
+    "btn_device_schedule": "Programar reinicio / mantenimiento para este dispositivo",
+    "confirm_delete": "¿Eliminar esta franja de mantenimiento programado?"
   }
 }

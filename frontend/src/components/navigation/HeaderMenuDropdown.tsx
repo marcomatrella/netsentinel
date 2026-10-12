@@ -10,6 +10,7 @@ import {
   RefreshCw,
   ScrollText,
   Settings,
+  Calendar,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 
@@ -19,6 +20,7 @@ interface HeaderMenuDropdownProps {
   onOpenWizard: () => void;
   onOpenNotificationModal: () => void;
   onOpenSettings: () => void;
+  onOpenMaintenance?: () => void;
   onOpenLogs?: () => void;
   onOpenKiosk: () => void;
   onRefresh: () => void;
@@ -30,6 +32,7 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
   onOpenWizard,
   onOpenNotificationModal,
   onOpenSettings,
+  onOpenMaintenance,
   onOpenLogs,
   onOpenKiosk,
   onRefresh,
@@ -213,6 +216,26 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
                 </div>
               </div>
             </button>
+
+            {/* Manutenzioni Programmate & Riavvii */}
+            {onOpenMaintenance && (
+              <button
+                onClick={() => handleAction(onOpenMaintenance)}
+                className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group"
+              >
+                <div className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-500 dark:text-purple-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                  <Calendar className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                    {t('menu.scheduled_maintenance') || 'Manutenzioni Programmate'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {t('menu.scheduled_maintenance_desc') || 'Pianifica riavvii e stop senza allarmi'}
+                  </div>
+                </div>
+              </button>
+            )}
 
             {/* Fullscreen / Kiosk */}
             <button

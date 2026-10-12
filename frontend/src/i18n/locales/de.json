@@ -72,7 +72,9 @@
     "fullscreen": "Kiosk-Modus / Vollbild",
     "force_refresh": "Aktualisierung erzwingen",
     "system_settings": "Systemeinstellungen & Aufbewahrung",
-    "system_settings_desc": "Datenaufbewahrung und historische Einstellungen konfigurieren"
+    "system_settings_desc": "Datenaufbewahrung und historische Einstellungen konfigurieren",
+    "scheduled_maintenance": "Geplante Wartungen",
+    "scheduled_maintenance_desc": "Neustarts ohne Alarmierung planen"
   },
   "edit_bar": {
     "title": "Bearbeitungsmodus aktiv:",
@@ -293,7 +295,9 @@
       "firmware_update_explanation": "Die Firmware-Version des Geräts hat sich geändert.",
       "packet_loss": "Paketverlust",
       "system_event": "Systemereignis"
-    }
+    },
+    "filter_managed": "Gemanagt Kritisch",
+    "severity_managed": "KRITISCH GEMANAGT"
   },
   "wizard": {
     "title": "Willkommen bei NetSentinel! 🛡️",
@@ -540,5 +544,30 @@
     "status_down": "Down",
     "tooltip_link": "Verbindung {{medium}} — Status: {{status}} ({{source}})",
     "source_deduced": "abgeleitet"
+  },
+  "maintenance": {
+    "modal_title": "Geplante Wartungen & Neustarts",
+    "modal_desc": "Wartungsfenster festlegen, in denen Geräte ohne Alarmkaskaden offline gehen dürfen.",
+    "active_slots_title": "Registrierte Wartungsfenster",
+    "btn_add_slot": "Neues Wartungsfenster",
+    "form_title": "Neues Wartungsfenster definieren",
+    "field_title": "Titel / Grund",
+    "title_placeholder": "z.B. Switch Firmware-Update",
+    "field_target": "Zielbereich",
+    "target_global": "🌐 Global (Gesamtes Netzwerk)",
+    "devices_group": "Bestimmte Geräte",
+    "field_start": "Startdatum und Uhrzeit",
+    "field_end": "Enddatum und Uhrzeit",
+    "field_notes": "Zusätzliche Notizen",
+    "notes_placeholder": "Technische Details",
+    "btn_confirm_slot": "Wartungsfenster bestätigen",
+    "no_slots": "Keine geplanten Wartungsfenster vorhanden.",
+    "no_slots_desc": "Geräte lösen bei Trennung normale Benachrichtigungen aus.",
+    "status_in_progress": "AKTUELL AKTIV",
+    "status_concluded": "Abgeschlossen",
+    "btn_delete_slot": "Fenster löschen",
+    "footer_hint": "Ereignisse in diesen Zeiträumen werden als Critical Managed klassifiziert.",
+    "btn_device_schedule": "Wartung / Neustart für dieses Gerät planen",
+    "confirm_delete": "Dieses Wartungsfenster entfernen?"
   }
 }

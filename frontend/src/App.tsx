@@ -46,6 +46,7 @@ import { NetworkRolesModal } from './components/panels/NetworkRolesModal';
 import { NotificationSettingsModal } from './components/notifications/NotificationSettingsModal';
 import { EventLogsModal } from './components/events/EventLogsModal';
 import { SystemSettingsModal } from './components/modals/SystemSettingsModal';
+import { ScheduledMaintenanceModal } from './components/modals/ScheduledMaintenanceModal';
 import { HeaderMenuDropdown } from './components/navigation/HeaderMenuDropdown';
 import { LanguageSwitcher } from './components/navigation/LanguageSwitcher';
 import { ThemeSwitcher } from './components/navigation/ThemeSwitcher';
@@ -68,6 +69,8 @@ export const App: React.FC = () => {
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [retentionPeriod, setRetentionPeriod] = useState<string>('24h');
+  const [isScheduledMaintenanceOpen, setIsScheduledMaintenanceOpen] = useState<boolean>(false);
+  const [maintenanceTargetDeviceId, setMaintenanceTargetDeviceId] = useState<string | null>(null);
   const [isEventLogsOpen, setIsEventLogsOpen] = useState<boolean>(false);
   const [isKioskMode, setIsKioskMode] = useState<boolean>(false);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
@@ -501,6 +504,10 @@ export const App: React.FC = () => {
               onOpenWizard={() => setIsWizardOpen(true)}
               onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
               onOpenSettings={() => setIsSettingsOpen(true)}
+              onOpenMaintenance={() => {
+                setMaintenanceTargetDeviceId(null);
+                setIsScheduledMaintenanceOpen(true);
+              }}
               onOpenLogs={() => setIsEventLogsOpen(true)}
               onOpenKiosk={() => setIsKioskMode(true)}
               onRefresh={() => loadData()}
@@ -724,6 +731,10 @@ export const App: React.FC = () => {
             onDeleteDevice={isEditMode ? handleDeleteDevice : undefined}
             onUpdateDevice={handleUpdateDevice}
             onRefreshTopology={loadData}
+            onOpenMaintenance={(devId) => {
+              setMaintenanceTargetDeviceId(devId || null);
+              setIsScheduledMaintenanceOpen(true);
+            }}
           />
         )}
 
@@ -807,6 +818,17 @@ export const App: React.FC = () => {
         onRetentionChanged={(newRet) => {
           setRetentionPeriod(newRet);
         }}
+      />
+
+      {/* Scheduled Maintenance Modal */}
+      <ScheduledMaintenanceModal
+        isOpen={isScheduledMaintenanceOpen}
+        onClose={() => {
+          setIsScheduledMaintenanceOpen(false);
+          setMaintenanceTargetDeviceId(null);
+        }}
+        devices={topology?.devices || []}
+        preselectedDeviceId={maintenanceTargetDeviceId}
       />
 
       {/* Event Logs & Diagnostics Modal */}

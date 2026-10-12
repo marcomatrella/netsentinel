@@ -72,7 +72,9 @@
     "toggle_edit_mode": "Passa a Modalità Modifica",
     "toggle_live_view": "Torna a Vista Operativa LIVE",
     "fullscreen": "Modalità Kiosk / Schermo Intero",
-    "force_refresh": "Forza Aggiornamento Dati"
+    "force_refresh": "Forza Aggiornamento Dati",
+    "scheduled_maintenance": "Manutenzioni Programmate",
+    "scheduled_maintenance_desc": "Pianifica riavvii e stop senza allarmi"
   },
   "edit_bar": {
     "title": "Modalità Modifica Attiva:",
@@ -305,7 +307,9 @@
       "firmware_update_explanation": "La versione del firmware dell'apparato è cambiata.",
       "packet_loss": "Perdita pacchetti",
       "system_event": "Evento di sistema"
-    }
+    },
+    "filter_managed": "Critici Gestiti",
+    "severity_managed": "CRITICO GESTITO"
   },
   "wizard": {
     "title": "Benvenuto in NetSentinel! 🛡️",
@@ -540,5 +544,30 @@
     "client": "Client / TV / Workstation",
     "wan_gateway": "Internet WAN Upstream",
     "custom": "Personalizzato"
+  },
+  "maintenance": {
+    "modal_title": "Manutenzioni Programmate & Riavvii",
+    "modal_desc": "Pianifica slot in cui i dispositivi possono andare offline senza generare allarmi.",
+    "active_slots_title": "Slot temporali registrati",
+    "btn_add_slot": "Nuovo Intervento",
+    "form_title": "Definisci Nuovo Slot Programmato",
+    "field_title": "Titolo / Motivo",
+    "title_placeholder": "es. Aggiornamento firmware switch core",
+    "field_target": "Destinatario Intervento",
+    "target_global": "🌐 Globale (Tutta la Rete)",
+    "devices_group": "Apparati Specifici",
+    "field_start": "Data e Ora Inizio",
+    "field_end": "Data e Ora Fine",
+    "field_notes": "Note Aggiuntive",
+    "notes_placeholder": "Eventuali dettagli tecnici o annotazioni",
+    "btn_confirm_slot": "Conferma Intervento",
+    "no_slots": "Nessun intervento programmato presente.",
+    "no_slots_desc": "Gli apparati genereranno normali notifiche e allarmi in caso di disconnessione.",
+    "status_in_progress": "IN CORSO ORA",
+    "status_concluded": "Concluso",
+    "btn_delete_slot": "Elimina slot",
+    "footer_hint": "Gli eventi durante questi intervalli vengono classificati come Critical Managed.",
+    "btn_device_schedule": "Pianifica riavvio / manutenzione per questo apparato",
+    "confirm_delete": "Rimuovere questo slot di manutenzione programmata?"
   }
 }
