@@ -179,10 +179,12 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       {/* Vantage Point Icon */}
       {nodeData.isVantagePoint && (
         <div
-          className={`absolute -top-2.5 ${isOffline ? '-left-2' : '-right-2'} bg-sky-600 text-white p-1 rounded-full shadow z-20`}
+          className={`absolute -top-3.5 ${
+            isOffline ? '-left-3' : '-right-3'
+          } bg-sky-500 text-white p-1.5 rounded-full z-30 ring-2 ring-sky-300 dark:ring-sky-400 vantage-point-glow flex items-center justify-center`}
           title="Vantage Point (Monitor)"
         >
-          <Eye className="w-3 h-3" />
+          <Eye className="w-4 h-4 stroke-[2.5]" />
         </div>
       )}
 
