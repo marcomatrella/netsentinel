@@ -17,3 +17,4 @@ Piattaforma di monitoraggio e Root Cause Analysis per LAN e HomeLab.
 ## Rete & Privilegi
 L'add-on è configurato con `host_network: true` e capability `NET_RAW` per consentire le scansioni ARP e i ping ICMP a bassissimo impatto sulla tua rete locale.
 La Web UI è accessibile sulla porta `8080`.
+

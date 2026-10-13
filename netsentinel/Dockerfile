@@ -22,3 +22,4 @@ exec python3 -m app.main\n' > /entrypoint.sh && chmod +x /entrypoint.sh
 EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
+
