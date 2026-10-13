@@ -9,11 +9,14 @@ arch:
 startup: application
 boot: auto
 host_network: true
-ingress: false
+ingress: true
+ingress_port: 8080
+panel_icon: mdi:shield-network-outline
+panel_title: NetSentinel
 ports:
   8080/tcp: 8080
 ports_description:
-  8080/tcp: Web Interface & API (solo per modalità bridge)
+  8080/tcp: Web Interface & API (opzionale se si usa Ingress)
 webui: "http://[HOST]:[PORT:8080]"
 map:
   - share:rw
