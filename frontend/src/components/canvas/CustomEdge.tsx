@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { BaseEdge, EdgeLabelRenderer, EdgeProps, getSmoothStepPath } from '@xyflow/react';
-import { Zap, Wifi, ShieldAlert } from 'lucide-react';
+import { Zap, Wifi, ShieldAlert, Sparkles, Globe } from 'lucide-react';
 import { LinkMedium, LinkStatus } from '../../types';
 import { useTranslation } from '../../i18n/I18nContext';
 
@@ -27,9 +27,10 @@ const statusStrokeColors: Record<LinkStatus, string> = {
 const pulseColors: Record<string, string> = {
   ethernet: '#10b981', // emerald
   poe: '#f59e0b',      // amber/gold
-  wifi: '#06b6d4',     // cyan
+  wifi: '#06b6d4',     // cyan / air waves
+  fiber: '#38bdf8',    // sky-400 / laser blue
   power: '#eab308',    // yellow
-  wan: '#38bdf8',      // sky
+  wan: '#0284c7',      // sky-600
   virtual: '#a855f7',  // purple
   logical: '#a855f7',
   usb: '#8b5cf6',
@@ -76,30 +77,42 @@ export const CustomEdge = memo(({
     targetX,
     targetY,
     targetPosition,
-    borderRadius: 16,
+    borderRadius: medium === 'wifi' ? 24 : 16,
   });
 
-  const strokeColor = isFault
+  // Base stroke color tailored to status & medium
+  let strokeColor = isFault
     ? '#f43f5e'
     : isDegraded
     ? '#f59e0b'
     : statusStrokeColors[effectiveStatus] || '#10b981';
 
-  const isDashed = medium === 'logical' || effectiveStatus === 'unverified';
-  const strokeWidth = selected ? 3.5 : (isFault ? 3 : isDegraded ? 2.5 : 2);
+  // In normal OK state, give fiber and wifi their distinct palette
+  if (effectiveStatus === 'ok') {
+    if (medium === 'wifi') strokeColor = '#06b6d4';
+    else if (medium === 'fiber') strokeColor = '#38bdf8';
+    else if (medium === 'wan') strokeColor = '#0284c7';
+    else if (medium === 'poe') strokeColor = '#f59e0b';
+  }
+
+  const isWifi = medium === 'wifi';
+  const isFiber = medium === 'fiber';
+  const isDashed = isWifi || medium === 'logical' || effectiveStatus === 'unverified';
+  const strokeWidth = selected ? 3.5 : (isFault ? 3 : isDegraded ? 2.5 : isFiber ? 2.5 : 2);
   const particleColor = isFault ? '#f43f5e' : isDegraded ? '#f59e0b' : (pulseColors[medium] || strokeColor);
 
   return (
     <>
-      {/* Base Cable Path */}
+      {/* Base Cable / Carrier Wave Path */}
       <BaseEdge
         id={id}
         path={edgePath}
         style={{
           stroke: strokeColor,
           strokeWidth,
-          strokeDasharray: isDashed ? '5 5' : undefined,
-          opacity: effectiveStatus === 'unmonitored' ? 0.35 : isFault ? 0.75 : 0.6,
+          strokeDasharray: isWifi ? '4 8' : isDashed ? '5 5' : undefined,
+          strokeLinecap: isWifi ? 'round' : 'square',
+          opacity: effectiveStatus === 'unmonitored' ? 0.35 : isFault ? 0.75 : isWifi ? 0.7 : 0.6,
         }}
       />
 
@@ -110,17 +123,43 @@ export const CustomEdge = memo(({
             d={edgePath}
             fill="none"
             stroke={particleColor}
-            strokeWidth={Math.max(strokeWidth - 0.5, 1.5)}
-            className="flow-active"
-            style={{ opacity: 0.9 }}
+            strokeWidth={isWifi ? strokeWidth + 0.5 : Math.max(strokeWidth - 0.5, 1.5)}
+            className={isWifi ? 'flow-wifi' : isFiber ? 'flow-fiber' : 'flow-active'}
+            style={{
+              opacity: isWifi ? 0.95 : 0.9,
+              filter: isFiber ? 'drop-shadow(0 0 4px #38bdf8)' : undefined,
+            }}
           />
-          <circle r="3" fill={particleColor}>
-            <animateMotion
-              dur={medium === 'wifi' ? '2.8s' : '1.8s'}
-              repeatCount="indefinite"
-              path={edgePath}
-            />
-          </circle>
+
+          {/* Flow Particles */}
+          {isWifi ? (
+            // Wi-Fi Air Packet Ring: expanding pulse representing over-the-air packet
+            <circle r="4" fill="none" stroke={particleColor} strokeWidth="1.5" opacity="0.9">
+              <animateMotion
+                dur="2.2s"
+                repeatCount="indefinite"
+                path={edgePath}
+              />
+            </circle>
+          ) : isFiber ? (
+            // Fiber: Speed-of-light intense photon particle
+            <circle r="3" fill="#ffffff" stroke={particleColor} strokeWidth="1.5">
+              <animateMotion
+                dur="1.0s"
+                repeatCount="indefinite"
+                path={edgePath}
+              />
+            </circle>
+          ) : (
+            // Standard Ethernet / PoE particle
+            <circle r="3" fill={particleColor}>
+              <animateMotion
+                dur="1.8s"
+                repeatCount="indefinite"
+                path={edgePath}
+              />
+            </circle>
+          )}
         </>
       )}
 
@@ -166,6 +205,7 @@ export const CustomEdge = memo(({
         </>
       )}
 
+      {/* Center Link Badge Indicator */}
       <EdgeLabelRenderer>
         <div
           style={{
@@ -173,11 +213,15 @@ export const CustomEdge = memo(({
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
-          className={`flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/90 border px-2 py-0.5 rounded-full text-[10px] text-slate-700 dark:text-slate-300 shadow cursor-pointer transition ${
+          className={`flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/90 border px-2 py-0.5 rounded-full text-[10px] text-slate-700 dark:text-slate-300 shadow cursor-pointer transition select-none ${
             isFault
               ? 'border-rose-500/90 text-rose-600 dark:text-rose-300 shadow-rose-950/40 ring-1 ring-rose-500/40'
               : isDegraded
               ? 'border-amber-500/90 text-amber-600 dark:text-amber-300 shadow-amber-950/40 ring-1 ring-amber-500/40'
+              : isWifi
+              ? 'border-cyan-500/70 dark:border-cyan-500/60 text-cyan-600 dark:text-cyan-300 shadow-cyan-950/20'
+              : isFiber
+              ? 'border-sky-500/70 dark:border-sky-500/60 text-sky-600 dark:text-sky-300 shadow-sky-950/20'
               : 'border-emerald-500/60 dark:border-emerald-600/60 hover:border-emerald-400 hover:text-slate-900 dark:hover:text-white'
           }`}
           title={t('custom_edge.tooltip_link', {
@@ -188,11 +232,15 @@ export const CustomEdge = memo(({
         >
           {medium === 'poe' && <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />}
           {medium === 'power' && <Zap className="w-3 h-3 text-yellow-500 dark:text-yellow-400" />}
-          {medium === 'wifi' && <Wifi className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />}
+          {medium === 'wifi' && <Wifi className="w-3 h-3 text-cyan-500 dark:text-cyan-400 animate-pulse" />}
+          {medium === 'fiber' && <Sparkles className="w-3 h-3 text-sky-400 fill-sky-400/30" />}
+          {medium === 'wan' && <Globe className="w-3 h-3 text-sky-500" />}
           {isFault && <ShieldAlert className="w-3 h-3 text-rose-500 dark:text-rose-400 animate-bounce" />}
           {isDegraded && <ShieldAlert className="w-3 h-3 text-amber-500 dark:text-amber-400 animate-pulse" />}
           
-          <span className="font-mono text-[9px] uppercase font-bold">{medium}</span>
+          <span className="font-mono text-[9px] uppercase font-bold tracking-tight">
+            {medium === 'fiber' ? 'FIBRA' : medium === 'wifi' ? 'WI-FI' : medium}
+          </span>
 
           {effectiveStatus === 'ok' && (
             <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
@@ -220,7 +268,7 @@ export const CustomEdge = memo(({
           )}
 
           {(edgeData.fromPort || edgeData.toPort) && (
-            <span className="text-slate-500 dark:text-slate-400 text-[8px] border-l border-slate-300 dark:border-slate-700 pl-1">
+            <span className="text-slate-500 dark:text-slate-400 text-[8px] border-l border-slate-300 dark:border-slate-700 pl-1 font-mono">
               {edgeData.fromPort ? `p${edgeData.fromPort}` : ''}
               {edgeData.fromPort && edgeData.toPort ? '→' : ''}
               {edgeData.toPort ? `p${edgeData.toPort}` : ''}

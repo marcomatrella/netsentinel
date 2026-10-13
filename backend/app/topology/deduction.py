@@ -56,7 +56,7 @@ def deduce_dependencies_from_topology(
     for d in devices:
         phys_g.add_node(d.id)
 
-    physical_mediums = {"ethernet", "poe", "wifi", "wan"}
+    physical_mediums = {"ethernet", "poe", "wifi", "wan", "fiber"}
     for link in links:
         if link.medium in physical_mediums:
             phys_g.add_edge(link.from_device_id, link.to_device_id, link=link)
@@ -161,12 +161,13 @@ def deduce_dependencies_from_topology(
                 reason=reason,
             ))
 
-        # Rule: WAN (Gateway -> WAN Provider)
-        elif link.medium == "wan":
+        # Rule: WAN / Fiber (Gateway -> WAN Provider)
+        elif link.medium in ("wan", "fiber"):
+            medium_label = "in Fibra Ottica" if link.medium == "fiber" else "WAN"
             # If src is wan_gateway and dst is router
             if src_dev.kind == "wan_gateway":
                 dep_id = f"dep-wan-{dst_id}-{src_id}"
-                reason = f"Dedotta perché '{dst_dev.name}' riceve accesso a Internet da '{src_dev.name}'."
+                reason = f"Dedotta perché '{dst_dev.name}' riceve accesso a Internet ({medium_label}) da '{src_dev.name}'."
                 deduced_list.append(DependencyCreate(
                     id=dep_id,
                     dependent_id=dst_id,
@@ -178,7 +179,7 @@ def deduce_dependencies_from_topology(
                 ))
             else:
                 dep_id = f"dep-wan-{src_id}-{dst_id}"
-                reason = f"Dedotta perché '{src_dev.name}' riceve accesso a Internet da '{dst_dev.name}'."
+                reason = f"Dedotta perché '{src_dev.name}' riceve accesso a Internet ({medium_label}) da '{dst_dev.name}'."
                 deduced_list.append(DependencyCreate(
                     id=dep_id,
                     dependent_id=src_id,
@@ -189,14 +190,21 @@ def deduce_dependencies_from_topology(
                     reason=reason,
                 ))
 
-        # Rule: Wi-Fi (AP -> Clients)
+        # Rule: Wi-Fi (AP / Router -> Clients or Downstream AP)
         elif link.medium == "wifi":
-            dep_id = f"dep-wifi-{dst_id}-{src_id}"
-            reason = f"Dedotta perché il gruppo client '{dst_dev.name}' è connesso via Wi-Fi all'Access Point '{src_dev.name}'."
+            rank_src = _get_device_rank(src_dev)
+            rank_dst = _get_device_rank(dst_dev)
+            if rank_src > rank_dst:
+                dep_dev, prov_dev = src_dev, dst_dev
+            else:
+                dep_dev, prov_dev = dst_dev, src_dev
+
+            dep_id = f"dep-wifi-{dep_dev.id}-{prov_dev.id}"
+            reason = f"Dedotta perché '{dep_dev.name}' è connesso via Wi-Fi a '{prov_dev.name}'."
             deduced_list.append(DependencyCreate(
                 id=dep_id,
-                dependent_id=dst_id,
-                provider_id=src_id,
+                dependent_id=dep_dev.id,
+                provider_id=prov_dev.id,
                 kind="l2_path",
                 strength="hard",
                 source="inferred",

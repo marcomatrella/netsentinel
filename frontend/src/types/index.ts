@@ -35,6 +35,7 @@ export type LinkMedium =
   | 'ethernet'
   | 'poe'
   | 'wifi'
+  | 'fiber'
   | 'wan'
   | 'power'
   | 'logical';

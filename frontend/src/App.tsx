@@ -477,6 +477,61 @@ export const App: React.FC = () => {
     });
   };
 
+  // Update link properties (medium, poe, notes) and persist to backend
+  const handleUpdateLink = async (linkId: string, updated: Partial<Link>) => {
+    if (!topology) return;
+    const nextLinks = topology.links.map((l) => (l.id === linkId ? { ...l, ...updated } : l));
+    const nextSelected = selectedLink && selectedLink.id === linkId ? { ...selectedLink, ...updated } : selectedLink;
+    setTopology({
+      ...topology,
+      links: nextLinks,
+    });
+    if (nextSelected) setSelectedLink(nextSelected);
+
+    // Auto-persist changes to backend if not actively in edit mode (or in edit mode)
+    try {
+      const vp =
+        topology.vantage_point_id ||
+        (topology.devices[0] ? topology.devices[0].id : 'nas-server');
+
+      const deducedDeps = await deduceDependencies({
+        vantage_point_id: vp,
+        devices: topology.devices.map((d) => ({
+          id: d.id,
+          name: d.name,
+          kind: d.kind,
+          roles: d.roles,
+        })),
+        links: nextLinks.map((l) => ({
+          id: l.id,
+          from: l.from_device_id,
+          to: l.to_device_id,
+          medium: l.medium,
+          poe: l.poe,
+        })),
+      });
+
+      const currentLayout = topology.layout || {
+        id: 'default',
+        nodes: [],
+        edges: [],
+        groups: [],
+        updated_at: new Date().toISOString(),
+      };
+
+      await applyTopology({
+        vantage_point_id: vp,
+        description: `Aggiornato collegamento ${linkId}`,
+        devices: topology.devices,
+        links: nextLinks,
+        dependencies: deducedDeps,
+        layout: currentLayout,
+      });
+    } catch (err) {
+      console.error('Errore aggiornamento link:', err);
+    }
+  };
+
   // Delete link from topology
   const handleDeleteLink = (linkId: string) => {
     if (!topology) return;
@@ -1004,6 +1059,7 @@ export const App: React.FC = () => {
             link={selectedLink}
             devices={topology.devices}
             onClose={() => setSelectedLink(null)}
+            onUpdateLink={handleUpdateLink}
             onDeleteLink={isEditMode ? handleDeleteLink : undefined}
           />
         )}

@@ -20,7 +20,7 @@ import { Hand, BoxSelect, Trash2 } from 'lucide-react';
 
 import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
-import { Device, Link, Incident, CanvasLayout, SimulationResponse } from '../../types';
+import { Device, Link, Incident, CanvasLayout, SimulationResponse, LinkMedium } from '../../types';
 import { getLayoutedElements } from '../../utils/elkLayout';
 import { useTheme } from '../../theme/ThemeContext';
 import { getDeviceColorId, getDefaultColorForKind } from '../../constants/colors';
@@ -310,12 +310,39 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   const onConnect = useCallback(
     (params: Connection) => {
       if (!params.source || !params.target) return;
+      const srcDev = devices.find((d) => d.id === params.source);
+      const dstDev = devices.find((d) => d.id === params.target);
+
+      // Intelligent default medium deduction
+      let inferredMedium: LinkMedium = 'ethernet';
+      let inferredPoe = false;
+
+      const isWanSrc = srcDev?.kind === 'wan_gateway' || srcDev?.kind === 'modem';
+      const isWanDst = dstDev?.kind === 'wan_gateway' || dstDev?.kind === 'modem';
+      const isApOrClientSrc = srcDev?.kind === 'access_point' || srcDev?.kind === 'client';
+      const isApOrClientDst = dstDev?.kind === 'access_point' || dstDev?.kind === 'client';
+
+      if (isWanSrc || isWanDst) {
+        inferredMedium = 'fiber';
+      } else if (
+        (srcDev?.kind === 'access_point' && dstDev?.kind === 'client') ||
+        (dstDev?.kind === 'access_point' && srcDev?.kind === 'client')
+      ) {
+        inferredMedium = 'wifi';
+      } else if (
+        (srcDev?.kind === 'switch' || srcDev?.kind === 'poe_injector') &&
+        (dstDev?.kind === 'access_point' || dstDev?.kind === 'camera')
+      ) {
+        inferredMedium = 'poe';
+        inferredPoe = true;
+      }
+
       const newEdgeId = `lnk-${params.source}-${params.target}-${Math.floor(Math.random() * 1000)}`;
       const newEdge: Edge = {
         ...params,
         id: newEdgeId,
         type: 'customEdge',
-        data: { medium: 'ethernet', status: 'ok' },
+        data: { medium: inferredMedium, poe: inferredPoe, status: 'ok' },
       };
       setEdges((eds) => addEdge(newEdge, eds));
       if (onConnectLink) {
@@ -323,14 +350,14 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           id: newEdgeId,
           from_device_id: params.source,
           to_device_id: params.target,
-          medium: 'ethernet',
-          poe: false,
+          medium: inferredMedium,
+          poe: inferredPoe,
           status: 'ok',
           updated_at: new Date().toISOString(),
         });
       }
     },
-    [setEdges, onConnectLink]
+    [devices, setEdges, onConnectLink]
   );
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
