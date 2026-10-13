@@ -99,11 +99,10 @@ async def event_generator() -> AsyncGenerator[str, None]:
                     now_utc = utcnow()
                     maint_stmt = select(ScheduledMaintenanceWindow).where(
                         ScheduledMaintenanceWindow.enabled.is_(True),
-                        ScheduledMaintenanceWindow.start_ts <= now_utc,
-                        ScheduledMaintenanceWindow.end_ts >= now_utc,
                     )
                     maint_res = await session.execute(maint_stmt)
-                    active_windows = maint_res.scalars().all()
+                    all_windows = maint_res.scalars().all()
+                    active_windows = [w for w in all_windows if maintenance_tracker.is_window_active_at(w, now_utc)]
 
                     global_maint = None
                     active_device_maint = []

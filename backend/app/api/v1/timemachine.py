@@ -14,6 +14,7 @@ from app.db.models import (
     to_utc_iso,
 )
 from app.db.session import get_db
+from app.state.maintenance import maintenance_tracker
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -218,11 +219,10 @@ async def get_historical_snapshot(
         global_maint_win = None
         maint_query = select(ScheduledMaintenanceWindow).where(
             ScheduledMaintenanceWindow.enabled.is_(True),
-            ScheduledMaintenanceWindow.start_ts <= t_clean,
-            ScheduledMaintenanceWindow.end_ts >= t_clean,
         )
         maint_all_res = await db.execute(maint_query)
-        all_active_maint = maint_all_res.scalars().all()
+        all_windows = maint_all_res.scalars().all()
+        all_active_maint = [mw for mw in all_windows if maintenance_tracker.is_window_active_at(mw, t_clean)]
         active_dev_maint_list = []
         for mw in all_active_maint:
             mw_info = {

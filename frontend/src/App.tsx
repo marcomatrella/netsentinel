@@ -983,6 +983,7 @@ export const App: React.FC = () => {
               activeMaintenanceWindows={activeScheduledMaintenance.active_device_windows}
               layout={topology.layout}
               isEditMode={isEditMode}
+              isKioskMode={isKioskMode}
               onSelectDevice={handleSelectDevice}
               onSelectLink={handleSelectLink}
               onConnectLink={handleConnectLink}

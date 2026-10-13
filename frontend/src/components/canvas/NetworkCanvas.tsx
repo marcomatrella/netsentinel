@@ -34,6 +34,7 @@ interface NetworkCanvasProps {
   activeMaintenanceWindows?: any[];
   layout?: CanvasLayout | null;
   isEditMode?: boolean;
+  isKioskMode?: boolean;
   onSelectDevice?: (device: Device | null) => void;
   onSelectLink?: (link: Link | null) => void;
   onLayoutChange?: (layout: CanvasLayout) => void;
@@ -51,6 +52,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   activeMaintenanceWindows = [],
   layout,
   isEditMode = false,
+  isKioskMode = false,
   onSelectDevice,
   onSelectLink,
   onLayoutChange,
@@ -546,7 +548,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       onDrop={isEditMode ? onDrop : undefined}
     >
       {/* Top-Left Tool Selector: Hand (Pan) & Dotted Box (Selection) */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+      <div className={`absolute ${isKioskMode ? 'top-16' : 'top-4'} left-4 z-20 flex items-center gap-2 transition-all duration-200`}>
         <div className="flex items-center p-1 bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg backdrop-blur-md">
           {/* Tool 1: Pan / Drag (Hand) */}
           <button
