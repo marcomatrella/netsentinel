@@ -13,22 +13,23 @@ ingress: false
 ports:
   8080/tcp: 8080
 ports_description:
-  8080/tcp: Web Interface & API
+  8080/tcp: Web Interface & API (solo per modalità bridge)
 webui: "http://[HOST]:[PORT:8080]"
 map:
   - share:rw
   - config:rw
 schema:
+  port: port?
   subnet: str?
   auth_enabled: bool?
   timezone: str?
 options:
+  port: 8080
   subnet: ""
   auth_enabled: false
   timezone: "Europe/Rome"
 environment:
   NETSENTINEL_DATA_DIR: "/data"
-  NETSENTINEL_PORT: "8080"
 privileged:
   - NET_ADMIN
   - NET_RAW

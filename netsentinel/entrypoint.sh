@@ -8,6 +8,11 @@ if [ -f /data/options.json ]; then
         export NETSENTINEL_SUBNET="$SUBNET"
     fi
 
+    PORT=$(python3 -c "import json; print(json.load(open('/data/options.json')).get('port', ''))" 2>/dev/null || true)
+    if [ -n "$PORT" ]; then
+        export NETSENTINEL_PORT="$PORT"
+    fi
+
     TIMEZONE=$(python3 -c "import json; print(json.load(open('/data/options.json')).get('timezone', ''))" 2>/dev/null || true)
     if [ -n "$TIMEZONE" ]; then
         export TZ="$TIMEZONE"
