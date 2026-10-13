@@ -188,6 +188,22 @@ docker run -d \
   ghcr.io/marcomatrella/netsentinel:latest
 ```
 
+### Option 3: Home Assistant OS (HAOS Add-on) 🏠
+
+NetSentinel can be installed directly as an official **Add-on in Home Assistant OS**:
+
+1. In Home Assistant, navigate to **Settings** ➔ **Add-ons** ➔ **Add-on Store** (bottom-right).
+2. Click the top-right menu icon (**⋮**) ➔ **Repositories**.
+3. Add this repository URL:
+   ```text
+   https://github.com/marcomatrella/netsentinel
+   ```
+4. Search for **NetSentinel** in the store, click **Install**, and then **Start**.
+5. Click **Open Web UI** or browse to `http://<YOUR_HOME_ASSISTANT_IP>:8080`.
+
+> [!TIP]
+> Running NetSentinel on Home Assistant OS (typically on SSD / NVMe / Mini PC) is ideal for preventing spin-up / waking mechanical hard drives on your NAS, keeping your storage pool quiet and hibernate-friendly.
+
 ---
 
 ## ✨ Features & Capabilities
