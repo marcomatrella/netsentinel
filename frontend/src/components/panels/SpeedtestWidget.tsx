@@ -164,19 +164,26 @@ export const SpeedtestWidget: React.FC<SpeedtestWidgetProps> = ({ deviceName }) 
       </div>
 
       {/* Server Selection Dropdown */}
-      <div className="mb-3 flex items-center gap-2 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80 text-[11px]">
-        <Server className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-        <span className="text-slate-400 font-medium shrink-0">
-          {t('device_detail.speedtest_server_label', { defaultValue: 'Server di Test:' })}
-        </span>
+      <div className="mb-3 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80 text-[11px] flex flex-col gap-1.5 min-w-0">
+        <div className="flex items-center justify-between text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <Server className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+            <span className="font-semibold text-slate-300">
+              {t('device_detail.speedtest_server_label', { defaultValue: 'Server di Test' })}
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-500 font-mono">
+            {servers.length} disponibili
+          </span>
+        </div>
         <select
           value={selectedServerId}
           onChange={(e) => setSelectedServerId(e.target.value)}
           disabled={isRunning}
-          className="flex-1 bg-slate-850 hover:bg-slate-800 border border-slate-700/80 rounded-lg px-2 py-1 text-slate-200 text-[11px] font-medium focus:outline-none focus:border-sky-500 disabled:opacity-50 cursor-pointer"
+          className="w-full max-w-full bg-slate-900 hover:bg-slate-850 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-slate-200 text-[11px] font-medium focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50 cursor-pointer truncate"
         >
           {servers.map((s) => (
-            <option key={s.id} value={s.id} className="bg-slate-900 text-slate-100">
+            <option key={s.id} value={s.id} className="bg-slate-900 text-slate-100 py-1">
               {s.name} ({s.city})
             </option>
           ))}

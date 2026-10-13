@@ -17,11 +17,11 @@ logger = logging.getLogger("netsentinel.api.speedtest")
 router = APIRouter(prefix="/speedtest", tags=["Speedtest"])
 
 SPEEDTEST_HEADERS = {
-    "User-Agent": "curl/8.7.1",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "Accept": "*/*",
 }
 
-# Curated high-performance test servers in Italy and major hubs
+# Curated high-performance test servers in Italy and major European hubs
 SPEEDTEST_SERVERS: list[dict[str, Any]] = [
     {
         "id": "auto",
@@ -31,6 +31,16 @@ SPEEDTEST_SERVERS: list[dict[str, Any]] = [
         "country": "IT",
         "type": "cloudflare",
         "base_url": "https://speed.cloudflare.com",
+    },
+    # Roma & Centro Italia
+    {
+        "id": "roma_fastweb",
+        "name": "Fastweb (Roma)",
+        "sponsor": "Fastweb SpA",
+        "city": "Roma",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://spd-pub-rm-01-01.fastwebnet.it:8080/speedtest",
     },
     {
         "id": "roma_iliad",
@@ -51,6 +61,43 @@ SPEEDTEST_SERVERS: list[dict[str, Any]] = [
         "base_url": "http://speedtestrm1.vodafone.it:8080/speedtest",
     },
     {
+        "id": "roma_unidata",
+        "name": "Unidata (Roma)",
+        "sponsor": "Unidata S.p.A.",
+        "city": "Roma",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://speedtest.unidata.it:8080/speedtest",
+    },
+    {
+        "id": "roma_dimensione",
+        "name": "Dimensione (Roma)",
+        "sponsor": "Dimensione",
+        "city": "Roma",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://speed-rm.dimensione.com:8080/speedtest",
+    },
+    {
+        "id": "roma_sky",
+        "name": "Sky Wifi (Roma)",
+        "sponsor": "Sky Wifi",
+        "city": "Roma",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://speedt-rm.skycdn.it:8080/speedtest",
+    },
+    {
+        "id": "roma_warian",
+        "name": "WARIAN (Roma)",
+        "sponsor": "WARIAN",
+        "city": "Roma",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://rm.speedtest.warian.net:8080/speedtest",
+    },
+    # Milano & Nord Italia
+    {
         "id": "milano_iliad",
         "name": "Iliad Italia (Milano)",
         "sponsor": "Iliad Italia S.p.A.",
@@ -69,6 +116,70 @@ SPEEDTEST_SERVERS: list[dict[str, Any]] = [
         "base_url": "http://test.eolo.it:8080/speedtest",
     },
     {
+        "id": "milano_cdlan",
+        "name": "CDLAN (Milano)",
+        "sponsor": "CDLAN Srl",
+        "city": "Milano",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://speedtest.cdlan.net:8080/speedtest",
+    },
+    {
+        "id": "milano_fibertelecom",
+        "name": "Fiber Telecom (Milano)",
+        "sponsor": "Fiber Telecom SPA",
+        "city": "Milano",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://test2.fibertelecom.it:8080/speedtest",
+    },
+    {
+        "id": "milano_cloudfire",
+        "name": "Cloudfire (Milano)",
+        "sponsor": "Cloudfire Srl",
+        "city": "Milano",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://speedtest-mi1.cloudfire.it:8080/speedtest",
+    },
+    {
+        "id": "milano_mynet",
+        "name": "Mynet (Milano)",
+        "sponsor": "Mynet",
+        "city": "Milano",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://st06.mynet.it:8080/speedtest",
+    },
+    {
+        "id": "milano_sky",
+        "name": "Sky Wifi (Milano)",
+        "sponsor": "Sky Wifi",
+        "city": "Milano",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://speedt-mi.skycdn.it:8080/speedtest",
+    },
+    {
+        "id": "milano_warian",
+        "name": "WARIAN (Milano)",
+        "sponsor": "WARIAN",
+        "city": "Milano",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://mi.speedtest.warian.net:8080/speedtest",
+    },
+    {
+        "id": "verona_airnetwork",
+        "name": "Airnetwork (Verona)",
+        "sponsor": "Airnetwork",
+        "city": "Verona",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://speedtest.airnetwork.it:8080/speedtest",
+    },
+    # Napoli & Sud Italia
+    {
         "id": "napoli_fastweb",
         "name": "Fastweb (Napoli)",
         "sponsor": "Fastweb SpA",
@@ -76,6 +187,34 @@ SPEEDTEST_SERVERS: list[dict[str, Any]] = [
         "country": "IT",
         "type": "ookla",
         "base_url": "http://cmp1-ookla.perf.fastedge.it:8080/speedtest",
+    },
+    {
+        "id": "napoli_warian",
+        "name": "WARIAN (Napoli)",
+        "sponsor": "WARIAN",
+        "city": "Napoli",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://na.speedtest.warian.net:8080/speedtest",
+    },
+    {
+        "id": "aversa_wiber",
+        "name": "Wiber (Aversa/Napoli)",
+        "sponsor": "Wiber",
+        "city": "Aversa",
+        "country": "IT",
+        "type": "ookla",
+        "base_url": "http://test4.wiber.it:8080/speedtest",
+    },
+    # Europa & Connettività Estera
+    {
+        "id": "zurigo_init7",
+        "name": "Init7 (Zurigo)",
+        "sponsor": "Init7 AG",
+        "city": "Zurigo",
+        "country": "CH",
+        "type": "ookla",
+        "base_url": "http://speedtest.init7.net:8080/speedtest",
     },
 ]
 
@@ -104,7 +243,7 @@ async def _run_speedtest_generator(server_id: str = "auto") -> AsyncGenerator[st
         yield f"data: {json.dumps({'stage': 'init', 'progress': 5, 'message': f'Connessione a {srv_name}...'})}\n\n"
         await asyncio.sleep(0.05)
 
-        async with httpx.AsyncClient(headers=SPEEDTEST_HEADERS, timeout=25.0) as client:
+        async with httpx.AsyncClient(headers=SPEEDTEST_HEADERS, timeout=25.0, follow_redirects=True, verify=False) as client:
             is_ookla = target_server["type"] == "ookla"
             base_url = target_server["base_url"]
 
