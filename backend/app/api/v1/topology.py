@@ -230,6 +230,8 @@ async def apply_topology(payload: TopologyApplyRequest, db: AsyncSession = Depen
             dev.roles_json = json.dumps(d_data["roles"])
         if "tags" in d_data:
             dev.tags_json = json.dumps(d_data["tags"])
+        if "notes" in d_data:
+            dev.notes = d_data["notes"]
 
     await db.flush()
 

@@ -729,9 +729,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
         {/* Tab 1: Guided Configuration */}
         {activeTab === 'guided' && (
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {/* Step Pills */}
-            <div className="px-6 py-2.5 bg-slate-950/40 border-b border-slate-800 flex items-center justify-between text-xs">
+            <div className="px-6 py-2.5 bg-slate-950/40 border-b border-slate-800 flex items-center justify-between text-xs shrink-0">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setGuidedStep(1)}
@@ -776,9 +776,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
             {/* Step 1: Manage Devices */}
             {guidedStep === 1 && (
-              <div className="flex-1 overflow-hidden grid grid-cols-12 p-6 gap-6">
+              <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 md:grid-cols-12 p-4 md:p-6 gap-6">
                 {/* Left: Device Adder Form */}
-                <div className="col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
+                <div className="md:col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
                   <div className="space-y-3 text-xs">
                     <h3 className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
                       {editingDeviceId ? (
@@ -967,7 +967,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 </div>
 
                 {/* Right: Configured Devices List */}
-                <div className="col-span-7 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden">
+                <div className="md:col-span-7 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
                   <div>
                     <div className="flex items-center justify-between mb-3 gap-2">
                       <div>
@@ -1193,7 +1193,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                     )}
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800 flex justify-end">
+                  <div className="pt-3 border-t border-slate-800 flex justify-end shrink-0">
                     <button
                       onClick={() => {
                         if (links.length === 0) handleAutoSuggestLinks();
@@ -1211,9 +1211,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
             {/* Step 2: Manage Links / Relationships */}
             {guidedStep === 2 && (
-              <div className="flex-1 overflow-hidden grid grid-cols-12 p-6 gap-6">
+              <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 md:grid-cols-12 p-4 md:p-6 gap-6">
                 {/* Left: Link Creator */}
-                <div className="col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
+                <div className="md:col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
                   <div className="space-y-3.5 text-xs">
                     <h3 className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
                       <Network className="w-4 h-4 text-sky-400" /> Crea Collegamento Fisico o Logico
@@ -1305,7 +1305,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 </div>
 
                 {/* Right: Existing Links List */}
-                <div className="col-span-7 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden">
+                <div className="md:col-span-7 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between overflow-y-auto">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-bold text-slate-200 text-sm">Collegamenti Stabiliti ({links.length})</h3>
@@ -1353,7 +1353,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800 flex justify-between">
+                  <div className="pt-3 border-t border-slate-800 flex justify-between shrink-0">
                     <button
                       onClick={() => setGuidedStep(1)}
                       className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition flex items-center gap-1.5 text-xs"
@@ -1374,7 +1374,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
             {/* Step 3: Vantage Point and Network Roles */}
             {guidedStep === 3 && (
-              <div className="flex-1 p-6 flex flex-col justify-between max-w-2xl mx-auto w-full">
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 flex flex-col justify-between max-w-2xl mx-auto w-full">
                 <div className="space-y-4">
                   <h3 className="font-bold text-slate-100 text-base">3. Ruoli di Rete e Vantage Point</h3>
                   <p className="text-xs text-slate-400 leading-relaxed">
@@ -1402,7 +1402,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                       </select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/80">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80">
                       <div>
                         <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
                           <Globe className="w-3.5 h-3.5 text-cyan-400 stroke-[2.5]" />
@@ -1487,7 +1487,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-800 flex justify-between">
+                <div className="pt-4 mt-4 border-t border-slate-800 flex justify-between shrink-0">
                   <button
                     onClick={() => setGuidedStep(2)}
                     className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition flex items-center gap-1.5 text-xs"

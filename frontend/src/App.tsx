@@ -35,6 +35,7 @@ import {
   applyTopology,
   deduceDependencies,
   updateDevice,
+  createDevice,
   deleteDevice,
   batchDeleteDevices,
   setupSSEStream,
@@ -376,13 +377,60 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Update device in topology
+  // Update device in topology (staged locally in Edit Mode, or persisted via API in Live Mode)
   const handleUpdateDevice = async (deviceId: string, updatedData: Partial<Device>) => {
     if (!topology) return;
+
+    const isNewDns = updatedData.roles?.includes('dns_resolver');
+    const isNewDhcp = updatedData.roles?.includes('dhcp_server');
+
+    // In Edit Mode: stage device updates locally in canvas topology state
+    if (isEditMode) {
+      setTopology((prev) => {
+        if (!prev) return prev;
+        const newDevs = prev.devices.map((d) => {
+          if (d.id === deviceId) return { ...d, ...updatedData };
+          let roles = d.roles || [];
+          if (isNewDns && roles.includes('dns_resolver')) {
+            roles = roles.filter((r) => r !== 'dns_resolver');
+          }
+          if (isNewDhcp && roles.includes('dhcp_server')) {
+            roles = roles.filter((r) => r !== 'dhcp_server');
+          }
+          return { ...d, roles };
+        });
+        return { ...prev, devices: newDevs };
+      });
+      setSelectedDevice((prev) => (prev && prev.id === deviceId ? { ...prev, ...updatedData } : prev));
+      return;
+    }
+
+    // In Live Mode: persist to backend
     try {
-      const updated = await updateDevice(deviceId, updatedData);
-      const isNewDns = updatedData.roles?.includes('dns_resolver');
-      const isNewDhcp = updatedData.roles?.includes('dhcp_server');
+      let updated: Device;
+      const existing = topology.devices.find((d) => d.id === deviceId);
+
+      try {
+        updated = await updateDevice(deviceId, updatedData);
+      } catch (err: any) {
+        // If device was not found in DB (e.g. freshly created client-side), create it
+        if (err.message && (err.message.includes('404') || err.message.includes('non trovato') || err.message.includes('Not Found')) && existing) {
+          const createPayload = {
+            id: deviceId,
+            name: updatedData.name || existing.name,
+            kind: updatedData.kind || existing.kind,
+            location: updatedData.location !== undefined ? updatedData.location : existing.location,
+            criticality: updatedData.criticality ?? existing.criticality ?? 3,
+            addresses: updatedData.addresses || existing.addresses || {},
+            tags: updatedData.tags || existing.tags || [],
+            roles: updatedData.roles || existing.roles || [],
+            notes: updatedData.notes !== undefined ? updatedData.notes : existing.notes,
+          };
+          updated = await createDevice(createPayload);
+        } else {
+          throw err;
+        }
+      }
 
       setTopology((prev) => {
         if (!prev) return prev;
