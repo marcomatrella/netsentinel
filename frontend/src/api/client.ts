@@ -450,11 +450,26 @@ export interface SpeedtestEvent {
   timestamp?: number;
 }
 
+export interface SpeedtestServer {
+  id: string;
+  name: string;
+  sponsor: string;
+  city: string;
+  country: string;
+}
+
+export async function fetchSpeedtestServers(): Promise<SpeedtestServer[]> {
+  const res = await fetch(`${API_BASE}/speedtest/servers`);
+  if (!res.ok) throw new Error('Errore caricamento lista server speedtest.');
+  return res.json();
+}
+
 export function runSpeedtestStream(
   onEvent: (ev: SpeedtestEvent) => void,
-  onError?: (err: any) => void
+  onError?: (err: any) => void,
+  serverId: string = 'auto'
 ): () => void {
-  const es = new EventSource(`${API_BASE}/speedtest/run`);
+  const es = new EventSource(`${API_BASE}/speedtest/run?server_id=${encodeURIComponent(serverId)}`);
 
   es.onmessage = (e) => {
     try {
