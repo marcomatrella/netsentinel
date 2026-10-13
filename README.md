@@ -18,10 +18,10 @@
 </div>
 
 > [!WARNING]
-> **Progetto in sviluppo attivo / Early Stage**  
-> NetSentinel è un progetto recente ed è in continua e rapida evoluzione. Potrebbero verificarsi bug, anomalie o comportamenti indesiderati.  
-> - Se riscontri problemi o comportamenti imprevisti, ti invitiamo ad **aprire una Issue** su GitHub descrivendo l'accaduto.
-> - Contributi e suggerimenti sono i benvenuti! Sentiti libero di effettuare un **fork** del repository e proporre una **Pull Request** per risolvere problemi o implementare nuove funzionalità.
+> **Active Development / Early Stage Project**  
+> NetSentinel is a recently created project in rapid and continuous development. Bugs, unexpected behaviors, or edge cases may occur.  
+> - If you encounter any bugs or unexpected issues, please feel free to **open a GitHub Issue** detailing what happened.  
+> - Contributions, ideas, and suggestions are warmly welcome! You are invited to **fork** the repository and submit a **Pull Request** to fix issues or introduce new features.
 
 ---
 
