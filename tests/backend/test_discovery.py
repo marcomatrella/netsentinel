@@ -33,3 +33,30 @@ async def test_network_scan_endpoint():
         data = resp.json()
         assert "devices" in data
         assert isinstance(data["devices"], list)
+
+
+@pytest.mark.asyncio
+async def test_batch_delete_devices_endpoint():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # Create a test device first
+        create_resp = await client.post(
+            "/api/v1/devices",
+            json={
+                "id": "test-batch-del-dev-1",
+                "name": "Test Batch Delete Device",
+                "kind": "client",
+                "roles": ["passive_tracking"],
+                "addresses": {"ip": "192.168.1.249"},
+            },
+        )
+        assert create_resp.status_code in [200, 201]
+
+        # Call batch delete
+        del_resp = await client.post(
+            "/api/v1/devices/batch-delete",
+            json={"device_ids": ["test-batch-del-dev-1"]},
+        )
+        assert del_resp.status_code == 200
+        del_data = del_resp.json()
+        assert del_data["deleted_count"] == 1
+        assert "test-batch-del-dev-1" in del_data["deleted_ids"]

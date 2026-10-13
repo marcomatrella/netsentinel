@@ -345,7 +345,7 @@ async def batch_delete_devices(
             pass
 
     # 3. Resolve any active incidents targeting these deleted devices
-    from app.incidents.manager import incident_manager
+    from app.correlation.incident_manager import incident_manager
     inc_res = await db.execute(
         select(Incident).where(
             Incident.status.in_(["open", "monitoring"]),
@@ -392,7 +392,7 @@ async def delete_device(device_id: str, db: AsyncSession = Depends(get_db)) -> N
             pass
 
     # Resolve any incident for this device
-    from app.incidents.manager import incident_manager
+    from app.correlation.incident_manager import incident_manager
     inc_res = await db.execute(
         select(Incident).where(
             Incident.status.in_(["open", "monitoring"]),
