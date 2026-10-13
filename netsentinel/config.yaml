@@ -1,5 +1,5 @@
 name: "NetSentinel"
-description: "Piattaforma di monitoraggio e Root Cause Analysis per LAN e HomeLab"
+description: "Topology-aware network monitoring and Root Cause Analysis for LAN and HomeLab"
 version: "1.1.2"
 slug: "netsentinel"
 init: false
@@ -16,7 +16,7 @@ panel_title: NetSentinel
 ports:
   8080/tcp: 8080
 ports_description:
-  8080/tcp: Web Interface & API (opzionale se si usa Ingress)
+  8080/tcp: Web Interface & API (optional if accessing via Ingress)
 webui: "http://[HOST]:[PORT:8080]"
 map:
   - share:rw
