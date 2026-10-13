@@ -101,21 +101,18 @@
 
 @keyframes maintenance-neon-glow {
   0% {
-    box-shadow: 0 0 6px #a855f7, 0 0 14px rgba(168, 85, 247, 0.6), 0 0 22px rgba(192, 132, 252, 0.4);
-    transform: scale(1);
+    box-shadow: 0 0 4px rgba(168, 85, 247, 0.3), 0 0 8px rgba(168, 85, 247, 0.15);
   }
   50% {
-    box-shadow: 0 0 12px #c084fc, 0 0 25px rgba(192, 132, 252, 0.95), 0 0 35px rgba(168, 85, 247, 0.7);
-    transform: scale(1.08);
+    box-shadow: 0 0 8px rgba(192, 132, 252, 0.5), 0 0 14px rgba(168, 85, 247, 0.25);
   }
   100% {
-    box-shadow: 0 0 6px #a855f7, 0 0 14px rgba(168, 85, 247, 0.6), 0 0 22px rgba(192, 132, 252, 0.4);
-    transform: scale(1);
+    box-shadow: 0 0 4px rgba(168, 85, 247, 0.3), 0 0 8px rgba(168, 85, 247, 0.15);
   }
 }
 
 .maintenance-point-glow {
-  animation: maintenance-neon-glow 2s infinite ease-in-out;
+  animation: maintenance-neon-glow 2.5s infinite ease-in-out;
 }
 
 @keyframes slow-spin {

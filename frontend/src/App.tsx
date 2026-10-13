@@ -25,6 +25,7 @@ import {
   FlaskConical,
   Search,
   FileJson,
+  X,
 } from 'lucide-react';
 
 import { Device, Link, FullTopology, Incident, CanvasLayout, SimulationResponse } from './types';
@@ -107,6 +108,7 @@ export const App: React.FC = () => {
     global_window: null,
     active_device_windows: [],
   });
+  const [isMaintenanceDetailsOpen, setIsMaintenanceDetailsOpen] = useState<boolean>(false);
 
   const isHistoricalModeRef = React.useRef<boolean>(false);
   useEffect(() => {
@@ -994,29 +996,78 @@ export const App: React.FC = () => {
             />
           ) : null}
 
-          {/* Top-Right Big Violet Badge: ACTIVE GLOBAL SCHEDULED MAINTENANCE */}
+          {/* Top-Right Compact Badge: ACTIVE GLOBAL SCHEDULED MAINTENANCE */}
           {activeScheduledMaintenance.is_global_active && (
-            <div className={`absolute ${isHistoricalMode ? 'top-20' : 'top-4'} right-4 z-30 pointer-events-auto flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300`}>
-              <div className="bg-purple-600 dark:bg-purple-600 text-white font-black px-4 py-2.5 rounded-2xl shadow-2xl border-2 border-purple-400 dark:border-purple-300 flex items-center gap-2.5 select-none maintenance-point-glow">
-                <div className="p-1.5 bg-black/20 rounded-xl">
-                  <Clock className="w-5 h-5 text-purple-200 animate-spin-slow" />
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs uppercase tracking-wider font-extrabold text-white">
-                      {t('maintenance.canvas_global_badge') || 'MANUTENZIONE PROGRAMMATA ATTIVA'}
-                    </span>
-                    {activeScheduledMaintenance.global_window?.title && (
-                      <span className="px-1.5 py-0.5 rounded-md bg-black/25 text-[10px] font-mono font-bold text-purple-100">
-                        {activeScheduledMaintenance.global_window.title}
-                      </span>
-                    )}
+            <div className={`absolute ${isHistoricalMode ? 'top-20' : 'top-4'} right-3 sm:right-4 z-30 pointer-events-auto flex flex-col items-end`}>
+              <button
+                type="button"
+                onClick={() => setIsMaintenanceDetailsOpen((prev) => !prev)}
+                title={t('maintenance.active_badge_tooltip') || 'Intervento di manutenzione programmata in corso'}
+                className="w-10 h-10 rounded-2xl bg-purple-600/90 hover:bg-purple-600 text-white border-2 border-purple-400 dark:border-purple-300 shadow-xl flex items-center justify-center maintenance-point-glow transition-all active:scale-95"
+              >
+                <Clock className="w-5 h-5 text-purple-100 animate-spin-slow" />
+              </button>
+
+              {/* Maintenance Details Popover */}
+              {isMaintenanceDetailsOpen && (
+                <div className="mt-2 w-72 sm:w-80 bg-slate-900/95 backdrop-blur-md border border-purple-500/40 rounded-2xl p-4 shadow-2xl text-xs z-50 text-white animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-start justify-between gap-2 border-b border-purple-500/30 pb-2.5 mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-purple-600/40 rounded-lg text-purple-300">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider font-extrabold text-purple-300 block">
+                          {t('maintenance.canvas_global_badge') || 'MANUTENZIONE ATTIVA'}
+                        </span>
+                        <h4 className="font-bold text-slate-100 text-sm leading-tight mt-0.5">
+                          {activeScheduledMaintenance.global_window?.title || 'Manutenzione Programmata'}
+                        </h4>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsMaintenanceDetailsOpen(false)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <span className="text-[10px] font-medium text-purple-100/90 leading-tight">
-                    {t('maintenance.canvas_global_badge_sub') || 'Rete in manutenzione globale • Gli allarmi e le notifiche sono soppressi.'}
-                  </span>
+
+                  <div className="space-y-2 text-slate-300 text-[11px]">
+                    {activeScheduledMaintenance.global_window?.recurrence_type && activeScheduledMaintenance.global_window.recurrence_type !== 'none' ? (
+                      <div className="bg-purple-950/40 border border-purple-800/40 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                        <span className="text-purple-300 font-semibold">{t('maintenance.rec_badge') || 'Ricorrente'}:</span>
+                        <span className="font-mono text-purple-200 font-bold">
+                          {activeScheduledMaintenance.global_window.start_time || ''} - {activeScheduledMaintenance.global_window.end_time || ''}
+                        </span>
+                      </div>
+                    ) : (
+                      (activeScheduledMaintenance.global_window?.start_ts || activeScheduledMaintenance.global_window?.end_ts) && (
+                        <div className="bg-purple-950/40 border border-purple-800/40 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                          <span className="text-purple-300 font-semibold">Intervallo:</span>
+                          <span className="font-mono text-[10px] text-purple-200">
+                            {activeScheduledMaintenance.global_window.start_ts ? new Date(activeScheduledMaintenance.global_window.start_ts).toLocaleString() : ''} 
+                            {' → '} 
+                            {activeScheduledMaintenance.global_window.end_ts ? new Date(activeScheduledMaintenance.global_window.end_ts).toLocaleString() : ''}
+                          </span>
+                        </div>
+                      )
+                    )}
+
+                    {activeScheduledMaintenance.global_window?.notes && (
+                      <div className="bg-slate-800/60 rounded-lg p-2 border border-slate-700/50">
+                        <span className="text-slate-400 block text-[10px] mb-0.5 font-medium">Note:</span>
+                        <p className="text-slate-200 italic whitespace-pre-wrap">{activeScheduledMaintenance.global_window.notes}</p>
+                      </div>
+                    )}
+
+                    <div className="pt-1 text-[10px] text-purple-300/80 leading-snug border-t border-purple-500/20">
+                      {t('maintenance.canvas_global_badge_sub') || 'Rete in manutenzione globale • Gli allarmi e le notifiche sono soppressi.'}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
