@@ -19,3 +19,4 @@ export NETSENTINEL_DATA_DIR=/data/netsentinel
 
 echo "[NetSentinel Add-on] Avvio NetSentinel su porta ${NETSENTINEL_PORT:-8080}..."
 exec python3 -m app.main
+
