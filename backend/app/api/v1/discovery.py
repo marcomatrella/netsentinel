@@ -299,19 +299,29 @@ async def _analyze_device(
             roles.append("service")
             name = "Home Assistant Hub" if ("homeassistant" in h_lower or "hass" in h_lower) else f"Smart Hub ({h or ip})"
             loc = "Domotica"
-        # 7. IoT Devices: Smart Plugs, Tapparelle, Shelly, Dongles, Relays
-        elif any(k in h_lower for k in ["shelly", "tapparella", "plug", "meross", "dongle", "sonoff", "rele", "relay", "sensor", "presa"]):
-            kind = "smart_hub"
+        # 7. IoT Devices: Smart Plugs, Tapparelle, Shelly, Dongles, Relays, Bulbs, Appliances
+        elif any(k in h_lower for k in ["shelly", "tapparella", "plug", "meross", "dongle", "sonoff", "rele", "relay", "sensor", "presa", "lampadina", "bulb", "tuya", "smart"]):
             roles.append("passive_tracking")
-            if "meross" in h_lower or "plug" in h_lower:
+            if "meross" in h_lower or "plug" in h_lower or "presa" in h_lower:
+                kind = "smart_plug"
                 name = f"Presa Smart ({h or ip})"
             elif "tapparella" in h_lower:
+                kind = "client"
                 name = f"Tapparella ({h})"
             elif "shelly" in h_lower:
+                kind = "client"
                 name = f"Modulo Shelly ({h})"
             elif "dongle" in h_lower:
+                kind = "client"
                 name = f"Dongle Zigbee/IoT ({h})"
+            elif "sensor" in h_lower:
+                kind = "sensor"
+                name = f"Sensore IoT ({h or ip})"
+            elif "bulb" in h_lower or "lampadina" in h_lower:
+                kind = "client"
+                name = f"Lampadina Smart ({h or ip})"
             else:
+                kind = "client"
                 name = f"Dispositivo IoT ({h or ip})"
             loc = "Domotica"
         # 8. Virtualization / Hypervisor Servers

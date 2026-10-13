@@ -82,6 +82,7 @@ class SchedulerEngine:
 
     async def _scheduler_loop(self) -> None:
         """Main scheduling loop polling checks due for execution."""
+        last_corr_pass = utcnow()
         while self.is_running:
             try:
                 now = utcnow()
@@ -104,6 +105,15 @@ class SchedulerEngine:
 
                         # Launch execution task protected by concurrency semaphore
                         asyncio.create_task(self._execute_check_safe(chk.id))
+
+                    # Periodically check active incidents against topology every 15s to auto-resolve stale incidents
+                    if (now - last_corr_pass).total_seconds() >= 15:
+                        last_corr_pass = now
+                        try:
+                            from app.correlation.engine import correlation_engine
+                            await correlation_engine.run_correlation_cycle(session)
+                        except Exception as corr_e:
+                            logger.debug("Ciclo periodico di correlazione: %s", corr_e)
 
                 await asyncio.sleep(1.0)
             except asyncio.CancelledError:
@@ -274,7 +284,7 @@ class SchedulerEngine:
             # Check for flapping
             is_flapping = False
             dev_roles = json.loads(device.roles_json) if device.roles_json else []
-            is_passive = "passive_tracking" in dev_roles or device.kind == "client"
+            is_passive = "passive_tracking" in dev_roles or device.kind in ["client", "smart_plug", "sensor"]
 
             if h_res.state_changed:
                 is_flapping = self.flap_detector.record_transition(device_id)

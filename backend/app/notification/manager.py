@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -26,6 +27,37 @@ class NotificationManager:
     def __init__(self, tz_name: str = "Europe/Rome") -> None:
         self.tz_name = tz_name
         self.is_wan_online: bool = True
+        # Rate limiting: max emails per sliding window (e.g. max 5 emails every 60s)
+        self.email_timestamps: list[float] = []
+        self.max_emails_per_minute: int = 5
+        # Per-incident cool-off: incident_id -> last_email_timestamp
+        self.last_incident_email_ts: dict[str, float] = {}
+        self.incident_min_interval_seconds: float = 300.0  # 5 minutes between alert emails for same incident
+
+    def check_and_record_email_rate_limit(self, incident_id: str, is_resolved: bool = False) -> tuple[bool, str]:
+        """Check if email sending is allowed by rate limiting policies.
+
+        Returns (allowed, reason_if_suppressed).
+        """
+        now = time.time()
+
+        # 1. Per-incident cooldown (except resolution alerts which are always sent if under global limit)
+        if not is_resolved and incident_id in self.last_incident_email_ts:
+            elapsed = now - self.last_incident_email_ts[incident_id]
+            if elapsed < self.incident_min_interval_seconds:
+                remaining = int(self.incident_min_interval_seconds - elapsed)
+                return False, f"Rate-limit: notifica per incidente {incident_id} soppressa (intervallo minimo 5 min, restano {remaining}s)."
+
+        # 2. Sliding window global rate limit (e.g. max 5 emails in 60s)
+        window_start = now - 60.0
+        self.email_timestamps = [t for t in self.email_timestamps if t > window_start]
+        if len(self.email_timestamps) >= self.max_emails_per_minute:
+            return False, f"Rate-limit globale superato ({len(self.email_timestamps)}/{self.max_emails_per_minute} email inviate nell'ultimo minuto)."
+
+        # Record this email
+        self.email_timestamps.append(now)
+        self.last_incident_email_ts[incident_id] = now
+        return True, ""
 
     def set_wan_status(self, online: bool) -> None:
         """Update known WAN status."""
@@ -181,6 +213,30 @@ class NotificationManager:
                     session.add(log)
                     logs.append(log)
                     continue
+
+                # Rate limiting check for email (SMTP) to prevent flood
+                if channel.type == "smtp":
+                    allowed, rl_reason = self.check_and_record_email_rate_limit(
+                        incident_id=incident.id,
+                        is_resolved=is_resolved,
+                    )
+                    if not allowed:
+                        logger.warning(
+                            "🛑 [RATE LIMIT EMAIL] Canale '%s' -> %s. Invio email '%s' soppresso.",
+                            channel.name,
+                            rl_reason,
+                            subject,
+                        )
+                        log = NotificationLog(
+                            incident_id=incident.id,
+                            channel_id=channel.id,
+                            status="suppressed_rate_limit",
+                            payload_summary=rl_reason,
+                            ts=utcnow(),
+                        )
+                        session.add(log)
+                        logs.append(log)
+                        continue
 
                 # Dispatch immediately
                 logger.info(

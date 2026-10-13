@@ -29,7 +29,7 @@ interface NetworkDiscoveryModalProps {
   isOpen: boolean;
   onClose: () => void;
   existingDevices: Device[];
-  onAddDiscoveredDevices: (devices: Device[]) => void;
+  onAddDiscoveredDevices: (devices: Device[], autoLink?: boolean) => void;
 }
 
 export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
@@ -43,6 +43,8 @@ export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanResult, setScanResult] = useState<DiscoveredDeviceItem[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [silentMode, setSilentMode] = useState<boolean>(true);
+  const [autoLink, setAutoLink] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -101,8 +103,22 @@ export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
     const toAdd = scanResult.filter((d) => selectedIds.has(d.id));
     if (toAdd.length === 0) return;
 
-    const newDevices: Device[] = toAdd.map((d, index) => {
+    const newDevices: Device[] = toAdd.map((d) => {
       const defaultColor = getDefaultColorForKind(d.kind as DeviceKind);
+      const roles = [...(d.roles || [])];
+
+      // If silent mode is checked or device is IoT/client, ensure passive_tracking and no service role
+      if (silentMode || ['smart_plug', 'sensor', 'client'].includes(d.kind)) {
+        if (!roles.includes('passive_tracking') && !d.is_gateway && !d.is_vantage_point) {
+          roles.push('passive_tracking');
+        }
+        // Remove active service role to prevent false alerts / Rule 13
+        const serviceIdx = roles.indexOf('service');
+        if (serviceIdx !== -1) {
+          roles.splice(serviceIdx, 1);
+        }
+      }
+
       return {
         id: d.id,
         name: d.name,
@@ -111,7 +127,7 @@ export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
         status_since: new Date().toISOString(),
         criticality: d.is_gateway ? 5 : d.is_vantage_point ? 4 : 2,
         location: d.location || 'LAN',
-        roles: d.roles || [],
+        roles,
         addresses: {
           ip: d.ip,
           mac: d.mac || undefined,
@@ -122,7 +138,7 @@ export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
       };
     });
 
-    onAddDiscoveredDevices(newDevices);
+    onAddDiscoveredDevices(newDevices, autoLink);
     onClose();
   };
 
@@ -334,18 +350,46 @@ export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/30">
-          <div className="text-xs text-slate-500 dark:text-slate-400">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-950/30">
+          <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+            {/* Toggle 1: Silent Monitoring Mode */}
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white select-none">
+              <input
+                type="checkbox"
+                checked={silentMode}
+                onChange={(e) => setSilentMode(e.target.checked)}
+                className="rounded border-slate-300 dark:border-slate-700 text-sky-600 focus:ring-0 cursor-pointer"
+              />
+              <span className="flex items-center gap-1.5 font-medium">
+                <Shield className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                {t('discovery.silent_mode_toggle') || 'Aggiungi in modalità silenziosa (nessuna notifica email finché non validati)'}
+              </span>
+            </label>
+
+            {/* Toggle 2: Auto Link to Core/Switch/AP */}
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white select-none">
+              <input
+                type="checkbox"
+                checked={autoLink}
+                onChange={(e) => setAutoLink(e.target.checked)}
+                className="rounded border-slate-300 dark:border-slate-700 text-sky-600 focus:ring-0 cursor-pointer"
+              />
+              <span className="flex items-center gap-1.5 font-medium">
+                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                {t('discovery.auto_link_toggle') || 'Collega automaticamente agli apparati core/switch/AP esistenti'}
+              </span>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 w-full sm:w-auto shrink-0">
             {selectedIds.size > 0 && (
-              <span>
-                {t('discovery.selected_count', { count: selectedIds.size }) || `${selectedIds.size} apparati selezionati`}
+              <span className="text-xs text-slate-500 dark:text-slate-400 mr-2 hidden md:inline">
+                {t('discovery.selected_count', { count: selectedIds.size }) || `${selectedIds.size} selezionati`}
               </span>
             )}
-          </div>
-          <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
             >
               {t('common.cancel') || 'Annulla'}
             </button>

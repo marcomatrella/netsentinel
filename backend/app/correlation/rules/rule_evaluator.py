@@ -1,5 +1,4 @@
-"""Rule evaluator for topological diagnosis rules."""
-
+import json
 from pathlib import Path
 from typing import Any
 
@@ -132,7 +131,16 @@ class RuleEvaluator:
         elif candidate_device.kind == "ups":
             matched_rule = self._find_rule("rule_10_ups_on_battery")
         elif candidate_device.kind == "smart_hub":
-            matched_rule = self._find_rule("rule_13_service_hang")
+            cand_roles = []
+            if hasattr(candidate_device, "roles_json") and candidate_device.roles_json:
+                try:
+                    cand_roles = json.loads(candidate_device.roles_json)
+                except Exception:
+                    pass
+            elif hasattr(candidate_device, "roles") and candidate_device.roles:
+                cand_roles = list(candidate_device.roles)
+            if "passive_tracking" not in cand_roles:
+                matched_rule = self._find_rule("rule_13_service_hang")
 
         if not matched_rule:
             # Fallback generic rule

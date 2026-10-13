@@ -1,15 +1,22 @@
-"""Devices REST API endpoints."""
-
 import json
+import logging
 from typing import Any
 
-from app.db.models import CanvasLayout, Check, Device, Incident, Link, Observation, utcnow
+from app.db.models import CanvasLayout, Check, Device, Incident, Observation, utcnow
 from app.db.session import get_db
-from app.schemas.entities import DeviceBatchDeleteRequest, DeviceCreate, DeviceRead, DeviceUpdate, InterfaceBase
+from app.schemas.entities import (
+    DeviceBatchDeleteRequest,
+    DeviceCreate,
+    DeviceRead,
+    DeviceUpdate,
+    InterfaceBase,
+)
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+logger = logging.getLogger("netsentinel.api.devices")
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
 
@@ -338,6 +345,7 @@ async def batch_delete_devices(
             pass
 
     # 3. Resolve any active incidents targeting these deleted devices
+    from app.incidents.manager import incident_manager
     inc_res = await db.execute(
         select(Incident).where(
             Incident.status.in_(["open", "monitoring"]),
@@ -345,10 +353,17 @@ async def batch_delete_devices(
         )
     )
     for inc in inc_res.scalars().all():
-        inc.status = "resolved"
-        inc.resolved_at = utcnow()
+        await incident_manager.resolve_incident(db, inc.id)
 
     await db.commit()
+
+    # Trigger correlation cycle to update status of remaining devices and clear incident state
+    try:
+        from app.correlation.engine import correlation_engine
+        await correlation_engine.run_correlation_cycle(db)
+    except Exception as e:
+        logger.warning("Errore correlazione post-batch-delete: %s", e)
+
     return {"deleted_count": len(deleted_ids), "deleted_ids": deleted_ids}
 
 
@@ -377,6 +392,7 @@ async def delete_device(device_id: str, db: AsyncSession = Depends(get_db)) -> N
             pass
 
     # Resolve any incident for this device
+    from app.incidents.manager import incident_manager
     inc_res = await db.execute(
         select(Incident).where(
             Incident.status.in_(["open", "monitoring"]),
@@ -384,8 +400,14 @@ async def delete_device(device_id: str, db: AsyncSession = Depends(get_db)) -> N
         )
     )
     for inc in inc_res.scalars().all():
-        inc.status = "resolved"
-        inc.resolved_at = utcnow()
+        await incident_manager.resolve_incident(db, inc.id)
 
     await db.delete(device)
     await db.commit()
+
+    # Trigger correlation cycle to update status of remaining devices and clear incident state
+    try:
+        from app.correlation.engine import correlation_engine
+        await correlation_engine.run_correlation_cycle(db)
+    except Exception as e:
+        logger.warning("Errore correlazione post-delete: %s", e)

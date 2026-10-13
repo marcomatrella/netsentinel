@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { AlertOctagon, CheckCircle2, ChevronDown, ChevronUp, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
+import { AlertOctagon, ChevronDown, ChevronUp, ShieldAlert, Sparkles } from 'lucide-react';
 import { Incident } from '../../types';
-import { acknowledgeIncident } from '../../api/client';
 import { useTranslation } from '../../i18n/I18nContext';
 
 interface IncidentBannerProps {
@@ -9,24 +8,11 @@ interface IncidentBannerProps {
   onRefresh?: () => void;
 }
 
-export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefresh }) => {
+export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
-  const [acknowledging, setAcknowledging] = useState(false);
 
   if (!incident || incident.status === 'resolved') return null;
-
-  const handleAcknowledge = async () => {
-    setAcknowledging(true);
-    try {
-      await acknowledgeIncident(incident.id, 'utente_locale');
-      if (onRefresh) onRefresh();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setAcknowledging(false);
-    }
-  };
 
   const confidencePct = Math.round(incident.confidence * 100);
 
@@ -56,24 +42,10 @@ export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident, onRefr
         </div>
 
         <div className="flex items-center gap-2">
-          {incident.status !== 'monitoring' && !incident.acknowledged_by ? (
-            <button
-              onClick={handleAcknowledge}
-              disabled={acknowledging}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-xs font-semibold shadow transition disabled:opacity-50"
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              {t('incident_banner.btn_acknowledge')}
-            </button>
-          ) : (
-            <span className="flex items-center gap-1 text-xs text-rose-300 bg-rose-900/60 px-2.5 py-1 rounded border border-rose-800">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> {t('incident_banner.acknowledged')}
-            </span>
-          )}
-
           <button
             onClick={() => setExpanded(!expanded)}
-            className="p-1.5 rounded hover:bg-rose-900/60 text-rose-300 transition"
+            className="p-1.5 rounded hover:bg-rose-900/60 text-rose-300 transition cursor-pointer"
+            title={expanded ? 'Riduci dettagli' : 'Espandi dettagli'}
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>

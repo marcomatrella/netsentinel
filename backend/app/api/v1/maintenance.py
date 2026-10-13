@@ -27,8 +27,14 @@ class ScheduledWindowCreateRequest(BaseModel):
 
     title: str
     device_id: str | None = None  # None indicates GLOBAL
-    start_ts: str  # ISO 8601 string
-    end_ts: str    # ISO 8601 string
+    start_ts: str  # ISO 8601 string or date
+    end_ts: str    # ISO 8601 string or date
+    recurrence_type: str = "none"  # "none" | "daily" | "weekly" | "monthly" | "yearly"
+    start_time: str | None = None  # "HH:MM"
+    end_time: str | None = None    # "HH:MM"
+    days_of_week: str | None = None  # "0,1,2,3,4"
+    day_of_month: int | None = None
+    recurrence_end_date: str | None = None  # ISO 8601 or date
     notes: str = ""
 
 
@@ -67,6 +73,12 @@ async def list_scheduled_windows(device_id: str | None = None):
                 "device_id": w.device_id,
                 "start_ts": to_utc_iso(w.start_ts),
                 "end_ts": to_utc_iso(w.end_ts),
+                "recurrence_type": w.recurrence_type or "none",
+                "start_time": w.start_time,
+                "end_time": w.end_time,
+                "days_of_week": w.days_of_week,
+                "day_of_month": w.day_of_month,
+                "recurrence_end_date": to_utc_iso(w.recurrence_end_date) if w.recurrence_end_date else None,
                 "enabled": w.enabled,
                 "notes": w.notes,
                 "created_at": to_utc_iso(w.created_at),
@@ -89,11 +101,10 @@ async def get_active_scheduled_maintenance(at_ts: str | None = None):
     async with AsyncSessionLocal() as session:
         stmt = select(ScheduledMaintenanceWindow).where(
             ScheduledMaintenanceWindow.enabled.is_(True),
-            ScheduledMaintenanceWindow.start_ts <= check_time,
-            ScheduledMaintenanceWindow.end_ts >= check_time,
         )
         res = await session.execute(stmt)
-        active_windows = res.scalars().all()
+        all_windows = res.scalars().all()
+        active_windows = [w for w in all_windows if maintenance_tracker.is_window_active_at(w, check_time)]
 
         global_win = None
         device_wins = []
@@ -104,6 +115,9 @@ async def get_active_scheduled_maintenance(at_ts: str | None = None):
                 "device_id": w.device_id,
                 "start_ts": to_utc_iso(w.start_ts),
                 "end_ts": to_utc_iso(w.end_ts),
+                "recurrence_type": w.recurrence_type or "none",
+                "start_time": w.start_time,
+                "end_time": w.end_time,
                 "notes": w.notes,
             }
             if w.device_id is None:
@@ -120,6 +134,7 @@ async def get_active_scheduled_maintenance(at_ts: str | None = None):
                 "device_id": None,
                 "start_ts": to_utc_iso(check_time),
                 "end_ts": to_utc_iso(maintenance_tracker.until) if maintenance_tracker.until else None,
+                "recurrence_type": "none",
                 "notes": maintenance_tracker.notes,
             }
 
@@ -142,32 +157,39 @@ async def create_scheduled_window(payload: ScheduledWindowCreateRequest):
     if e_dt <= s_dt:
         raise HTTPException(status_code=400, detail="End date must be after start date")
 
-    async with AsyncSessionLocal() as session:
-        # Check for overlapping active maintenance windows
-        # Overlap condition: start < existing.end AND end > existing.start
-        overlap_stmt = select(ScheduledMaintenanceWindow).where(
-            ScheduledMaintenanceWindow.enabled.is_(True),
-            ScheduledMaintenanceWindow.start_ts < e_dt,
-            ScheduledMaintenanceWindow.end_ts > s_dt,
-        )
-        if payload.device_id:
-            # Overlaps either with another window for the same device OR with a global window
-            overlap_stmt = overlap_stmt.where(
-                (ScheduledMaintenanceWindow.device_id.is_(None)) |
-                (ScheduledMaintenanceWindow.device_id == payload.device_id)
-            )
-        else:
-            # A global window conflicts with any existing global window or device window in the same timeframe
-            overlap_stmt = overlap_stmt.where(ScheduledMaintenanceWindow.device_id.is_(None))
+    rec_type = payload.recurrence_type.lower() if payload.recurrence_type else "none"
+    rec_end_dt = None
+    if payload.recurrence_end_date:
+        try:
+            rec_end_dt = datetime.fromisoformat(payload.recurrence_end_date.replace("Z", "+00:00")).replace(tzinfo=None)
+        except Exception:
+            pass
 
-        overlap_res = await session.execute(overlap_stmt)
-        conflict = overlap_res.scalars().first()
-        if conflict:
-            scope_desc = "globale" if not conflict.device_id else f"per apparato {conflict.device_id}"
-            raise HTTPException(
-                status_code=409,
-                detail=f"Slot temporale in sovrapposizione con un intervento già programmato ({scope_desc}: '{conflict.title}').",
+    async with AsyncSessionLocal() as session:
+        # Check for overlapping active maintenance windows (only for non-recurring windows)
+        if rec_type in ("none", "", None):
+            overlap_stmt = select(ScheduledMaintenanceWindow).where(
+                ScheduledMaintenanceWindow.enabled.is_(True),
+                ScheduledMaintenanceWindow.recurrence_type.in_(["none", "", None]),
+                ScheduledMaintenanceWindow.start_ts < e_dt,
+                ScheduledMaintenanceWindow.end_ts > s_dt,
             )
+            if payload.device_id:
+                overlap_stmt = overlap_stmt.where(
+                    (ScheduledMaintenanceWindow.device_id.is_(None)) |
+                    (ScheduledMaintenanceWindow.device_id == payload.device_id)
+                )
+            else:
+                overlap_stmt = overlap_stmt.where(ScheduledMaintenanceWindow.device_id.is_(None))
+
+            overlap_res = await session.execute(overlap_stmt)
+            conflict = overlap_res.scalars().first()
+            if conflict:
+                scope_desc = "globale" if not conflict.device_id else f"per apparato {conflict.device_id}"
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Slot temporale in sovrapposizione con un intervento già programmato ({scope_desc}: '{conflict.title}').",
+                )
 
         win_id = f"maint-{uuid.uuid4().hex[:8]}"
         new_window = ScheduledMaintenanceWindow(
@@ -176,6 +198,12 @@ async def create_scheduled_window(payload: ScheduledWindowCreateRequest):
             device_id=payload.device_id,
             start_ts=s_dt,
             end_ts=e_dt,
+            recurrence_type=rec_type,
+            start_time=payload.start_time,
+            end_time=payload.end_time,
+            days_of_week=payload.days_of_week,
+            day_of_month=payload.day_of_month,
+            recurrence_end_date=rec_end_dt,
             notes=payload.notes,
             enabled=True,
         )
@@ -187,6 +215,12 @@ async def create_scheduled_window(payload: ScheduledWindowCreateRequest):
             "device_id": new_window.device_id,
             "start_ts": to_utc_iso(new_window.start_ts),
             "end_ts": to_utc_iso(new_window.end_ts),
+            "recurrence_type": new_window.recurrence_type,
+            "start_time": new_window.start_time,
+            "end_time": new_window.end_time,
+            "days_of_week": new_window.days_of_week,
+            "day_of_month": new_window.day_of_month,
+            "recurrence_end_date": to_utc_iso(new_window.recurrence_end_date) if new_window.recurrence_end_date else None,
             "notes": new_window.notes,
         }
 

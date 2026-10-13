@@ -188,7 +188,42 @@ async def test_maintenance_and_heartbeat_api():
         # Disable
         await client.post("/api/v1/maintenance", json={"enabled": False})
 
-        # 3. Heartbeat status endpoint
+        # 3. Scheduled recurring maintenance endpoint test (e.g. daily 04:00 to 04:30)
+        daily_payload = {
+            "title": "Riavvio Quotidiano Rete",
+            "device_id": None,
+            "start_ts": "2026-01-01T00:00:00Z",
+            "end_ts": "2027-01-01T00:00:00Z",
+            "recurrence_type": "daily",
+            "start_time": "04:00",
+            "end_time": "04:30",
+            "notes": "Nightly reboot slot",
+        }
+        create_resp = await client.post("/api/v1/maintenance/scheduled", json=daily_payload)
+        assert create_resp.status_code == 200
+        created = create_resp.json()
+        assert created["recurrence_type"] == "daily"
+        assert created["start_time"] == "04:00"
+        assert created["end_time"] == "04:30"
+        slot_id = created["id"]
+
+        # Check active at 04:15 UTC -> should be active!
+        act_resp_yes = await client.get("/api/v1/maintenance/scheduled/active?at_ts=2026-06-15T04:15:00Z")
+        assert act_resp_yes.status_code == 200
+        act_data = act_resp_yes.json()
+        assert act_data["is_global_active"] is True
+        assert act_data["global_window"]["id"] == slot_id
+
+        # Check active at 05:00 UTC -> should NOT be active!
+        act_resp_no = await client.get("/api/v1/maintenance/scheduled/active?at_ts=2026-06-15T05:00:00Z")
+        assert act_resp_no.status_code == 200
+        assert act_resp_no.json()["is_global_active"] is False
+
+        # Cleanup
+        del_resp = await client.delete(f"/api/v1/maintenance/scheduled/{slot_id}")
+        assert del_resp.status_code == 200
+
+        # 4. Heartbeat status endpoint
         hb_resp = await client.get("/api/v1/heartbeat/status")
         assert hb_resp.status_code == 200
         hb_data = hb_resp.json()

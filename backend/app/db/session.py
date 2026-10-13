@@ -46,9 +46,25 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def init_db() -> None:
-    """Initialize database tables and schemas."""
+    """Initialize database tables and schemas, adding missing columns if upgrading."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        # Migration helper for SQLite scheduled_maintenance_windows recurrence columns
+        if is_sqlite:
+            from sqlalchemy import text
+            for col, col_type in [
+                ("recurrence_type", "VARCHAR(32) DEFAULT 'none'"),
+                ("start_time", "VARCHAR(8)"),
+                ("end_time", "VARCHAR(8)"),
+                ("days_of_week", "VARCHAR(32)"),
+                ("day_of_month", "INTEGER"),
+                ("recurrence_end_date", "DATETIME"),
+            ]:
+                try:
+                    await conn.execute(text(f"ALTER TABLE scheduled_maintenance_windows ADD COLUMN {col} {col_type};"))
+                except Exception:
+                    pass  # Column already exists
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

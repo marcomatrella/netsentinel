@@ -460,6 +460,18 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
               <Calendar className="w-4 h-4" />
             </button>
           )}
+          {onDeleteDevice && (
+            <button
+              onClick={() => {
+                onDeleteDevice(device.id);
+                onClose();
+              }}
+              className="p-1.5 rounded-lg border bg-white hover:bg-rose-50 text-rose-600 border-rose-200 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/80 transition cursor-pointer"
+              title={t('device_detail.delete_device')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setIsEditing(!isEditing)}
             className={`p-1.5 rounded-lg border transition ${
@@ -473,7 +485,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

@@ -586,7 +586,23 @@
     "canvas_global_badge_sub": "Rete in manutenzione globale • Gli allarmi e le notifiche sono soppressi.",
     "active_badge_tooltip": "Intervento di manutenzione programmata in corso",
     "long_duration_warning": "Attenzione: questo intervento dura {{hours}} ore. Durante tutto questo periodo gli allarmi saranno soppressi. Sei sicuro di voler proseguire?",
-    "overlap_error": "Questo intervallo si sovrappone a una manutenzione già programmata."
+    "overlap_error": "Questo intervallo si sovrappone a una manutenzione già programmata.",
+    "field_recurrence": "Tipo di Intervento / Ricorrenza",
+    "rec_none": "Puntuale (Data e ora fissa)",
+    "rec_daily": "Giornaliera (Ogni giorno)",
+    "rec_weekly": "Settimanale (Giorni specifici)",
+    "rec_monthly": "Mensile (Giorno del mese)",
+    "rec_yearly": "Annuale (Ogni anno)",
+    "field_start_time": "Ora Inizio",
+    "field_end_time": "Ora Fine",
+    "field_recurrence_end": "Fine Ricorrenza (Opzionale)",
+    "field_days_of_week": "Giorni della settimana",
+    "field_day_of_month": "Giorno del mese",
+    "rec_badge": "Ricorrente",
+    "rec_every_day": "Tutti i giorni dalle {{start}} alle {{end}}",
+    "rec_weekly_desc": "Ogni settimana ({{days}}) dalle {{start}} alle {{end}}",
+    "rec_monthly_desc": "Il giorno {{day}} del mese dalle {{start}} alle {{end}}",
+    "rec_yearly_desc": "Ogni anno il {{date}} dalle {{start}} alle {{end}}"
   },
   "backup": {
     "modal_title": "Backup & Ripristino Plancia",
@@ -616,7 +632,9 @@
     "deselect_all": "Deseleziona tutti",
     "already_in_topology": "Già in plancia",
     "selected_count": "{{count}} apparati selezionati",
-    "add_selected": "Aggiungi alla plancia ({{count}})"
+    "add_selected": "Aggiungi alla plancia ({{count}})",
+    "silent_mode_toggle": "Aggiungi in modalità silenziosa (nessuna notifica email finché non validati)",
+    "auto_link_toggle": "Collega automaticamente agli apparati core/switch/AP esistenti"
   },
   "simulation": {
     "btn_simulate_device": "Simula Guasto (What-If)",

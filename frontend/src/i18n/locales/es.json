@@ -586,7 +586,23 @@
     "canvas_global_badge_sub": "Mantenimiento global de red activo • Se suprimen las alertas y notificaciones.",
     "active_badge_tooltip": "Mantenimiento programado en curso",
     "long_duration_warning": "Atención: este mantenimiento dura {{hours}} horas. Durante todo este periodo se suprimirán las alertas. ¿Está seguro de continuar?",
-    "overlap_error": "Esta franja se solapa con un mantenimiento ya programado."
+    "overlap_error": "Esta franja se solapa con un mantenimiento ya programado.",
+    "field_recurrence": "Tipo de Mantenimiento / Recurrencia",
+    "rec_none": "Puntual (Fecha y hora fijas)",
+    "rec_daily": "Diaria (Todos los días)",
+    "rec_weekly": "Semanal (Días específicos)",
+    "rec_monthly": "Mensual (Día del mes)",
+    "rec_yearly": "Anual (Cada año)",
+    "field_start_time": "Hora de inicio",
+    "field_end_time": "Hora de fin",
+    "field_recurrence_end": "Fin de recurrencia (Opcional)",
+    "field_days_of_week": "Días de la semana",
+    "field_day_of_month": "Día del mes",
+    "rec_badge": "Recurrente",
+    "rec_every_day": "Todos los días de {{start}} a {{end}}",
+    "rec_weekly_desc": "Cada semana ({{days}}) de {{start}} a {{end}}",
+    "rec_monthly_desc": "El día {{day}} de cada mes de {{start}} a {{end}}",
+    "rec_yearly_desc": "Cada año el {{date}} de {{start}} a {{end}}"
   },
   "backup": {
     "modal_title": "Copia de Seguridad & Restauración",
@@ -616,7 +632,9 @@
     "deselect_all": "Deseleccionar todos",
     "already_in_topology": "Ya en el mapa",
     "selected_count": "{{count}} dispositivos seleccionados",
-    "add_selected": "Añadir a la topología ({{count}})"
+    "add_selected": "Añadir a la topología ({{count}})",
+    "silent_mode_toggle": "Añadir en modo silencioso (sin alertas por correo hasta ser validados)",
+    "auto_link_toggle": "Conectar automáticamente a los equipos núcleo/switch/AP existentes"
   },
   "simulation": {
     "btn_simulate_device": "Simular Fallo (What-If)",

@@ -280,6 +280,19 @@ class ScheduledMaintenanceWindow(Base):
     device_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("devices.id", ondelete="CASCADE"), nullable=True, index=True)
     start_ts: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=False)
     end_ts: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=False)
+    # Recurrence configuration
+    # recurrence_type: "none" | "daily" | "weekly" | "monthly" | "yearly"
+    recurrence_type: Mapped[str] = mapped_column(String(32), default="none", server_default="none", index=True)
+    # For recurring: daily time window e.g. "04:00" to "04:30"
+    start_time: Mapped[str | None] = mapped_column(String(8), nullable=True)  # "HH:MM"
+    end_time: Mapped[str | None] = mapped_column(String(8), nullable=True)    # "HH:MM"
+    # For weekly: comma-separated day numbers 0-6 (0=Mon, 6=Sun)
+    days_of_week: Mapped[str | None] = mapped_column(String(32), nullable=True)  # e.g. "0,1,2,3,4"
+    # For monthly: day of month (1-31)
+    day_of_month: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Optional end of recurrence date (UTC)
+    recurrence_end_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

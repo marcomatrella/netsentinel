@@ -586,7 +586,23 @@
     "canvas_global_badge_sub": "Maintenance globale du réseau active • Alertes et notifications supprimées.",
     "active_badge_tooltip": "Intervention de maintenance planifiée en cours",
     "long_duration_warning": "Attention : cette intervention dure {{hours}} heures. Les alertes seront supprimées pendant toute cette période. Voulez-vous continuer ?",
-    "overlap_error": "Ce créneau chevauche une maintenance déjà planifiée."
+    "overlap_error": "Ce créneau chevauche une maintenance déjà planifiée.",
+    "field_recurrence": "Type d'intervention / Récurrence",
+    "rec_none": "Ponctuelle (Date et heure fixes)",
+    "rec_daily": "Quotidienne (Tous les jours)",
+    "rec_weekly": "Hebdomadaire (Jours spécifiques)",
+    "rec_monthly": "Mensuelle (Jour du mois)",
+    "rec_yearly": "Annuelle (Chaque année)",
+    "field_start_time": "Heure de début",
+    "field_end_time": "Heure de fin",
+    "field_recurrence_end": "Fin de la récurrence (Optionnel)",
+    "field_days_of_week": "Jours de la semaine",
+    "field_day_of_month": "Jour du mois",
+    "rec_badge": "Récurrente",
+    "rec_every_day": "Tous les jours de {{start}} à {{end}}",
+    "rec_weekly_desc": "Chaque semaine ({{days}}) de {{start}} à {{end}}",
+    "rec_monthly_desc": "Le {{day}} de chaque mois de {{start}} à {{end}}",
+    "rec_yearly_desc": "Chaque année le {{date}} de {{start}} à {{end}}"
   },
   "backup": {
     "modal_title": "Sauvegarde & Restauration Topologie",
@@ -616,7 +632,9 @@
     "deselect_all": "Tout désélectionner",
     "already_in_topology": "Déjà présent",
     "selected_count": "{{count}} appareils sélectionnés",
-    "add_selected": "Ajouter à la topologie ({{count}})"
+    "add_selected": "Ajouter à la topologie ({{count}})",
+    "silent_mode_toggle": "Ajouter en mode silencieux (aucun e-mail d'alerte avant validation)",
+    "auto_link_toggle": "Relier automatiquement aux équipements existants (Cœur/Switch/AP)"
   },
   "simulation": {
     "btn_simulate_device": "Simuler une Panne (What-If)",

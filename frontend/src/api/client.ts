@@ -372,6 +372,12 @@ export async function createScheduledMaintenance(payload: {
   device_id?: string | null;
   start_ts: string;
   end_ts: string;
+  recurrence_type?: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  days_of_week?: string | null;
+  day_of_month?: number | null;
+  recurrence_end_date?: string | null;
   notes?: string;
 }): Promise<any> {
   const res = await fetch(`${API_BASE}/maintenance/scheduled`, {

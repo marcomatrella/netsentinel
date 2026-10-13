@@ -267,11 +267,17 @@ export const App: React.FC = () => {
   };
 
   // Add multiple discovered devices from Auto-Discovery scan
-  const handleAddDiscoveredDevices = (newDevices: Device[]) => {
+  const handleAddDiscoveredDevices = (newDevices: Device[], autoLink: boolean = true) => {
     if (!topology || newDevices.length === 0) return;
     const currentNodes = [...(topology.layout?.nodes || [])];
     const existingIds = new Set(topology.devices.map((d) => d.id));
     const toAppend: Device[] = [];
+    const newLinks: Link[] = [];
+
+    // Find candidate parent devices in topology for auto-connection
+    const accessPoint = topology.devices.find((d) => d.kind === 'access_point');
+    const coreSwitch = topology.devices.find((d) => d.kind === 'switch');
+    const gateway = topology.devices.find((d) => d.kind === 'router' || d.roles?.includes('gateway'));
 
     let startX = 120;
     let startY = 80;
@@ -288,6 +294,38 @@ export const App: React.FC = () => {
           x: startX + (idx % 4) * 240,
           y: startY + Math.floor(idx / 4) * 160,
         });
+
+        // Smart auto-linking
+        if (autoLink) {
+          let parentId: string | null = null;
+          let medium: 'wifi' | 'ethernet' = 'ethernet';
+
+          // Wireless / IoT / Clients prefer Access Point if available
+          const isWirelessOrIoT = ['smart_plug', 'sensor', 'client'].includes(dev.kind) || dev.roles?.includes('passive_tracking');
+          if (isWirelessOrIoT && accessPoint) {
+            parentId = accessPoint.id;
+            medium = 'wifi';
+          } else if (coreSwitch) {
+            parentId = coreSwitch.id;
+            medium = 'ethernet';
+          } else if (gateway && dev.id !== gateway.id) {
+            parentId = gateway.id;
+            medium = 'ethernet';
+          }
+
+          if (parentId && parentId !== dev.id) {
+            newLinks.push({
+              id: `link-auto-${dev.id}-${parentId}`,
+              from_device_id: parentId,
+              to_device_id: dev.id,
+              medium,
+              status: 'ok',
+              status_source: 'deduced',
+              poe: false,
+              updated_at: new Date().toISOString(),
+            });
+          }
+        }
       }
     });
 
@@ -296,6 +334,7 @@ export const App: React.FC = () => {
     setTopology({
       ...topology,
       devices: [...topology.devices, ...toAppend],
+      links: [...topology.links, ...newLinks],
       layout: {
         ...(topology.layout || { id: 'default', edges: [], groups: [], updated_at: new Date().toISOString() }),
         nodes: currentNodes,
@@ -846,6 +885,7 @@ export const App: React.FC = () => {
               onConnectLink={handleConnectLink}
               onAddDeviceDrop={handleAddDevice}
               onLayoutChange={handleLayoutChange}
+              onDeleteDevice={handleDeleteDevice}
               onDeleteDevicesBatch={handleDeleteDevicesBatch}
             />
           ) : null}

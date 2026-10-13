@@ -24,6 +24,8 @@ import {
   Download,
   Calendar,
   Wrench,
+  List,
+  AlignJustify,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 import { EventItem, Device, DeviceKind } from '../../types';
@@ -365,6 +367,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedEventId, setExpandedEventId] = useState<number | null>(null);
+  const [compactView, setCompactView] = useState<boolean>(true);
 
   // Load events
   const loadEvents = useCallback(async () => {
@@ -652,9 +655,37 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* View Mode Toggle: Compact vs Detailed */}
+            <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700">
+              <button
+                onClick={() => setCompactView(true)}
+                className={`p-1.5 rounded-md transition flex items-center gap-1 cursor-pointer ${
+                  compactView
+                    ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-semibold'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+                title="Vista Compatta / Minimale"
+              >
+                <List className="w-3.5 h-3.5" />
+                <span className="text-[11px] hidden sm:inline">Compatta</span>
+              </button>
+              <button
+                onClick={() => setCompactView(false)}
+                className={`p-1.5 rounded-md transition flex items-center gap-1 cursor-pointer ${
+                  !compactView
+                    ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-semibold'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+                title="Vista Dettagliata"
+              >
+                <AlignJustify className="w-3.5 h-3.5" />
+                <span className="text-[11px] hidden sm:inline">Estesa</span>
+              </button>
+            </div>
+
             <button
               onClick={handleExportLogs}
-              className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition"
+              className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
               title={t('events.export_tooltip')}
             >
               <Download className="w-4 h-4" />
@@ -809,6 +840,120 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               const DeviceIcon = dev?.kind && kindIcons[dev.kind] ? kindIcons[dev.kind] : (ev.device_kind && kindIcons[ev.device_kind] ? kindIcons[ev.device_kind] : Server);
               const isExpanded = expandedEventId === ev.id;
 
+              if (compactView) {
+                return (
+                  <div
+                    key={ev.id}
+                    className={`rounded-lg border px-3 py-2 transition-all duration-150 shadow-xs ${
+                      isCrit
+                        ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60'
+                        : isManaged
+                        ? 'bg-purple-50/70 dark:bg-purple-950/40 border-purple-200 dark:border-purple-900/60'
+                        : isWarn
+                        ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60'
+                        : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2.5">
+                      {/* Left: Icon, Badge, Title and Device */}
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="shrink-0">
+                          {isCrit ? (
+                            <AlertOctagon className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                          ) : isManaged ? (
+                            <Wrench className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          ) : isWarn ? (
+                            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          )}
+                        </span>
+
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 ${
+                            isCrit
+                              ? 'bg-rose-600 text-white'
+                              : isManaged
+                              ? 'bg-purple-600 text-white'
+                              : isWarn
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          {isManaged ? 'MGD' : ev.severity.toUpperCase().slice(0, 4)}
+                        </span>
+
+                        <span className="font-semibold text-slate-900 dark:text-white text-xs truncate">
+                          {narrative.headline}
+                        </span>
+
+                        {ev.device_id && (
+                          <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 truncate max-w-[160px]">
+                            <DeviceIcon className="w-2.5 h-2.5 text-sky-500 shrink-0" />
+                            <span className="truncate">{ev.device_name || dev?.name || ev.device_id}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Right: Timestamp and action buttons */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono">
+                          {timeMeta.relative}
+                        </span>
+
+                        {/* Detail expand toggle icon */}
+                        <button
+                          onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
+                          className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer ${
+                            isExpanded ? 'text-sky-600 dark:text-sky-400 bg-slate-150 dark:bg-slate-750' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                          }`}
+                          title={isExpanded ? 'Chiudi dettagli' : 'Visualizza dettagli evento'}
+                        >
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Jump to Canvas */}
+                        {onTimeTravelToEvent && (
+                          <button
+                            onClick={() => {
+                              onTimeTravelToEvent(timeMeta.dateObj, ev.device_id || undefined);
+                              onClose();
+                            }}
+                            className="p-1 rounded text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-950/50 transition cursor-pointer"
+                            title={t('events.jump_to_canvas_tooltip')}
+                          >
+                            <History className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Compact Expandable Details panel */}
+                    {isExpanded && (
+                      <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-xs space-y-1.5 animate-in fade-in duration-150">
+                        <p className="text-slate-700 dark:text-slate-300">
+                          {narrative.explanation}
+                        </p>
+                        {narrative.actionable && (
+                          <div className="text-[11px] text-amber-900 dark:text-amber-200 bg-amber-100/70 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded px-2 py-0.5 inline-flex items-center gap-1.5">
+                            <span className="font-semibold">💡 {t('events.actionable_prefix')}</span>
+                            <span>{narrative.actionable}</span>
+                          </div>
+                        )}
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                          Timestamp: {timeMeta.exact}
+                        </div>
+                        {ev.details && Object.keys(ev.details).length > 0 && (
+                          <pre className="p-2 rounded bg-slate-900 text-slate-300 font-mono text-[10px] overflow-x-auto border border-slate-800">
+                            {JSON.stringify(ev.details, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={ev.id}
@@ -819,7 +964,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                       ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 hover:border-purple-300 dark:hover:border-purple-700'
                       : isWarn
                       ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700'
-                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                      : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -916,7 +1061,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                             onTimeTravelToEvent(timeMeta.dateObj, ev.device_id || undefined);
                             onClose();
                           }}
-                          className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-sky-500/20 transition flex items-center gap-1.5"
+                          className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-sky-500/20 transition flex items-center gap-1.5 cursor-pointer"
                           title={t('events.jump_to_canvas_tooltip')}
                         >
                           <History className="w-3.5 h-3.5" />
@@ -931,7 +1076,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                     <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
                       <button
                         onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
-                        className="text-[11px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium flex items-center gap-1"
+                        className="text-[11px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium flex items-center gap-1 cursor-pointer"
                       >
                         <span>{isExpanded ? t('events.hide_tech_details') : t('events.show_tech_details')}</span>
                         <ArrowRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />

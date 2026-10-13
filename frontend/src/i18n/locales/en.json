@@ -586,7 +586,23 @@
     "canvas_global_badge_sub": "Global network maintenance active • Alerts and notifications are suppressed.",
     "active_badge_tooltip": "Scheduled maintenance in progress",
     "long_duration_warning": "Warning: this maintenance window lasts {{hours}} hours. Alerts will be suppressed for this entire duration. Are you sure you want to proceed?",
-    "overlap_error": "This timeframe overlaps with an already scheduled maintenance window."
+    "overlap_error": "This timeframe overlaps with an already scheduled maintenance window.",
+    "field_recurrence": "Maintenance Type / Recurrence",
+    "rec_none": "One-off (Fixed date & time)",
+    "rec_daily": "Daily (Every day)",
+    "rec_weekly": "Weekly (Specific days)",
+    "rec_monthly": "Monthly (Day of the month)",
+    "rec_yearly": "Yearly (Every year)",
+    "field_start_time": "Start Time",
+    "field_end_time": "End Time",
+    "field_recurrence_end": "End of Recurrence (Optional)",
+    "field_days_of_week": "Days of the week",
+    "field_day_of_month": "Day of the month",
+    "rec_badge": "Recurring",
+    "rec_every_day": "Every day from {{start}} to {{end}}",
+    "rec_weekly_desc": "Every week ({{days}}) from {{start}} to {{end}}",
+    "rec_monthly_desc": "Day {{day}} of each month from {{start}} to {{end}}",
+    "rec_yearly_desc": "Every year on {{date}} from {{start}} to {{end}}"
   },
   "backup": {
     "modal_title": "Topology Backup & Restore",
@@ -616,7 +632,9 @@
     "deselect_all": "Deselect all",
     "already_in_topology": "Already on canvas",
     "selected_count": "{{count}} devices selected",
-    "add_selected": "Add to canvas ({{count}})"
+    "add_selected": "Add to canvas ({{count}})",
+    "silent_mode_toggle": "Add in silent mode (no email alerts until validated)",
+    "auto_link_toggle": "Auto-connect to existing Core/Switch/AP devices"
   },
   "simulation": {
     "btn_simulate_device": "Simulate Failure (What-If)",

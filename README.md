@@ -17,6 +17,12 @@
 
 </div>
 
+> [!WARNING]
+> **Progetto in sviluppo attivo / Early Stage**  
+> NetSentinel è un progetto recente ed è in continua e rapida evoluzione. Potrebbero verificarsi bug, anomalie o comportamenti indesiderati.  
+> - Se riscontri problemi o comportamenti imprevisti, ti invitiamo ad **aprire una Issue** su GitHub descrivendo l'accaduto.
+> - Contributi e suggerimenti sono i benvenuti! Sentiti libero di effettuare un **fork** del repository e proporre una **Pull Request** per risolvere problemi o implementare nuove funzionalità.
+
 ---
 
 ## 💡 Why NetSentinel?

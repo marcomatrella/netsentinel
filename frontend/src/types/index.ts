@@ -196,6 +196,12 @@ export interface ScheduledMaintenanceWindow {
   device_id?: string | null;
   start_ts: string;
   end_ts: string;
+  recurrence_type?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+  start_time?: string | null;
+  end_time?: string | null;
+  days_of_week?: string | null;
+  day_of_month?: number | null;
+  recurrence_end_date?: string | null;
   enabled: boolean;
   notes: string;
   created_at?: string;

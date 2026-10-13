@@ -72,7 +72,7 @@ class CorrelationEngine:
         unhealthy_ids = {d.id for d in unhealthy_nodes}
 
         def is_passive(d: Device) -> bool:
-            if d.kind == "client":
+            if d.kind in ["client", "smart_plug", "sensor"]:
                 return True
             r = json.loads(d.roles_json) if d.roles_json else []
             return "passive_tracking" in r
@@ -178,6 +178,19 @@ class CorrelationEngine:
                 alternative_hypotheses=diag.alternative_hypotheses,
             )
             resulting_incidents.append(inc)
+
+        # 6. Automatically resolve any active incidents that are no longer candidates
+        resulting_candidate_ids = {c.id for c in candidates}
+        active_stmt = select(Incident).where(Incident.status.in_(["open", "monitoring"]))
+        active_res = await session.execute(active_stmt)
+        for open_inc in active_res.scalars().all():
+            if open_inc.root_cause_device_id not in resulting_candidate_ids:
+                logger.info(
+                    "✅ [AUTO-RESOLVE] Risoluzione automatica incidente %s: root cause %s non è più guasta o rimossa.",
+                    open_inc.id,
+                    open_inc.root_cause_device_id,
+                )
+                await incident_manager.resolve_incident(session, open_inc.id)
 
         await session.commit()
         return resulting_incidents

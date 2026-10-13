@@ -9,69 +9,107 @@ HTML_INCIDENT_TEMPLATE = """<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
-    .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-    .header { padding: 20px 24px; background: {% if is_resolved %}#065f46{% elif is_shift %}#854d0e{% else %}#9f1239{% endif %}; color: #ffffff; }
-    .header h1 { margin: 0 0 4px 0; font-size: 18px; font-weight: 700; }
-    .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: rgba(255,255,255,0.2); }
-    .content { padding: 24px; font-size: 14px; line-height: 1.6; }
-    .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; color: #94a3b8; margin: 18px 0 6px 0; letter-spacing: 0.05em; }
-    .highlight-box { background: #0f172a; border-radius: 8px; padding: 14px; margin: 12px 0; border: 1px solid #334155; }
-    .meta-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
-    .meta-label { color: #94a3b8; }
-    .meta-value { font-weight: 600; color: #f1f5f9; }
-    ul { margin: 6px 0; padding-left: 20px; }
-    li { margin-bottom: 4px; }
-    .btn { display: inline-block; padding: 10px 20px; background: #0284c7; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 18px; text-align: center; }
-    .footer { padding: 16px 24px; background: #0f172a; font-size: 12px; color: #64748b; text-align: center; border-top: 1px solid #334155; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <span class="badge">{% if is_resolved %}Risolto{% elif is_shift %}Aggiornamento Incidente{% else %}Allarme NetSentinel{% endif %}</span>
-      <h1>{{ title }}</h1>
-    </div>
-    <div class="content">
-      <div class="highlight-box">
-        <div class="meta-row"><span class="meta-label">🚨 Causa Radice:</span> <span class="meta-value">{{ root_cause_device_name }} ({{ root_cause_category }})</span></div>
-        <div class="meta-row"><span class="meta-label">📊 Confidenza:</span> <span class="meta-value">{{ confidence_pct }}%</span></div>
-        <div class="meta-row"><span class="meta-label">⏱️ Inizio:</span> <span class="meta-value">{{ started_at }}</span></div>
-        {% if resolved_at %}
-        <div class="meta-row"><span class="meta-label">✅ Durata totale:</span> <span class="meta-value">{{ duration_str }}</span></div>
-        {% endif %}
-      </div>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; padding: 24px; -webkit-font-smoothing: antialiased;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9;">
+    <tr>
+      <td align="center" style="padding: 12px 0;">
+        <div style="max-width: 600px; width: 100%; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.06); text-align: left;">
 
-      <div class="section-title">🔍 Diagnosi e Motivo</div>
-      <p>{{ summary }}</p>
+          <!-- Header Banner -->
+          <div style="padding: 22px 24px; background-color: {% if is_resolved %}#059669{% elif is_shift %}#d97706{% else %}#dc2626{% endif %}; color: #ffffff;">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; background-color: rgba(255,255,255,0.22); letter-spacing: 0.05em; color: #ffffff;">
+              {% if is_resolved %}✓ Risolto{% elif is_shift %}⚡ Aggiornamento Incidente{% else %}🚨 Allarme NetSentinel{% endif %}
+            </span>
+            <h1 style="margin: 8px 0 0 0; font-size: 20px; font-weight: 700; color: #ffffff; line-height: 1.3;">{{ title }}</h1>
+          </div>
 
-      {% if impacted_devices %}
-      <div class="section-title">⚠️ Nodi a valle impattati (Sintomi)</div>
-      <ul>
-        {% for d in impacted_devices %}
-        <li><strong>{{ d.name }}</strong> ({{ d.kind }}) — Irraggiungibile o degradato per dipendenza</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
+          <!-- Content Body -->
+          <div style="padding: 24px; font-size: 14px; line-height: 1.6; color: #334155; background-color: #ffffff;">
 
-      {% if recommendations %}
-      <div class="section-title">🛠️ Azioni Consigliate</div>
-      <ul>
-        {% for r in recommendations %}
-        <li>{{ r }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
+            <!-- Highlight Box: Causa Radice -->
+            <div style="background-color: #f8fafc; border-radius: 8px; padding: 16px; margin: 0 0 20px 0; border: 1px solid #e2e8f0;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="4" style="font-size: 13px; color: #334155;">
+                <tr>
+                  <td width="38%" style="color: #64748b; font-weight: 500;">🚨 Causa Radice:</td>
+                  <td style="color: #0f172a; font-weight: 700;">{{ root_cause_device_name }} <span style="font-size: 12px; font-weight: normal; color: #64748b;">({{ root_cause_category }})</span></td>
+                </tr>
+                <tr>
+                  <td style="color: #64748b; font-weight: 500;">📊 Confidenza:</td>
+                  <td style="color: #0f172a; font-weight: 700;">{{ confidence_pct }}%</td>
+                </tr>
+                <tr>
+                  <td style="color: #64748b; font-weight: 500;">⏱️ Inizio:</td>
+                  <td style="color: #0f172a; font-weight: 600;">{{ started_at }}</td>
+                </tr>
+                {% if resolved_at %}
+                <tr>
+                  <td style="color: #059669; font-weight: 600;">✅ Durata totale:</td>
+                  <td style="color: #059669; font-weight: 700;">{{ duration_str }}</td>
+                </tr>
+                {% endif %}
+              </table>
+            </div>
 
-      <div style="text-align: center;">
-        <a href="{{ dashboard_url }}" class="btn">Apri Dashboard NetSentinel</a>
-      </div>
-    </div>
-    <div class="footer">
-      NetSentinel — Sistema Intelligente di Monitoraggio Home Lab &bull; Vantage Point: {{ vantage_point_name }}
-    </div>
-  </div>
+            <!-- Diagnosi e Motivo -->
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #0284c7; margin: 20px 0 6px 0; letter-spacing: 0.05em;">
+              🔍 Diagnosi e Motivo
+            </div>
+            <div style="background-color: #f0f9ff; border-left: 4px solid #0284c7; padding: 12px 16px; border-radius: 4px; margin: 6px 0 18px 0; color: #0c4a6e; font-size: 14px; line-height: 1.5; font-weight: 500;">
+              {{ summary }}
+            </div>
+
+            {% if impacted_devices %}
+            <!-- Nodi a valle impattati -->
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #d97706; margin: 20px 0 6px 0; letter-spacing: 0.05em;">
+              ⚠️ Nodi a valle impattati (Sintomi silenziati)
+            </div>
+            <ul style="margin: 6px 0 18px 0; padding-left: 20px; color: #334155;">
+              {% for d in impacted_devices %}
+              <li style="margin-bottom: 6px; color: #334155;">
+                <strong style="color: #0f172a;">{{ d.name }}</strong> <span style="color: #64748b;">({{ d.kind }})</span> — Irraggiungibile o degradato per dipendenza
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if recommendations %}
+            <!-- Azioni Consigliate -->
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #16a34a; margin: 20px 0 6px 0; letter-spacing: 0.05em;">
+              🛠️ Azioni Consigliate
+            </div>
+            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin: 6px 0 20px 0;">
+              <ul style="margin: 0; padding-left: 20px; color: #166534;">
+                {% for r in recommendations %}
+                <li style="margin-bottom: 6px; color: #166534; font-size: 13px;">
+                  <strong style="color: #14532d;">{{ r }}</strong>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            <!-- Button CTA -->
+            <div style="text-align: center; margin: 26px 0 8px 0;">
+              <a href="{{ dashboard_url }}" style="display: inline-block; padding: 12px 28px; background-color: #0284c7; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);">
+                Apri Dashboard NetSentinel
+              </a>
+            </div>
+
+          </div>
+
+          <!-- Footer -->
+          <div style="padding: 16px 24px; background-color: #f8fafc; font-size: 12px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; line-height: 1.5;">
+            NetSentinel — Sistema Intelligente di Monitoraggio Home Lab<br>
+            Punto di osservazione: <strong style="color: #475569;">{{ vantage_point_name }}</strong>
+          </div>
+
+        </div>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 """

@@ -39,6 +39,7 @@ interface NetworkCanvasProps {
   onLayoutChange?: (layout: CanvasLayout) => void;
   onConnectLink?: (newLink: Link) => void;
   onAddDeviceDrop?: (device: Device, position?: { x: number; y: number }) => void;
+  onDeleteDevice?: (deviceId: string) => void;
   onDeleteDevicesBatch?: (devices: Device[]) => void;
 }
 
@@ -55,6 +56,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   onLayoutChange,
   onConnectLink,
   onAddDeviceDrop,
+  onDeleteDevice,
   onDeleteDevicesBatch,
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -223,21 +225,18 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Synchronize devices and live status updates WITHOUT losing node positions
+  // Synchronize devices and live status updates WITHOUT losing node positions or selection state
   React.useEffect(() => {
     setNodes((prevNodes) => {
-      const existingPosMap = new Map<string, { x: number; y: number }>();
+      const existingMap = new Map<string, Node>();
       for (const pn of prevNodes) {
-        existingPosMap.set(pn.id, pn.position);
+        existingMap.set(pn.id, pn);
       }
 
       return devices.map((d, index) => {
-        // Priority:
-        // 1. Current on-canvas position (so dragging or editing is never overwritten by SSE or state updates)
-        // 2. Saved position from layout prop
-        // 3. Fallback grid position
+        const prev = existingMap.get(d.id);
         const position =
-          existingPosMap.get(d.id) ||
+          prev?.position ||
           layoutPosMap.get(d.id) || {
             x: 120 + (index % 3) * 260,
             y: 80 + Math.floor(index / 3) * 180,
@@ -248,6 +247,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           type: 'customNode',
           position,
           data: buildNodeData(d),
+          selected: prev?.selected ?? false,
         };
       });
     });
@@ -357,6 +357,8 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     []
   );
 
+  const [devicesPendingBatchDelete, setDevicesPendingBatchDelete] = useState<Device[]>([]);
+
   const selectedDevicesList = useMemo(() => {
     const idSet = new Set(selectedDeviceIds);
     return devices.filter((d) => idSet.has(d.id));
@@ -364,14 +366,17 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
 
   const handleTriggerBatchDelete = () => {
     if (selectedDevicesList.length === 0) return;
+    setDevicesPendingBatchDelete(selectedDevicesList);
     setIsConfirmModalOpen(true);
   };
 
   const handleConfirmBatchDelete = () => {
-    if (onDeleteDevicesBatch && selectedDevicesList.length > 0) {
-      onDeleteDevicesBatch(selectedDevicesList);
+    const toDelete = devicesPendingBatchDelete.length > 0 ? devicesPendingBatchDelete : selectedDevicesList;
+    if (onDeleteDevicesBatch && toDelete.length > 0) {
+      onDeleteDevicesBatch(toDelete);
     }
     setIsConfirmModalOpen(false);
+    setDevicesPendingBatchDelete([]);
     setSelectedDeviceIds([]);
   };
 
@@ -477,6 +482,34 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     const timer = setTimeout(setupTooltips, 100);
     return () => clearTimeout(timer);
   }, [t]);
+
+  // Support Delete / Backspace key to remove selected device(s)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is currently typing in an input, textarea or contenteditable element
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || (document.activeElement as HTMLElement)?.isContentEditable) {
+        return;
+      }
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedDeviceIds.length > 1) {
+          e.preventDefault();
+          setIsConfirmModalOpen(true);
+        } else if (selectedDeviceIds.length === 1) {
+          e.preventDefault();
+          const targetId = selectedDeviceIds[0];
+          if (onDeleteDevice) {
+            onDeleteDevice(targetId);
+            setSelectedDeviceIds([]);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedDeviceIds, onDeleteDevice]);
 
   return (
     <div
@@ -611,12 +644,12 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-              {t('canvas.confirm_batch_delete_msg', { count: selectedDevicesList.length })}
+              {t('canvas.confirm_batch_delete_msg', { count: devicesPendingBatchDelete.length })}
             </p>
 
             {/* List of devices to be deleted */}
             <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800/80 mb-5">
-              {selectedDevicesList.map((dev) => (
+              {devicesPendingBatchDelete.map((dev) => (
                 <div key={dev.id} className="p-2.5 flex items-center justify-between text-xs bg-slate-50/50 dark:bg-slate-950/30">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
