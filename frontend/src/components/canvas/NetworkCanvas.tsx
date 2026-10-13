@@ -74,7 +74,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   // Ensure fitView leaves sufficient padding at the bottom for the floating TimeMachine bar
   const fitViewOptions = useMemo<FitViewOptions>(
     () => ({
-      padding: { top: '50px', bottom: '130px', left: '50px', right: '50px' },
+      padding: { top: '50px', bottom: '140px', left: '50px', right: '50px' },
       duration: 300,
     }),
     []
