@@ -432,4 +432,50 @@ export async function importTopologyJson(backupData: any): Promise<any> {
   return res.json();
 }
 
+export interface SpeedtestEvent {
+  stage: 'init' | 'ping' | 'ping_done' | 'download' | 'download_done' | 'upload' | 'complete' | 'error';
+  progress?: number;
+  message?: string;
+  current_ping_ms?: number;
+  ping_ms?: number;
+  jitter_ms?: number;
+  download_mbps?: number;
+  upload_mbps?: number;
+  server?: {
+    name: string;
+    location: string;
+    isp: string;
+    colo: string;
+  };
+  timestamp?: number;
+}
+
+export function runSpeedtestStream(
+  onEvent: (ev: SpeedtestEvent) => void,
+  onError?: (err: any) => void
+): () => void {
+  const es = new EventSource(`${API_BASE}/speedtest/run`);
+
+  es.onmessage = (e) => {
+    try {
+      const data: SpeedtestEvent = JSON.parse(e.data);
+      onEvent(data);
+      if (data.stage === 'complete' || data.stage === 'error') {
+        es.close();
+      }
+    } catch (parseErr) {
+      console.error('Failed to parse speedtest event', parseErr);
+    }
+  };
+
+  es.onerror = (err) => {
+    if (onError) onError(err);
+    es.close();
+  };
+
+  return () => {
+    es.close();
+  };
+}
+
 

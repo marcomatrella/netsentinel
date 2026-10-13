@@ -28,6 +28,7 @@ import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCh
 import { PRESET_COLORS, getDeviceColorId, setDeviceColorTag, getColorConfig } from '../../constants/colors';
 import { formatTimeOnly } from '../../utils/date';
 import { DeviceColorModal } from './DeviceColorModal';
+import { SpeedtestWidget } from './SpeedtestWidget';
 import { useTranslation } from '../../i18n/I18nContext';
 
 
@@ -943,6 +944,13 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
 
             {activeTab === 'checks' && (
               <div className="space-y-3">
+                {/* Dedicated Speedtest for WAN Gateways / Routers */}
+                {(device.kind === 'wan_gateway' || device.kind === 'router' || device.kind === 'firewall' || device.roles?.includes('default_gateway')) && (
+                  <div className="mb-4">
+                    <SpeedtestWidget deviceName={device.name} />
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between pb-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     {t('device_detail.checks_title')} ({checks.length})
