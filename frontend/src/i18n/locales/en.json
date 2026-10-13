@@ -427,6 +427,8 @@
     "speedtest_searching_server": "Connecting to server...",
     "speedtest_done": "Test completed successfully!",
     "speedtest_server_label": "Test Server:",
+    "speedtest_vantage_warning_title": "Run from Vantage Point",
+    "speedtest_vantage_warning_desc": "Tests are executed directly from the Vantage Point (the server hosting NetSentinel). Measured speeds might be throttled or bottlenecked by intermediate local links (e.g., Wi-Fi, powerline, non-gigabit switch ports or local CPU load) and may not reflect your ISP line maximum theoretical capacity.",
     "btn_add_check": "Add Check",
     "btn_cancel_add_check": "Cancel",
     "no_checks": "No checks configured for this device.",

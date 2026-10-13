@@ -427,6 +427,8 @@
     "speedtest_searching_server": "Connessione al server...",
     "speedtest_done": "Test completato con successo!",
     "speedtest_server_label": "Server di Test:",
+    "speedtest_vantage_warning_title": "Esecuzione dal Vantage Point",
+    "speedtest_vantage_warning_desc": "I test vengono eseguiti a partire dal Vantage Point (il server su cui gira NetSentinel). Le prestazioni misurate potrebbero quindi essere influenzate dai collegamenti di rete intermedi (es. Wi-Fi, powerline, link non gigabit al router o carico locale) e non riflettere la velocità teorica massima della linea.",
     "btn_add_check": "Aggiungi Controllo",
     "btn_cancel_add_check": "Annulla",
     "no_checks": "Nessun controllo configurato per questo apparato.",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, ArrowDown, ArrowUp, Activity, Globe, Play, AlertTriangle, RefreshCw, Server } from 'lucide-react';
+import { Gauge, ArrowDown, ArrowUp, Activity, Globe, Play, AlertTriangle, RefreshCw, Server, HelpCircle } from 'lucide-react';
 import { runSpeedtestStream, fetchSpeedtestServers, SpeedtestEvent, SpeedtestServer } from '../../api/client';
 import { useTranslation } from '../../i18n/I18nContext';
 
@@ -13,6 +13,7 @@ export const SpeedtestWidget: React.FC<SpeedtestWidgetProps> = ({ deviceName }) 
   const [stage, setStage] = useState<string>('idle');
   const [progress, setProgress] = useState<number>(0);
   const [message, setMessage] = useState<string>('');
+  const [showVantageHelp, setShowVantageHelp] = useState<boolean>(false);
   
   // Available test servers and selection
   const [servers, setServers] = useState<SpeedtestServer[]>([]);
@@ -130,9 +131,20 @@ export const SpeedtestWidget: React.FC<SpeedtestWidgetProps> = ({ deviceName }) 
             <Gauge className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="font-bold text-xs text-white">
-              {t('device_detail.speedtest_title', { defaultValue: 'Speedtest Connessione Internet' })}
-            </h4>
+            <div className="flex items-center gap-1.5">
+              <h4 className="font-bold text-xs text-white">
+                {t('device_detail.speedtest_title', { defaultValue: 'Speedtest Connessione Internet' })}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setShowVantageHelp((prev) => !prev)}
+                className="text-amber-400/80 hover:text-amber-300 transition p-0.5 rounded hover:bg-amber-400/10 cursor-pointer"
+                title={t('device_detail.speedtest_vantage_warning_title', { defaultValue: 'Avviso Vantage Point' })}
+                aria-label="Info Vantage Point"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+              </button>
+            </div>
             <span className="text-[10px] text-slate-400 font-mono">
               WAN Gateway: {deviceName}
             </span>
@@ -162,6 +174,32 @@ export const SpeedtestWidget: React.FC<SpeedtestWidgetProps> = ({ deviceName }) 
           )}
         </button>
       </div>
+
+      {/* Vantage Point Warning Box (toggleable via ? or on first notice) */}
+      {showVantageHelp && (
+        <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200/90 text-[11px] leading-relaxed animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-bold text-amber-300 block mb-0.5">
+                {t('device_detail.speedtest_vantage_warning_title', { defaultValue: 'Attenzione: Test eseguito dal Vantage Point' })}
+              </span>
+              <p className="text-[10px] text-amber-200/80">
+                {t('device_detail.speedtest_vantage_warning_desc', {
+                  defaultValue: 'Il test viene eseguito direttamente dal server NetSentinel (Vantage Point). Eventuali colli di bottiglia locali intermedi (es. Wi-Fi, link non gigabit al router o carico hardware) potrebbero influenzare i valori misurati rispetto alla banda teorica massima del provider.',
+                })}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowVantageHelp(false)}
+              className="text-amber-400/60 hover:text-amber-300 text-xs px-1"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Server Selection Dropdown */}
       <div className="mb-3 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80 text-[11px] flex flex-col gap-1.5 min-w-0">
