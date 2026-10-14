@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import random
+import time
 from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
@@ -41,6 +42,11 @@ class SchedulerEngine:
         # Event listeners (for SSE streaming)
         self._event_subscribers: list[Callable[[dict[str, Any]], None]] = []
 
+        # Debounce caches to prevent event storming / duplicates in SQLite
+        self._last_check_event_ts: dict[tuple[str, str], float] = {}
+        self._last_dev_event_ts: dict[tuple[str, str], float] = {}
+        self._correlation_task: asyncio.Task[None] | None = None
+
     def subscribe_events(self, callback: Callable[[dict[str, Any]], None]) -> None:
         """Subscribe to real-time events and state updates."""
         self._event_subscribers.append(callback)
@@ -57,6 +63,27 @@ class SchedulerEngine:
                 cb(event_data)
             except Exception as e:
                 logger.debug("Errore notifica subscriber: %s", e)
+
+    def schedule_correlation(self) -> None:
+        """Debounce correlation execution to allow cascading check transitions to settle (e.g. router reboot)."""
+        if self._correlation_task and not self._correlation_task.done():
+            return
+        self._correlation_task = asyncio.create_task(
+            self._debounced_correlation_runner(),
+            name="netsentinel-corr-debounce",
+        )
+
+    async def _debounced_correlation_runner(self) -> None:
+        """Wait 1.5s for multi-device check results to settle, then run correlation pass."""
+        try:
+            await asyncio.sleep(1.5)
+            async with AsyncSessionLocal() as session:
+                from app.correlation.engine import correlation_engine
+                await correlation_engine.run_correlation_cycle(session)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.warning("Errore ciclo correlazione debounced: %s", e)
 
     async def start(self) -> None:
         """Start scheduler worker loops."""
@@ -76,6 +103,8 @@ class SchedulerEngine:
             self._task.cancel()
         if self._flush_task:
             self._flush_task.cancel()
+        if self._correlation_task and not self._correlation_task.done():
+            self._correlation_task.cancel()
         # Final flush
         await self._flush_observations()
         logger.info("Scheduler arrestato e buffer osservazioni salvato.")
@@ -238,18 +267,38 @@ class SchedulerEngine:
                         rtt_str,
                     )
 
-                # Record check state change event
-                ev = Event(
-                    ts=utcnow(),
-                    device_id=device_id,
-                    check_id=check_id,
-                    event_type="check_state_change",
-                    severity=h_res.event_severity or "info",
-                    title=f"Check {chk.name}: {old_chk_status.upper()} -> {h_res.new_status.upper()}",
-                    message=f"Il controllo '{chk.name}' su '{device.name}' è passato allo stato {h_res.new_status.upper()}.",
-                    details_json=json.dumps(obs.details),
-                )
-                session.add(ev)
+                # Check if device is under maintenance or already down
+                from app.state.maintenance import maintenance_tracker
+                in_maint_chk, _ = await maintenance_tracker.is_device_in_maintenance(session, device_id)
+
+                should_log_check_event = True
+                if in_maint_chk and h_res.new_status in ["crit", "warn"]:
+                    # Suppress failure event logging in DB during maintenance
+                    should_log_check_event = False
+                elif device.status in ["down", "unreachable"] and h_res.new_status in ["crit", "warn"] and chk.type != "ping":
+                    # Device is already completely offline; suppress failure events for secondary checks
+                    should_log_check_event = False
+                else:
+                    chk_cache_key = (check_id, h_res.new_status)
+                    now_ts = time.time()
+                    if chk_cache_key in self._last_check_event_ts and (now_ts - self._last_check_event_ts[chk_cache_key]) < 60:
+                        should_log_check_event = False
+                    else:
+                        self._last_check_event_ts[chk_cache_key] = now_ts
+
+                if should_log_check_event:
+                    ev = Event(
+                        ts=utcnow(),
+                        device_id=device_id,
+                        check_id=check_id,
+                        event_type="check_state_change",
+                        severity=h_res.event_severity or "info",
+                        title=f"Check {chk.name}: {old_chk_status.upper()} -> {h_res.new_status.upper()}",
+                        message=f"Il controllo '{chk.name}' su '{device.name}' è passato allo stato {h_res.new_status.upper()}.",
+                        details_json=json.dumps(obs.details),
+                    )
+                    session.add(ev)
+
                 self._broadcast_event({
                     "type": "check_state_change",
                     "device_id": device_id,
@@ -356,23 +405,41 @@ class SchedulerEngine:
                 else:
                     severity = "info"
 
-                maint_suffix = f" [Manutenzione Programmata: {maint_win.title}]" if (in_maint and maint_win) else (" [Manutenzione Attiva]" if in_maint else "")
-                ev_dev = Event(
-                    ts=utcnow(),
-                    device_id=device_id,
-                    event_type="device_state_change",
-                    severity=severity,
-                    title=f"Apparato {device.name}: {old_dev_status.upper()} -> {new_dev_status.upper()}{maint_suffix}",
-                    message=f"Lo stato di '{device.name}' (tracciamento passivo) è {new_dev_status.upper()}." if is_passive else f"Lo stato complessivo di '{device.name}' è ora {new_dev_status.upper()}{maint_suffix}.",
-                    details_json=json.dumps({
-                        "old_status": old_dev_status,
-                        "new_status": new_dev_status,
-                        "passive": is_passive,
-                        "maintenance": in_maint,
-                        "maintenance_title": maint_win.title if maint_win else None,
-                    }),
-                )
-                session.add(ev_dev)
+                dev_cache_key = (device_id, new_dev_status)
+                now_ts = time.time()
+                should_log_dev_event = True
+                if in_maint and new_dev_status in ["down", "unreachable", "flapping", "degraded"]:
+                    # In maintenance, log at most once every 5 minutes
+                    if dev_cache_key in self._last_dev_event_ts and (now_ts - self._last_dev_event_ts[dev_cache_key]) < 300:
+                        should_log_dev_event = False
+                    else:
+                        self._last_dev_event_ts[dev_cache_key] = now_ts
+                else:
+                    # Debounce duplicate events for same device & status within 30s
+                    if dev_cache_key in self._last_dev_event_ts and (now_ts - self._last_dev_event_ts[dev_cache_key]) < 30:
+                        should_log_dev_event = False
+                    else:
+                        self._last_dev_event_ts[dev_cache_key] = now_ts
+
+                if should_log_dev_event:
+                    maint_suffix = f" [Manutenzione Programmata: {maint_win.title}]" if (in_maint and maint_win) else (" [Manutenzione Attiva]" if in_maint else "")
+                    ev_dev = Event(
+                        ts=utcnow(),
+                        device_id=device_id,
+                        event_type="device_state_change",
+                        severity=severity,
+                        title=f"Apparato {device.name}: {old_dev_status.upper()} -> {new_dev_status.upper()}{maint_suffix}",
+                        message=f"Lo stato di '{device.name}' (tracciamento passivo) è {new_dev_status.upper()}." if is_passive else f"Lo stato complessivo di '{device.name}' è ora {new_dev_status.upper()}{maint_suffix}.",
+                        details_json=json.dumps({
+                            "old_status": old_dev_status,
+                            "new_status": new_dev_status,
+                            "passive": is_passive,
+                            "maintenance": in_maint,
+                            "maintenance_title": maint_win.title if maint_win else None,
+                        }),
+                    )
+                    session.add(ev_dev)
+
                 self._broadcast_event({
                     "type": "device_state_change",
                     "device_id": device_id,
@@ -387,13 +454,9 @@ class SchedulerEngine:
 
             await session.commit()
 
-            # If device state changed and it's not a passive client, trigger root-cause correlation & notifications
+            # If device state changed and it's not a passive client, schedule debounced root-cause correlation
             if dev_changed and not is_passive:
-                try:
-                    from app.correlation.engine import correlation_engine
-                    await correlation_engine.run_correlation_cycle(session)
-                except Exception as corr_err:
-                    logger.warning("Errore esecuzione ciclo di correlazione: %s", corr_err)
+                self.schedule_correlation()
 
     async def _batch_flush_loop(self) -> None:
         """Periodically flushes accumulated observations to SQLite in a single transaction."""

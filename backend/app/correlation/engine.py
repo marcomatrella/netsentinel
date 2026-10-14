@@ -179,14 +179,42 @@ class CorrelationEngine:
             )
             resulting_incidents.append(inc)
 
-        # 6. Automatically resolve any active incidents that are no longer candidates
+        # 6. Automatically resolve or merge any active incidents that are no longer candidates
         resulting_candidate_ids = {c.id for c in candidates}
         active_stmt = select(Incident).where(Incident.status.in_(["open", "monitoring"]))
         active_res = await session.execute(active_stmt)
         for open_inc in active_res.scalars().all():
             if open_inc.root_cause_device_id not in resulting_candidate_ids:
+                # Check 1: Is this device currently under maintenance?
+                is_maint, _ = await maintenance_tracker.is_device_in_maintenance(session, open_inc.root_cause_device_id)
+                if is_maint:
+                    logger.debug("Incidente %s sotto manutenzione: nessuna risoluzione automatica.", open_inc.id)
+                    continue
+
+                root_dev = dev_map.get(open_inc.root_cause_device_id)
+                # Check 2: Is the device still down/unreachable/affected?
+                if root_dev and root_dev.status in ["down", "unreachable", "affected", "degraded", "flapping"]:
+                    # Device is NOT recovered! It is a subordinate symptom of an upstream failure
+                    primary_cand = candidates[0].id if candidates else None
+                    logger.info(
+                        "🔗 [MERGE INCIDENTE] L'incidente %s (%s) non è risolto (stato: %s), ma è assorbito nell'incidente a monte %s.",
+                        open_inc.id,
+                        open_inc.root_cause_device_id,
+                        root_dev.status,
+                        primary_cand,
+                    )
+                    await incident_manager.merge_incident(
+                        session=session,
+                        subordinate_incident=open_inc,
+                        primary_incident_id=resulting_incidents[0].id if resulting_incidents else None,
+                        primary_device_id=primary_cand,
+                        reason=f"Dispositivo nello stato '{root_dev.status}' per guasto a monte (Causa radice: {primary_cand or 'Rete'}).",
+                    )
+                    continue
+
+                # Check 3: Truly recovered (status == "ok" or device no longer exists)
                 logger.info(
-                    "✅ [AUTO-RESOLVE] Risoluzione automatica incidente %s: root cause %s non è più guasta o rimossa.",
+                    "✅ [AUTO-RESOLVE] Risoluzione automatica incidente %s: root cause %s rientrata [OK].",
                     open_inc.id,
                     open_inc.root_cause_device_id,
                 )

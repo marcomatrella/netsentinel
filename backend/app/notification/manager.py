@@ -41,8 +41,14 @@ class NotificationManager:
         """
         now = time.time()
 
-        # 1. Per-incident cooldown (except resolution alerts which are always sent if under global limit)
-        if not is_resolved and incident_id in self.last_incident_email_ts:
+        # 1. Per-incident cooldown
+        if is_resolved:
+            # Resolution cooldown: max 1 resolution email per incident every 60s
+            if incident_id in self.last_incident_email_ts:
+                elapsed = now - self.last_incident_email_ts[incident_id]
+                if elapsed < 60.0:
+                    return False, f"Rate-limit: notifica di risoluzione per incidente {incident_id} soppressa (inviata di recente)."
+        elif incident_id in self.last_incident_email_ts:
             elapsed = now - self.last_incident_email_ts[incident_id]
             if elapsed < self.incident_min_interval_seconds:
                 remaining = int(self.incident_min_interval_seconds - elapsed)
@@ -102,10 +108,14 @@ class NotificationManager:
         logs: list[NotificationLog] = []
 
         async with AsyncSessionLocal() as session:
-            # Check maintenance mode (manual global or device scheduled)
+            # Check maintenance mode (current window or window at incident start time)
             in_maint, maint_win = await maintenance_tracker.is_device_in_maintenance(session, incident.root_cause_device_id)
-            if in_maint:
-                reason = f"Notifica soppressa: Manutenzione programmata attiva ({maint_win.title if maint_win else 'Globale'})."
+            was_maint, was_win = await maintenance_tracker.is_device_in_maintenance(
+                session, incident.root_cause_device_id, at_time=incident.started_at
+            )
+            if in_maint or was_maint:
+                win_title = (maint_win or was_win).title if (maint_win or was_win) else "Globale"
+                reason = f"Notifica soppressa: Manutenzione programmata attiva/passata ({win_title})."
                 log = NotificationLog(
                     incident_id=incident.id,
                     channel_id="all",
@@ -116,6 +126,20 @@ class NotificationManager:
                 session.add(log)
                 await session.commit()
                 return [log]
+
+            # If this is a resolution alert, verify if an opening alert was ever sent to the user
+            if is_resolved:
+                sent_stmt = select(NotificationLog).where(
+                    NotificationLog.incident_id == incident.id,
+                    NotificationLog.status == "sent",
+                )
+                sent_res = await session.execute(sent_stmt)
+                if not sent_res.scalars().first():
+                    logger.info(
+                        "ℹ️ [RISOLUZIONE NON INVIATA] Nessun allarme di apertura era stato recapitato per l'incidente %s; notifica di risoluzione evitata.",
+                        incident.id,
+                    )
+                    return []
 
             # Fetch active channels
             ch_res = await session.execute(

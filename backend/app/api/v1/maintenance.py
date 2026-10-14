@@ -92,7 +92,17 @@ async def get_active_scheduled_maintenance(at_ts: str | None = None):
     """Retrieve all maintenance windows active at a given timestamp (default: now)."""
     if at_ts:
         try:
-            check_time = datetime.fromisoformat(at_ts.replace("Z", "+00:00")).replace(tzinfo=None)
+            clean_ts = at_ts.strip().replace("Z", "+00:00")
+            # If '+' was URL-decoded into a space in timezone offset (e.g. "04:15:00 02:00")
+            if " " in clean_ts:
+                parts = clean_ts.rsplit(" ", 1)
+                if ":" in parts[1] and len(parts[1]) <= 6:
+                    clean_ts = f"{parts[0]}+{parts[1]}"
+            dt = datetime.fromisoformat(clean_ts)
+            if dt.tzinfo is not None:
+                check_time = dt.astimezone(UTC).replace(tzinfo=None)
+            else:
+                check_time = dt
         except Exception:
             check_time = datetime.now(UTC).replace(tzinfo=None)
     else:

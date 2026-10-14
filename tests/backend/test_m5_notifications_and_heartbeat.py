@@ -207,15 +207,15 @@ async def test_maintenance_and_heartbeat_api():
         assert created["end_time"] == "04:30"
         slot_id = created["id"]
 
-        # Check active at 04:15 UTC -> should be active!
-        act_resp_yes = await client.get("/api/v1/maintenance/scheduled/active?at_ts=2026-06-15T04:15:00Z")
+        # Check active at 04:15 local (Rome CEST +02:00) -> should be active!
+        act_resp_yes = await client.get("/api/v1/maintenance/scheduled/active?at_ts=2026-06-15T04:15:00+02:00")
         assert act_resp_yes.status_code == 200
         act_data = act_resp_yes.json()
         assert act_data["is_global_active"] is True
         assert act_data["global_window"]["id"] == slot_id
 
-        # Check active at 05:00 UTC -> should NOT be active!
-        act_resp_no = await client.get("/api/v1/maintenance/scheduled/active?at_ts=2026-06-15T05:00:00Z")
+        # Check active at 05:00 local (Rome CEST +02:00) -> should NOT be active!
+        act_resp_no = await client.get("/api/v1/maintenance/scheduled/active?at_ts=2026-06-15T05:00:00+02:00")
         assert act_resp_no.status_code == 200
         assert act_resp_no.json()["is_global_active"] is False
 

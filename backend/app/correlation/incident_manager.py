@@ -144,6 +144,27 @@ class IncidentManager:
             incident.alternative_hypotheses_json = json.dumps(alternative_hypotheses)
             incident.timeline_json = json.dumps(timeline)
 
+        # Merge any other active incidents whose devices overlap with this primary incident
+        all_impacted_set = set(impacted)
+        if root_cause_device_id:
+            all_impacted_set.add(root_cause_device_id)
+
+        other_stmt = select(Incident).where(
+            Incident.status.in_(["open", "monitoring"]),
+            Incident.id != incident.id,
+        )
+        other_res = await session.execute(other_stmt)
+        for o_inc in other_res.scalars().all():
+            o_imp = set(json.loads(o_inc.impacted_json) if o_inc.impacted_json else [])
+            if o_inc.root_cause_device_id in all_impacted_set or o_imp.intersection(all_impacted_set):
+                await self.merge_incident(
+                    session=session,
+                    subordinate_incident=o_inc,
+                    primary_incident_id=incident.id,
+                    primary_device_id=incident.root_cause_device_id,
+                    reason=f"Assorbito nell'incidente primario {incident.id} (Causa radice: {incident.root_cause_device_id}).",
+                )
+
         await session.commit()
         await session.refresh(incident)
 
@@ -165,10 +186,41 @@ class IncidentManager:
 
         return incident
 
+    async def merge_incident(
+        self,
+        session: AsyncSession,
+        subordinate_incident: Incident,
+        primary_incident_id: str | None,
+        primary_device_id: str | None,
+        reason: str,
+    ) -> None:
+        """Merge subordinate symptom incident into primary root-cause incident without firing false resolved alert."""
+        if subordinate_incident.status in ["resolved", "merged"]:
+            return
+
+        now = utcnow()
+        subordinate_incident.status = "merged"
+        subordinate_incident.resolved_at = now
+        timeline = json.loads(subordinate_incident.timeline_json) if subordinate_incident.timeline_json else []
+        timeline.append({
+            "ts": to_utc_iso(now),
+            "event_type": "incident_merged",
+            "message": reason,
+            "primary_incident_id": primary_incident_id,
+            "primary_device_id": primary_device_id,
+        })
+        subordinate_incident.timeline_json = json.dumps(timeline)
+        logger.info(
+            "🔗 [INCIDENT MERGED] Incidente subordinato %s assorbito in %s (%s)",
+            subordinate_incident.id,
+            primary_incident_id,
+            reason,
+        )
+
     async def resolve_incident(self, session: AsyncSession, incident_id: str) -> Incident | None:
         """Mark incident as resolved when all devices recover."""
         incident = await session.get(Incident, incident_id)
-        if not incident or incident.status == "resolved":
+        if not incident or incident.status in ["resolved", "merged"]:
             return incident
 
         now = utcnow()
@@ -202,8 +254,20 @@ class IncidentManager:
         await session.refresh(incident)
         logger.info("Incidente risolto: %s (Durata: %ds)", incident.id, duration_s)
 
-        # Dispatch resolution notification
+        # Dispatch resolution notification (suppressed if under maintenance or occurred in maintenance window)
         try:
+            from app.state.maintenance import maintenance_tracker
+            is_maint, _ = await maintenance_tracker.is_device_in_maintenance(session, incident.root_cause_device_id)
+            was_maint, _ = await maintenance_tracker.is_device_in_maintenance(
+                session, incident.root_cause_device_id, at_time=incident.started_at
+            )
+            if is_maint or was_maint:
+                logger.info(
+                    "⏸️ [MANUTENZIONE] Notifica risoluzione incidente '%s' soppressa (finestra di manutenzione attiva/passata).",
+                    incident.id,
+                )
+                return incident
+
             from app.notification.manager import notification_manager
             logger.info("🎉 [NOTIFICA RISOLUZIONE] Invio notifica di rientro/risoluzione per incidente '%s'", incident.id)
             await notification_manager.notify_incident(incident, is_resolved=True, is_shift=False)
