@@ -41,6 +41,7 @@
     "kiosk_mode": "Fullscreen Kiosk",
     "refresh": "Refresh Data",
     "event_logs": "Event Logs",
+    "quick_actions": "Quick actions",
     "kiosk_exit": "Exit Kiosk",
     "status_ok": "Operating System OK",
     "status_ok_desc": "All nodes and services are operating normally",

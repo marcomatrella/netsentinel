@@ -41,6 +41,7 @@
     "kiosk_mode": "Plein écran",
     "refresh": "Actualiser les données",
     "event_logs": "Journaux d'événements",
+    "quick_actions": "Actions rapides",
     "kiosk_exit": "Quitter le kiosque",
     "status_ok": "Système opérationnel OK",
     "status_ok_desc": "Tous les nœuds et services fonctionnent normalement",

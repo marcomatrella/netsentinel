@@ -60,6 +60,7 @@ import { EventLogsModal } from './components/events/EventLogsModal';
 import { SystemSettingsModal } from './components/modals/SystemSettingsModal';
 import { ScheduledMaintenanceModal } from './components/modals/ScheduledMaintenanceModal';
 import { HeaderMenuDropdown } from './components/navigation/HeaderMenuDropdown';
+import { MobileQuickActionsDropdown } from './components/navigation/MobileQuickActionsDropdown';
 import { LanguageSwitcher } from './components/navigation/LanguageSwitcher';
 import { ThemeSwitcher } from './components/navigation/ThemeSwitcher';
 import { TimeMachineSlider } from './components/timemachine/TimeMachineSlider';
@@ -779,13 +780,13 @@ export const App: React.FC = () => {
 
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5 sm:mx-1 hidden sm:block" />
 
-            {/* 1 - Modifica plancia */}
+            {/* 1 - Modifica plancia (desktop) */}
             <button
               onClick={() => setIsEditMode(!isEditMode)}
-              className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm ${
+              className={`hidden sm:flex p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition items-center gap-1.5 border shadow-sm ${
                 isEditMode
                   ? 'bg-amber-600 text-white border-amber-500 shadow-amber-500/20'
-                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-755 dark:text-slate-300 dark:border-slate-700'
               }`}
               title={isEditMode ? t('menu.toggle_live_view') : t('header.edit_canvas')}
             >
@@ -797,21 +798,32 @@ export const App: React.FC = () => {
               <span className="hidden md:inline">{isEditMode ? t('header.view_live') : t('header.edit_canvas')}</span>
             </button>
 
-            {/* 2 - Registro Eventi (Log) */}
+            {/* 2 - Registro Eventi / Log (desktop) */}
             <button
               onClick={() => setIsEventLogsOpen(true)}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
+              className="hidden sm:flex p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition items-center gap-1.5 border shadow-sm bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
               title={t('header.event_logs')}
             >
               <ScrollText className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
               <span className="hidden md:inline">{t('header.event_logs')}</span>
             </button>
 
-            {/* 3 - Light/Dark mode */}
-            <ThemeSwitcher />
+            {/* 3 - Light/Dark mode (desktop) */}
+            <div className="hidden sm:block">
+              <ThemeSwitcher />
+            </div>
 
-            {/* 4 - Lingua (con bandiera della lingua) */}
-            <LanguageSwitcher />
+            {/* 4 - Lingua (desktop) */}
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
+
+            {/* Mobile-only "..." button grouping edit canvas, event logs, theme & language */}
+            <MobileQuickActionsDropdown
+              isEditMode={isEditMode}
+              onToggleEditMode={() => setIsEditMode(!isEditMode)}
+              onOpenEventLogs={() => setIsEventLogsOpen(true)}
+            />
 
             {/* 5 - Tasto per menu contestuale con tutte le voci */}
             <HeaderMenuDropdown

@@ -41,6 +41,7 @@
     "kiosk_mode": "Schermo Intero",
     "refresh": "Aggiorna Dati",
     "event_logs": "Log Eventi",
+    "quick_actions": "Azioni rapide",
     "kiosk_exit": "Esci da Kiosk",
     "status_ok": "Sistema operativo OK",
     "status_ok_desc": "Tutti i nodi e i servizi rispondono regolarmente",

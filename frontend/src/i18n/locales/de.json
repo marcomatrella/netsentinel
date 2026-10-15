@@ -41,6 +41,7 @@
     "kiosk_mode": "Vollbildmodus",
     "refresh": "Daten aktualisieren",
     "event_logs": "Ereignisprotokoll",
+    "quick_actions": "Schnellaktionen",
     "kiosk_exit": "Kiosk beenden",
     "status_ok": "System betriebsbereit OK",
     "status_ok_desc": "Alle Knoten und Dienste arbeiten normal",

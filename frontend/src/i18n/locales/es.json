@@ -41,6 +41,7 @@
     "kiosk_mode": "Pantalla completa",
     "refresh": "Actualizar datos",
     "event_logs": "Registro de Eventos",
+    "quick_actions": "Acciones rápidas",
     "kiosk_exit": "Salir de Kiosco",
     "status_ok": "Sistema operativo OK",
     "status_ok_desc": "Todos los nodos y servicios funcionan normalmente",
