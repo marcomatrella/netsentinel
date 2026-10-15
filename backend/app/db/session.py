@@ -66,6 +66,16 @@ async def init_db() -> None:
                 except Exception:
                     pass  # Column already exists
 
+            # Ensure composite indexes exist on observations for ultra-fast queries
+            for idx_sql in [
+                "CREATE INDEX IF NOT EXISTS ix_obs_device_status_ts ON observations (device_id, status, ts);",
+                "CREATE INDEX IF NOT EXISTS ix_obs_device_ts ON observations (device_id, ts);",
+            ]:
+                try:
+                    await conn.execute(text(idx_sql))
+                except Exception:
+                    pass
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependency that provides an async database session."""

@@ -12,11 +12,11 @@ from typing import Any
 from app.collector.plugins import registry
 from app.config import settings
 from app.db.models import Check, Device, Event, Observation, utcnow
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionLocal, is_sqlite
 from app.state.flapping import FlapDetector
 from app.state.hysteresis import evaluate_check_hysteresis, synthesize_device_status
 from app.state.reboot import RebootDetector
-from sqlalchemy import select
+from sqlalchemy import delete, select, text
 
 logger = logging.getLogger("netsentinel.scheduler")
 
@@ -30,10 +30,14 @@ class SchedulerEngine:
         self.is_running = False
         self._task: asyncio.Task[None] | None = None
         self._flush_task: asyncio.Task[None] | None = None
+        self._retention_task: asyncio.Task[None] | None = None
 
         # State engines
         self.flap_detector = FlapDetector(window_seconds=600, max_transitions=4)
         self.reboot_detector = RebootDetector()
+
+        # In-memory fast cache for live device RTT (ms) to eliminate N+1 DB queries in SSE
+        self._latest_rtts: dict[str, float] = {}
 
         # Batch persistence buffer
         self._obs_buffer: list[dict[str, Any]] = []
@@ -46,6 +50,10 @@ class SchedulerEngine:
         self._last_check_event_ts: dict[tuple[str, str], float] = {}
         self._last_dev_event_ts: dict[tuple[str, str], float] = {}
         self._correlation_task: asyncio.Task[None] | None = None
+
+    def get_latest_rtts(self) -> dict[str, float]:
+        """Return in-memory map of device_id -> latest RTT in ms."""
+        return dict(self._latest_rtts)
 
     def subscribe_events(self, callback: Callable[[dict[str, Any]], None]) -> None:
         """Subscribe to real-time events and state updates."""
@@ -92,6 +100,7 @@ class SchedulerEngine:
         self.is_running = True
         self._task = asyncio.create_task(self._scheduler_loop(), name="netsentinel-scheduler")
         self._flush_task = asyncio.create_task(self._batch_flush_loop(), name="netsentinel-flush")
+        self._retention_task = asyncio.create_task(self._retention_loop(), name="netsentinel-retention")
         logger.info("Scheduler asincrono avviato (concorrenza max: %d).", self.concurrency_limit)
 
     async def stop(self) -> None:
@@ -103,6 +112,8 @@ class SchedulerEngine:
             self._task.cancel()
         if self._flush_task:
             self._flush_task.cancel()
+        if self._retention_task:
+            self._retention_task.cancel()
         if self._correlation_task and not self._correlation_task.done():
             self._correlation_task.cancel()
         # Final flush
@@ -130,9 +141,11 @@ class SchedulerEngine:
                         jitter = random.uniform(0.9, 1.1)
                         next_interval = max(5, int(chk.interval_seconds * jitter))
                         chk.next_run_at = now + timedelta(seconds=next_interval)
-                        await session.commit()
 
-                        # Launch execution task protected by concurrency semaphore
+                    await session.commit()
+
+                    # Launch execution tasks protected by concurrency semaphore
+                    for chk in due_checks:
                         asyncio.create_task(self._execute_check_safe(chk.id))
 
                     # Periodically check active incidents against topology every 15s to auto-resolve stale incidents
@@ -155,7 +168,9 @@ class SchedulerEngine:
         """Execute a single check with concurrency control and error handling."""
         async with self.semaphore:
             try:
-                await self._run_check(check_id)
+                await asyncio.wait_for(self._run_check(check_id), timeout=35.0)
+            except TimeoutError:
+                logger.warning("Check %s scaduto dopo timeout limite di 35s.", check_id)
             except Exception as e:
                 logger.error("Errore non gestito durante check %s: %s", check_id, e)
 
@@ -202,6 +217,13 @@ class SchedulerEngine:
         obs = result.observations[0] if result.observations else None
         if not obs:
             return
+
+        # Update in-memory fast cache for live SSE streaming and topology
+        if obs.status == "ok" and obs.value is not None:
+            try:
+                self._latest_rtts[chk.device_id] = round(float(obs.value), 1)
+            except (ValueError, TypeError):
+                pass
 
         # Queue observation for batch DB insertion
         async with self._buffer_lock:
@@ -492,6 +514,63 @@ class SchedulerEngine:
                 # Re-queue items that failed to write
                 async with self._buffer_lock:
                     self._obs_buffer = items_to_write + self._obs_buffer
+
+    async def _retention_loop(self) -> None:
+        """Periodically purge aged observations/events and optimize database size."""
+        # Initial sleep of 60 seconds to avoid competing with app startup
+        try:
+            await asyncio.sleep(60.0)
+        except asyncio.CancelledError:
+            return
+
+        while self.is_running:
+            try:
+                await self._run_retention_cleanup()
+                # Run retention cleanup every 30 minutes
+                await asyncio.sleep(1800.0)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error("Errore nel ciclo di retention cleanup: %s", e)
+                await asyncio.sleep(300.0)
+
+    async def _run_retention_cleanup(self) -> None:
+        """Purge raw observations older than retention period and prune old events."""
+        async with AsyncSessionLocal() as session:
+            try:
+                # 1. Purge raw observations older than configured retention (default 7 days)
+                cutoff_obs = utcnow() - timedelta(days=settings.retention_raw_days)
+                stmt_obs = delete(Observation).where(Observation.ts < cutoff_obs)
+                res_obs = await session.execute(stmt_obs)
+                deleted_obs = res_obs.rowcount if hasattr(res_obs, "rowcount") else 0
+
+                # 2. Prune old events older than 30 days
+                cutoff_events = utcnow() - timedelta(days=30)
+                stmt_events = delete(Event).where(Event.ts < cutoff_events)
+                res_events = await session.execute(stmt_events)
+                deleted_events = res_events.rowcount if hasattr(res_events, "rowcount") else 0
+
+                await session.commit()
+
+                if deleted_obs > 0 or deleted_events > 0:
+                    logger.info(
+                        "Retention cleanup completato: rimosse %d osservazioni (>%dg) e %d eventi (>30g).",
+                        deleted_obs,
+                        settings.retention_raw_days,
+                        deleted_events,
+                    )
+
+                # 3. Optimize and checkpoint SQLite WAL to prevent unbounded disk/memory growth
+                if is_sqlite():
+                    await session.execute(text("PRAGMA wal_checkpoint(PASSIVE)"))
+                    await session.execute(text("PRAGMA optimize"))
+
+                # 4. Prune stale in-memory debounce entries older than 1 hour
+                now_epoch = time.time()
+                self._last_check_event_ts = {k: v for k, v in self._last_check_event_ts.items() if now_epoch - v < 3600}
+                self._last_dev_event_ts = {k: v for k, v in self._last_dev_event_ts.items() if now_epoch - v < 3600}
+            except Exception as e:
+                logger.error("Errore durante esecuzione retention cleanup: %s", e)
 
 
 # Singleton scheduler instance

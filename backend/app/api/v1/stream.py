@@ -9,12 +9,12 @@ from app.db.models import (
     Device,
     Incident,
     Link,
-    Observation,
     ScheduledMaintenanceWindow,
     to_utc_iso,
     utcnow,
 )
 from app.db.session import AsyncSessionLocal
+from app.scheduler.engine import scheduler
 from app.state.maintenance import maintenance_tracker
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -35,18 +35,8 @@ async def event_generator() -> AsyncGenerator[str, None]:
                     dev_res = await session.execute(select(Device.id, Device.status, Device.status_since))
                     db_devs = dev_res.all()
 
-                    # Query latest observation RTT for each device
-                    rtt_map: dict[str, float] = {}
-                    for d_row in db_devs:
-                        obs_res = await session.execute(
-                            select(Observation.value)
-                            .where(Observation.device_id == d_row[0], Observation.status == "ok", Observation.value.isnot(None))
-                            .order_by(desc(Observation.ts))
-                            .limit(1)
-                        )
-                        val = obs_res.scalar_one_or_none()
-                        if val is not None:
-                            rtt_map[d_row[0]] = round(val, 1)
+                    # Fast O(1) in-memory cache lookup for live RTT to avoid heavy N+1 DB queries every 2s
+                    rtt_map = scheduler.get_latest_rtts()
 
                     devs = [
                         {

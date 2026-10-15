@@ -72,6 +72,7 @@ class PingCollector(BaseCollector):
             cmd.extend(["-W", str(int(max(1, timeout_sec)))])
         cmd.append(target)
 
+        proc = None
         try:
             start_ts = time.time()
             proc = await asyncio.create_subprocess_exec(
@@ -128,6 +129,12 @@ class PingCollector(BaseCollector):
         except (PermissionError, FileNotFoundError):
             return None
         except TimeoutError:
+            if proc is not None:
+                try:
+                    proc.kill()
+                    await proc.wait()
+                except Exception:
+                    pass
             return CollectorResult(
                 observations=[
                     CollectorObservation(
@@ -138,6 +145,12 @@ class PingCollector(BaseCollector):
                 ]
             )
         except Exception as e:
+            if proc is not None:
+                try:
+                    proc.kill()
+                    await proc.wait()
+                except Exception:
+                    pass
             logger.debug("Eccezione durante ICMP ping su %s: %s", target, e)
             return None
 

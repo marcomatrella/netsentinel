@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -151,6 +152,11 @@ class Observation(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     value: Mapped[float | None] = mapped_column(Float, nullable=True)
     details_json: Mapped[str] = mapped_column(Text, default="{}")
+
+    __table_args__ = (
+        Index("ix_obs_device_status_ts", "device_id", "status", "ts"),
+        Index("ix_obs_device_ts", "device_id", "ts"),
+    )
 
 
 class ObservationHourly(Base):

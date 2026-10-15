@@ -5,8 +5,9 @@ from typing import Any
 
 from app.api.v1.devices import _to_device_read, ensure_device_checks
 from app.config import settings
-from app.db.models import CanvasLayout, ConfigVersion, Dependency, Device, Link, Observation, utcnow
+from app.db.models import CanvasLayout, ConfigVersion, Dependency, Device, Link, utcnow
 from app.db.session import get_db
+from app.scheduler.engine import scheduler
 from app.schemas.config_yaml import NetSentinelConfigYaml
 from app.schemas.entities import (
     CanvasLayoutRead,
@@ -19,7 +20,7 @@ from app.schemas.entities import (
 from app.topology.deduction import deduce_dependencies_from_topology
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -62,18 +63,8 @@ async def get_full_topology(db: AsyncSession = Depends(get_db)) -> TopologyFullR
     dev_res = await db.execute(select(Device).options(selectinload(Device.interfaces)))
     db_devices = dev_res.scalars().all()
 
-    # Query latest observation RTT for each device
-    rtt_map: dict[str, float] = {}
-    for d in db_devices:
-        obs_res = await db.execute(
-            select(Observation.value)
-            .where(Observation.device_id == d.id, Observation.status == "ok", Observation.value.isnot(None))
-            .order_by(desc(Observation.ts))
-            .limit(1)
-        )
-        val = obs_res.scalar_one_or_none()
-        if val is not None:
-            rtt_map[d.id] = round(val, 1)
+    # Fast O(1) in-memory cache lookup for live RTT to avoid heavy N+1 DB queries
+    rtt_map = scheduler.get_latest_rtts()
 
     devices = [_to_device_read(d, rtt_ms=rtt_map.get(d.id)) for d in db_devices]
     dev_status_map = {d.id: d.status for d in db_devices}

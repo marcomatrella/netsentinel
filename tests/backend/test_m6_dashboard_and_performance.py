@@ -6,10 +6,12 @@ import time
 from datetime import timedelta
 
 import pytest
-from app.db.models import Check, Device, Incident, Observation, utcnow
+from app.db.models import Check, Device, Event, Incident, Observation, utcnow
 from app.db.session import AsyncSessionLocal
 from app.main import app
+from app.scheduler.engine import scheduler
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete, select
 
 
 @pytest.mark.asyncio
@@ -157,11 +159,87 @@ async def test_resource_and_performance_benchmark():
         elapsed = time.perf_counter() - t0
 
         # Clean up benchmark entities to keep DB pristine
-        from sqlalchemy import delete
         await session.execute(delete(Observation).where(Observation.device_id == bdev.id))
         await session.execute(delete(Check).where(Check.device_id == bdev.id))
         await session.execute(delete(Device).where(Device.id == bdev.id))
         await session.commit()
 
     assert elapsed < 0.50, f"Tempo di inserimento batch troppo lento: {elapsed:.3f}s"
+
+
+@pytest.mark.asyncio
+async def test_retention_cleanup_and_in_memory_rtt_cache():
+    """Verify data retention loop purges stale records and scheduler maintains in-memory RTT cache."""
+    # 1. Test in-memory RTT cache
+    scheduler._latest_rtts["dev-perf-1"] = 12.4
+    rtts = scheduler.get_latest_rtts()
+    assert rtts.get("dev-perf-1") == 12.4
+
+    # 2. Test retention cleanup
+    async with AsyncSessionLocal() as session:
+        t_dev = Device(
+            id="dev-perf-1",
+            name="Perf Device",
+            kind="server",
+            status="ok",
+            criticality=2,
+            addresses_json="{}",
+            tags_json="[]",
+            roles_json="[]",
+        )
+        t_chk = Check(
+            id="chk-perf-1",
+            device_id=t_dev.id,
+            type="ping",
+            name="Perf Check",
+            current_status="ok",
+            status_since=utcnow(),
+        )
+        session.add_all([t_dev, t_chk])
+        await session.flush()
+
+        # Add old observation (10 days ago) and fresh observation (now)
+        old_obs = Observation(
+            ts=utcnow() - timedelta(days=10),
+            device_id="dev-perf-1",
+            check_id="chk-perf-1",
+            status="ok",
+            value=15.0,
+            details_json="{}",
+        )
+        fresh_obs = Observation(
+            ts=utcnow(),
+            device_id="dev-perf-1",
+            check_id="chk-perf-1",
+            status="ok",
+            value=12.0,
+            details_json="{}",
+        )
+        old_ev = Event(
+            ts=utcnow() - timedelta(days=40),
+            event_type="test_old",
+            title="Old Event",
+            message="Purge me",
+        )
+        session.add_all([old_obs, fresh_obs, old_ev])
+        await session.commit()
+
+    # Run retention cleanup
+    await scheduler._run_retention_cleanup()
+
+    async with AsyncSessionLocal() as session:
+        res_obs = await session.execute(select(Observation).where(Observation.device_id == "dev-perf-1"))
+        remaining_obs = res_obs.scalars().all()
+        assert len(remaining_obs) == 1
+        assert remaining_obs[0].value == 12.0
+
+        res_ev = await session.execute(select(Event).where(Event.event_type == "test_old"))
+        assert res_ev.scalar_one_or_none() is None
+
+        # Clean up test entities
+        await session.execute(delete(Observation).where(Observation.device_id == "dev-perf-1"))
+        await session.execute(delete(Check).where(Check.device_id == "dev-perf-1"))
+        await session.execute(delete(Device).where(Device.id == "dev-perf-1"))
+        await session.commit()
+
 
