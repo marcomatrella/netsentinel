@@ -66,6 +66,7 @@ import { ThemeSwitcher } from './components/navigation/ThemeSwitcher';
 import { TimeMachineSlider } from './components/timemachine/TimeMachineSlider';
 import packageJson from '../package.json';
 import { useTranslation } from './i18n/I18nContext';
+import { translateDiagnosisTitle, translateIncidentSummary } from './utils/diagnosisI18n';
 
 export const App: React.FC = () => {
   const { t } = useTranslation();
@@ -932,7 +933,7 @@ export const App: React.FC = () => {
               <div className="font-bold text-rose-300 flex items-center gap-2">
                 <span>{t('simulation.banner_title') || '🧪 Simulazione What-If attiva'}</span>
                 <span className="font-mono px-2 py-0.2 rounded-full bg-rose-500/20 text-rose-200 border border-rose-500/40 text-[10px]">
-                  {simulatedIncident.diagnosis_title}
+                  {translateDiagnosisTitle(t, simulatedIncident.rule_id, simulatedIncident.diagnosis_title)}
                 </span>
               </div>
               <div className="text-[11px] text-slate-300 mt-0.5">
@@ -1166,7 +1167,7 @@ export const App: React.FC = () => {
                   onOpenLogs={() => setIsEventLogsOpen(true)}
                   isLive={!isHistoricalMode}
                   externalTargetTime={historicalTime}
-                  errorAtTime={historicalErrorSummary}
+                  errorAtTime={historicalErrorSummary ? translateIncidentSummary(t, historicalErrorSummary) : null}
                   retentionPeriod={retentionPeriod}
                 />
               </div>

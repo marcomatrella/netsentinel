@@ -692,5 +692,79 @@
     "banner_root_cause": "Causa raíz simulada:",
     "banner_impacted": "Dispositivos afectados: {{count}}",
     "btn_exit": "Salir de la Simulación"
+  },
+  "rules": {
+    "nominal_state": {
+      "title": "Red en estado nominal",
+      "summary": "Ningún fallo simulado activo. Todos los nodos funcionan normalmente."
+    },
+    "rule_01_wan_loss": {
+      "title": "Conexión a Internet no disponible (Fallo del ISP o de línea)",
+      "summary": "La puerta de enlace local está operativa y accesible, pero la conectivité externa (DNS público o ping WAN) está interrumpida."
+    },
+    "rule_02_gateway_down": {
+      "title": "Puerta de enlace de red sin conexión (Apagada o bloqueada)",
+      "summary": "El router principal no responde a las comprobaciones. Todos los destinos externos y rutas inter-VLAN están aislados."
+    },
+    "rule_03_ap_reboot": {
+      "title": "Punto de acceso reiniciado recientemente",
+      "summary": "El tiempo de actividad del punto de acceso se reinició mientras el enlace físico del switch permaneció activo."
+    },
+    "rule_04_ap_poe_loss": {
+      "title": "Punto de acceso fuera de línea por corte de energía o cable desconectado",
+      "summary": "El punto de acceso no responde y el enlace físico está ausente. El inyector PoE o puerto del switch no suministra energía o el cable está desconectado."
+    },
+    "rule_05_cable_flapping": {
+      "title": "Cableado de red inestable o velocidad de enlace degradada",
+      "summary": "Cambios frecuentes de estado up/down o errores de transmisión detectados. Síntoma típico de mal crimpado o interferencias."
+    },
+    "rule_06_switch_down": {
+      "title": "Switch de red principal inaccesible (Nodos downstream aislados)",
+      "summary": "El switch no responde y todos los dispositivos conectados están aislados simultáneamente. El switch es la causa raíz."
+    },
+    "rule_07_nas_dhcp_dns_down": {
+      "title": "NAS fuera de línea: Servicios DNS, DHCP y almacenamiento interrumpidos",
+      "summary": "El NAS está completamente desconectado. Los clientes pierden resolución de nombres y renovación de concesiones DHCP."
+    },
+    "rule_08_dns_degraded": {
+      "title": "Servicio DNS no responde o SERVFAIL upstream",
+      "summary": "La red IP funciona con normalidad, pero las consultas DNS al resolver local fallan o devuelven error."
+    },
+    "rule_09_dhcp_failure": {
+      "title": "Servicio DHCP detenido o pool de direcciones agotado",
+      "summary": "Los nuevos clientes no pueden obtener dirección IP, aunque el servidor responde en la red."
+    },
+    "rule_10_ups_on_battery": {
+      "title": "Corte eléctrico: SAI/UPS funcionando con batería",
+      "summary": "El SAI/UPS ha cambiado al estado con batería. Los equipos no protegidos por batería están apagados."
+    },
+    "rule_11_vantage_point_isolated": {
+      "title": "El monitor (Vantage Point) está aislado de la red",
+      "summary": "NetSentinel no puede comunicarse con ningún equipo. El problema es local al host de monitorización."
+    },
+    "rule_12_storage_degraded": {
+      "title": "Alerta temprana: Riesgo de fallo de disco o volumen degradado",
+      "summary": "Parámetros S.M.A.R.T. degradados o volumen RAID en estado degradado. Riesgo inminente de pérdida de datos."
+    },
+    "rule_13_service_hang": {
+      "title": "Host operativo pero servicio de aplicación (ej. Home Assistant) no responde",
+      "summary": "El host responde a ping ICMP, pero la API o la interfaz web del servicio está bloqueada o expira."
+    },
+    "rule_14_firmware_upgrade": {
+      "title": "Actualización de firmware o reinicio por mantenimiento programado",
+      "summary": "Desconexión temporal con recuperación y nueva versión de firmware registrada."
+    },
+    "rule_ap_controller_desync": {
+      "title": "Punto de acceso activo en LAN pero desconectado del controlador UniFi",
+      "summary": "El AP responde a ping directo pero el controlador UniFi lo marca como desconectado o aislado (puerto 8080/tcp)."
+    },
+    "rule_ap_ip_lease_loss": {
+      "title": "Punto de acceso alimentado (PoE activo) pero sin dirección IP / inalcanzable",
+      "summary": "La alimentación PoE y el enlace físico están activos, pero el AP no responde a nivel IP."
+    },
+    "rule_generic_failure": {
+      "title": "Fallo del dispositivo: {{name}}",
+      "summary": "El dispositivo '{{name}}' es inalcanzable desde el monitor. Ningún nodo ascendente tiene fallos."
+    }
   }
 }

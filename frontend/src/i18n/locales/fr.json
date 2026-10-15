@@ -692,5 +692,79 @@
     "banner_root_cause": "Cause racine simulée :",
     "banner_impacted": "Appareils impactés : {{count}}",
     "btn_exit": "Quitter la Simulation"
+  },
+  "rules": {
+    "nominal_state": {
+      "title": "Réseau en état nominal",
+      "summary": "Aucune panne simulée active. Tous les nœuds fonctionnent normalement."
+    },
+    "rule_01_wan_loss": {
+      "title": "Connexion Internet indisponible (Panne FAI ou ligne)",
+      "summary": "La passerelle locale est opérationnelle et joignable, mais la connectivité sortante (DNS public ou ping WAN) est interrompue. Le réseau local est sain."
+    },
+    "rule_02_gateway_down": {
+      "title": "Passerelle réseau hors ligne (Éteinte ou bloquée)",
+      "summary": "Le routeur principal ne répond pas aux vérifications. Toutes les destinations externes et les routes inter-VLAN sont isolées."
+    },
+    "rule_03_ap_reboot": {
+      "title": "Point d'accès récemment redémarré",
+      "summary": "Le temps de fonctionnement du point d'accès s'est réinitialisé alors que la liaison physique du commutateur est restée active."
+    },
+    "rule_04_ap_poe_loss": {
+      "title": "Point d'accès hors ligne pour coupure d'alimentation ou câble déconnecté",
+      "summary": "Le point d'accès ne répond pas et la liaison physique est absente. L'injecteur PoE ou le port du commutateur ne fournit pas d'alimentation ou le câble est débranché."
+    },
+    "rule_05_cable_flapping": {
+      "title": "Câblage réseau instable ou débit négocié dégradé",
+      "summary": "Changements fréquents d'état haut/bas (link flapping) ou erreurs de transmission détectés. Symptôme typique d'un mauvais sertissage ou d'interférences."
+    },
+    "rule_06_switch_down": {
+      "title": "Commutateur réseau principal inaccessible (Nœuds en aval isolés)",
+      "summary": "Le commutateur ne répond pas et tous les appareils en aval sont simultanément inaccessibles. Le commutateur est la cause racine."
+    },
+    "rule_07_nas_dhcp_dns_down": {
+      "title": "NAS hors ligne : Services DNS, DHCP et stockage interrompus",
+      "summary": "Le NAS est totalement hors ligne. Les clients perdent la résolution des noms et le renouvellement des baux DHCP."
+    },
+    "rule_08_dns_degraded": {
+      "title": "Service DNS non réactif ou SERVFAIL en amont",
+      "summary": "Le réseau IP fonctionne normalement, mais les requêtes DNS adressées au résolveur local échouent."
+    },
+    "rule_09_dhcp_failure": {
+      "title": "Service DHCP arrêté ou pool d'adresses épuisé",
+      "summary": "Les nouveaux clients ne peuvent pas obtenir d'adresse IP, bien que le serveur soit accessible sur le réseau."
+    },
+    "rule_10_ups_on_battery": {
+      "title": "Coupure de courant : Onduleur sur batterie",
+      "summary": "L'onduleur est passé sur batterie. Les appareils non protégés par l'onduleur sont éteints."
+    },
+    "rule_11_vantage_point_isolated": {
+      "title": "Le moniteur (Vantage Point) est isolé du réseau",
+      "summary": "NetSentinel ne peut communiquer avec aucun appareil. Le problème est local à l'hôte de surveillance."
+    },
+    "rule_12_storage_degraded": {
+      "title": "Avertissement précoce : Risque de panne de disque ou volume dégradé",
+      "summary": "Paramètres S.M.A.R.T. dégradés ou volume RAID en état dégradé. Risque immédiat de perte de données."
+    },
+    "rule_13_service_hang": {
+      "title": "Hôte opérationnel mais service applicatif (ex. Home Assistant) non réactif",
+      "summary": "L'hôte répond au ping ICMP, mais l'API ou l'interface web du service est bloquée ou expire."
+    },
+    "rule_14_firmware_upgrade": {
+      "title": "Mise à niveau du micrologiciel ou redémarrage de maintenance planifiée",
+      "summary": "Déconnexion temporaire suivie d'un rétablissement avec nouvelle version de firmware enregistrée."
+    },
+    "rule_ap_controller_desync": {
+      "title": "Point d'accès actif sur le LAN mais déconnecté du contrôleur UniFi",
+      "summary": "Le point d'accès répond au ping mais le contrôleur UniFi le signale comme déconnecté ou isolé (port 8080/tcp)."
+    },
+    "rule_ap_ip_lease_loss": {
+      "title": "Point d'accès alimenté (PoE actif) mais sans adresse IP / inaccessible",
+      "summary": "L'alimentation PoE et la liaison physique sont actives, mais le point d'accès ne répond pas au niveau IP."
+    },
+    "rule_generic_failure": {
+      "title": "Panne d'appareil : {{name}}",
+      "summary": "L'appareil '{{name}}' est inaccessible depuis le moniteur. Aucun nœud en amont n'est défaillant."
+    }
   }
 }

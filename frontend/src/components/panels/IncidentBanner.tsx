@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertOctagon, ChevronDown, ChevronUp, ShieldAlert, Sparkles } from 'lucide-react';
 import { Incident } from '../../types';
 import { useTranslation } from '../../i18n/I18nContext';
+import { translateIncidentSummary } from '../../utils/diagnosisI18n';
 
 interface IncidentBannerProps {
   incident: Incident | null;
@@ -36,7 +37,7 @@ export const IncidentBanner: React.FC<IncidentBannerProps> = ({ incident }) => {
               </span>
             </div>
             <p className="text-xs text-rose-200/90 mt-0.5 line-clamp-1">
-              {incident.summary}
+              {translateIncidentSummary(t, incident.summary)}
             </p>
           </div>
         </div>

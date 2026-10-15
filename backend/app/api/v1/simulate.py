@@ -29,6 +29,7 @@ class SimulatedNotification(BaseModel):
 
 
 class SimulationResponse(BaseModel):
+    rule_id: str | None = None
     root_cause_device_id: str | None
     root_cause_category: str
     confidence: float
@@ -169,6 +170,7 @@ async def simulate_failure(
         )
 
     return SimulationResponse(
+        rule_id=diag.rule_id,
         root_cause_device_id=root_cause_id,
         root_cause_category=diag.category,
         confidence=diag.confidence,

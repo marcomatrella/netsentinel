@@ -692,5 +692,79 @@
     "banner_root_cause": "Causa radice simulata:",
     "banner_impacted": "Apparati impattati: {{count}}",
     "btn_exit": "Termina Simulazione"
+  },
+  "rules": {
+    "nominal_state": {
+      "title": "Rete in stato nominale",
+      "summary": "Nessun guasto simulato attivo. Tutti i nodi sono operativi."
+    },
+    "rule_01_wan_loss": {
+      "title": "Connessione Internet non disponibile (Guasto linea o ISP)",
+      "summary": "Il gateway locale è perfettamente operativo e raggiungibile, ma la connettività verso l'esterno (DNS pubblico o ping WAN) è interrotta. La LAN interna è sana."
+    },
+    "rule_02_gateway_down": {
+      "title": "Gateway di rete offline (Spento o bloccato)",
+      "summary": "Il router/gateway principale della rete non risponde ai controlli. Tutte le destinazioni esterne e le rotte inter-VLAN sono isolate."
+    },
+    "rule_03_ap_reboot": {
+      "title": "Access Point riavviato di recente",
+      "summary": "L'uptime dell'access point si è azzerato mentre il link sullo switch è rimasto costantemente attivo. Indica un reboot per crash, watchdog o aggiornamento."
+    },
+    "rule_04_ap_poe_loss": {
+      "title": "Access Point offline per perdita alimentazione o cavo scollegato",
+      "summary": "L'access point non risponde e il link fisico risulta assente. L'iniettore o la porta PoE dello switch non erogano corrente o il cavo è disconnesso."
+    },
+    "rule_05_cable_flapping": {
+      "title": "Cablaggio di rete instabile o velocità negoziata ridotta",
+      "summary": "Rilevati frequenti cambi di stato up/down (link flapping) o errori di trasmissione. Tipico sintomo di crimpatura difettosa o interferenze."
+    },
+    "rule_06_switch_down": {
+      "title": "Switch principale non raggiungibile (Tutti i nodi a valle isolati)",
+      "summary": "Lo switch non risponde ai controlli e tutti gli apparati a valle sono contemporaneamente irraggiungibili dal monitor. Lo switch è la causa radice."
+    },
+    "rule_07_nas_dhcp_dns_down": {
+      "title": "NAS offline: Servizi DNS, DHCP e storage interrotti",
+      "summary": "Il NAS è completamente offline. Di conseguenza, i client perdono la risoluzione dei nomi e i rinnovi DHCP, ma l'infrastruttura di commutazione (switch/router) è sana."
+    },
+    "rule_08_dns_degraded": {
+      "title": "Servizio DNS non risponde o upstream SERVFAIL",
+      "summary": "La rete a livello IP funziona regolarmente, ma le query DNS verso il server locale falliscono o restituiscono errori di inoltro agli upstream."
+    },
+    "rule_09_dhcp_failure": {
+      "title": "Servizio DHCP fermo o pool di indirizzi esaurito",
+      "summary": "I nuovi client non riescono a ottenere un indirizzo IP, sebbene il server host sia raggiungibile a livello di rete."
+    },
+    "rule_10_ups_on_battery": {
+      "title": "Mancanza di rete elettrica: UPS su batteria",
+      "summary": "Il gruppo di continuità è passato allo stato On Battery (OB). I dispositivi privi di protezione UPS risultano spenti."
+    },
+    "rule_11_vantage_point_isolated": {
+      "title": "Il monitor (Vantage Point) è isolato dalla rete",
+      "summary": "NetSentinel non riesce a comunicare con nessun apparato, nemmeno con il proprio switch o gateway immediato. Il problema è locale all'host del monitor."
+    },
+    "rule_12_storage_degraded": {
+      "title": "Avviso preventivo: Rischio guasto disco o volume degradato",
+      "summary": "Parametri S.M.A.R.T. peggiorati (settori rilocati) o volume RAID in stato degraded. Nessun blocco immediato ma rischio di perdita dati."
+    },
+    "rule_13_service_hang": {
+      "title": "Host operativo ma servizio applicativo (es. Home Assistant) non risponde",
+      "summary": "L'host risponde al ping di rete, ma l'API o l'interfaccia web del servizio è bloccata o in timeout."
+    },
+    "rule_14_firmware_upgrade": {
+      "title": "Aggiornamento firmware o riavvio di manutenzione",
+      "summary": "Disconnessione temporanea con ritorno alla normalità e incremento della versione firmware registrata."
+    },
+    "rule_ap_controller_desync": {
+      "title": "Access Point attivo in rete ma disconnesso dal controller UniFi",
+      "summary": "L'AP risponde al ping diretto e i client continuano a navigare, ma il controller UniFi lo segnala come disconnesso o isolato. Si tratta di un'interruzione della comunicazione inform (porta 8080/tcp)."
+    },
+    "rule_ap_ip_lease_loss": {
+      "title": "Access Point alimentato (PoE attivo) ma privo di indirizzo IP / irraggiungibile",
+      "summary": "Lo switch eroga regolarmente alimentazione PoE e il link fisico Ethernet è attivo, ma l'AP non risponde a livello IP. Possibile mancato rinnovo del lease DHCP o pool esaurito."
+    },
+    "rule_generic_failure": {
+      "title": "Guasto apparato: {{name}}",
+      "summary": "L'apparato '{{name}}' risulta non raggiungibile dal monitor. Nessun nodo a monte è guasto."
+    }
   }
 }

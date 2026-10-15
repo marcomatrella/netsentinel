@@ -217,6 +217,7 @@ export interface SimulatedNotification {
 }
 
 export interface SimulationResponse {
+  rule_id?: string;
   root_cause_device_id: string | null;
   root_cause_category: string;
   confidence: number;

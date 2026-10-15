@@ -38,6 +38,8 @@ import {
   testNotificationChannel,
 } from '../../api/client';
 import { getLayoutedElements } from '../../utils/elkLayout';
+import { useTranslation } from '../../i18n/I18nContext';
+import { translateDiagnosisTitle, translateDiagnosisSummary } from '../../utils/diagnosisI18n';
 
 interface WizardModalProps {
   initialTopology: FullTopology;
@@ -81,6 +83,7 @@ export const WizardModal: React.FC<WizardModalProps> = ({
   onClose,
   onApplied,
 }) => {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
 
   // Topology state
@@ -1393,13 +1396,15 @@ export const WizardModal: React.FC<WizardModalProps> = ({
                   <div className="p-3.5 bg-slate-900 rounded-xl border border-rose-500/40 space-y-2.5 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-rose-400 uppercase tracking-wider text-[11px]">
-                        Diagnosi Root Cause: {simulationResult.diagnosis_title}
+                        Diagnosi Root Cause: {translateDiagnosisTitle(t, simulationResult.rule_id, simulationResult.diagnosis_title)}
                       </span>
                       <span className="font-mono text-slate-300 text-[10px] bg-slate-800 px-2 py-0.5 rounded">
                         Confidenza: {Math.round((simulationResult.confidence || 0.95) * 100)}%
                       </span>
                     </div>
-                    <p className="text-slate-300 text-[11px] leading-relaxed">{simulationResult.diagnosis_summary}</p>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      {translateDiagnosisSummary(t, simulationResult.rule_id, simulationResult.diagnosis_summary, simulationResult.diagnosis_title)}
+                    </p>
                     {simulationResult.impacted_devices && simulationResult.impacted_devices.length > 0 && (
                       <div>
                         <span className="text-slate-500 text-[10px] block mb-1">

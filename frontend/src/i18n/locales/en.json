@@ -692,5 +692,79 @@
     "banner_root_cause": "Simulated root cause:",
     "banner_impacted": "Impacted devices: {{count}}",
     "btn_exit": "Exit Simulation"
+  },
+  "rules": {
+    "nominal_state": {
+      "title": "Network in Nominal State",
+      "summary": "No simulated failure active. All nodes are operating normally."
+    },
+    "rule_01_wan_loss": {
+      "title": "Internet Connection Unavailable (ISP or Line Failure)",
+      "summary": "Local gateway is fully operational and reachable, but outbound connectivity (public DNS or WAN ping) is broken. The internal LAN is healthy."
+    },
+    "rule_02_gateway_down": {
+      "title": "Network Gateway Offline (Powered off or Frozen)",
+      "summary": "The main router/gateway is not responding to checks. All external destinations and inter-VLAN routes are isolated."
+    },
+    "rule_03_ap_reboot": {
+      "title": "Access Point Recently Rebooted",
+      "summary": "The access point uptime reset while the physical switch link remained constantly active. Indicates a reboot due to crash, watchdog, or firmware update."
+    },
+    "rule_04_ap_poe_loss": {
+      "title": "Access Point Offline due to Power Loss or Disconnected Cable",
+      "summary": "The access point does not respond and physical link is absent. The PoE injector or switch port is not delivering power or the cable is disconnected."
+    },
+    "rule_05_cable_flapping": {
+      "title": "Unstable Network Cabling or Degraded Negotiated Speed",
+      "summary": "Frequent link up/down state changes (link flapping) or transmission errors detected. Typical symptom of faulty crimping or electromagnetic interference."
+    },
+    "rule_06_switch_down": {
+      "title": "Core Network Switch Unreachable (Downstream Nodes Isolated)",
+      "summary": "The switch is not responding to checks and all downstream devices are simultaneously unreachable from the monitor. The switch is the root cause."
+    },
+    "rule_07_nas_dhcp_dns_down": {
+      "title": "NAS Offline: DNS, DHCP, and Storage Services Interrupted",
+      "summary": "The NAS is completely offline. Consequently, clients lose name resolution and DHCP lease renewals, but the switching infrastructure is healthy."
+    },
+    "rule_08_dns_degraded": {
+      "title": "DNS Service Unresponsive or Upstream SERVFAIL",
+      "summary": "IP-level network functions normally, but DNS queries to the local resolver fail or return forwarding errors to upstream servers."
+    },
+    "rule_09_dhcp_failure": {
+      "title": "DHCP Service Stopped or Address Pool Exhausted",
+      "summary": "New clients cannot acquire an IP address, although the host server is reachable on the network."
+    },
+    "rule_10_ups_on_battery": {
+      "title": "Power Outage: UPS Operating on Battery",
+      "summary": "The UPS has switched to On Battery (OB) state. Devices without battery backup protection are powered off."
+    },
+    "rule_11_vantage_point_isolated": {
+      "title": "Monitor (Vantage Point) is Isolated from the Network",
+      "summary": "NetSentinel cannot communicate with any device, not even its immediate switch or gateway. The issue is local to the monitoring host."
+    },
+    "rule_12_storage_degraded": {
+      "title": "Early Warning: Storage Disk Failure Risk or Degraded Volume",
+      "summary": "S.M.A.R.T. parameters worsened (reallocated sectors) or RAID volume is in degraded state. Immediate risk of data loss."
+    },
+    "rule_13_service_hang": {
+      "title": "Host Operational but Application Service (e.g. Home Assistant) Unresponsive",
+      "summary": "Host responds to ICMP ping, but the service API or web UI is frozen or timing out."
+    },
+    "rule_14_firmware_upgrade": {
+      "title": "Firmware Upgrade or Scheduled Maintenance Reboot",
+      "summary": "Temporary disconnection with recovery and incremented firmware version recorded."
+    },
+    "rule_ap_controller_desync": {
+      "title": "Access Point Active on LAN but Disconnected from UniFi Controller",
+      "summary": "The AP responds to direct ping and clients browse normally, but the UniFi Controller reports it as disconnected or isolated (inform port 8080/tcp issue)."
+    },
+    "rule_ap_ip_lease_loss": {
+      "title": "Access Point Powered (PoE Active) but Missing IP Address / Unreachable",
+      "summary": "The switch delivers PoE power and physical Ethernet link is active, but the AP does not respond at IP level. Likely DHCP lease renewal failure."
+    },
+    "rule_generic_failure": {
+      "title": "Device failure: {{name}}",
+      "summary": "Device '{{name}}' is unreachable from the monitor. No upstream node is faulty."
+    }
   }
 }

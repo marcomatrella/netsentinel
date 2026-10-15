@@ -692,5 +692,79 @@
     "banner_root_cause": "Simulierte Ursache:",
     "banner_impacted": "Betroffene Geräte: {{count}}",
     "btn_exit": "Simulation beenden"
+  },
+  "rules": {
+    "nominal_state": {
+      "title": "Netzwerk im Normalzustand",
+      "summary": "Keine simulierte Störung aktiv. Alle Knoten funktionieren ordnungsgemäß."
+    },
+    "rule_01_wan_loss": {
+      "title": "Internetverbindung nicht verfügbar (ISP- oder Leitungsfehler)",
+      "summary": "Das lokale Gateway ist voll funktionsfähig, aber die externe Verbindung (öffentliches DNS oder WAN-Ping) ist unterbrochen."
+    },
+    "rule_02_gateway_down": {
+      "title": "Netzwerk-Gateway offline (Ausgeschaltet oder blockiert)",
+      "summary": "Der Hauptrouter reagiert nicht auf Prüfungen. Alle externen Ziele und Inter-VLAN-Routen sind isoliert."
+    },
+    "rule_03_ap_reboot": {
+      "title": "Access Point kürzlich neu gestartet",
+      "summary": "Die Betriebszeit des Access Points wurde zurückgesetzt, während der Switch-Link aktiv blieb."
+    },
+    "rule_04_ap_poe_loss": {
+      "title": "Access Point offline wegen Stromausfall oder getrenntem Kabel",
+      "summary": "Der Access Point antwortet nicht und die physische Verbindung fehlt. PoE-Injektor oder Switch-Port liefert keinen Strom."
+    },
+    "rule_05_cable_flapping": {
+      "title": "Instabile Netzwerkverkabelung oder reduzierte Übertragungsrate",
+      "summary": "Häufige Up/Down-Zustandswechsel oder Übertragungsfehler festgestellt. Typisches Symptom fehlerhafter Crimpung."
+    },
+    "rule_06_switch_down": {
+      "title": "Haupt-Switch nicht erreichbar (Nachgelagerte Knoten isoliert)",
+      "summary": "Der Switch reagiert nicht und alle nachgelagerten Geräte sind isoliert. Der Switch ist die Hauptursache."
+    },
+    "rule_07_nas_dhcp_dns_down": {
+      "title": "NAS offline: DNS-, DHCP- und Speicherdienste unterbrochen",
+      "summary": "Das NAS ist vollständig offline. Clients verlieren Namensauflösung und DHCP-Leases."
+    },
+    "rule_08_dns_degraded": {
+      "title": "DNS-Dienst antwortet nicht oder Upstream-SERVFAIL",
+      "summary": "Das IP-Netzwerk funktioniert normal, aber DNS-Anfragen an den lokalen Server schlagen fehl."
+    },
+    "rule_09_dhcp_failure": {
+      "title": "DHCP-Dienst gestoppt oder Adresspool erschöpft",
+      "summary": "Neue Clients können keine IP-Adresse beziehen, obwohl der Server erreichbar ist."
+    },
+    "rule_10_ups_on_battery": {
+      "title": "Stromausfall: USV läuft auf Batterie",
+      "summary": "Die USV hat auf Batteriebetrieb umgeschaltet. Ungeschützte Geräte sind ausgeschaltet."
+    },
+    "rule_11_vantage_point_isolated": {
+      "title": "Monitor (Vantage Point) ist vom Netzwerk isoliert",
+      "summary": "NetSentinel kann mit keinem Gerät kommunizieren. Das Problem liegt lokal beim Host des Monitors."
+    },
+    "rule_12_storage_degraded": {
+      "title": "Frühwarnung: Festplattenausfallrisiko oder RAID-Volume beeinträchtigt",
+      "summary": "Verschlechterte S.M.A.R.T.-Werte oder RAID-Volume im Degraded-Zustand."
+    },
+    "rule_13_service_hang": {
+      "title": "Host betriebsbereit, aber Anwendungsdienst (z. B. Home Assistant) reagiert nicht",
+      "summary": "Host antwortet auf Ping, aber Web-UI oder API des Dienstes antwortet nicht."
+    },
+    "rule_14_firmware_upgrade": {
+      "title": "Firmware-Upgrade oder geplanter Wartungsneustart",
+      "summary": "Vorübergehende Trennung mit anschließender Rückkehr zum Normalzustand."
+    },
+    "rule_ap_controller_desync": {
+      "title": "Access Point im LAN aktiv, aber vom UniFi-Controller getrennt",
+      "summary": "Der AP antwortet auf Ping, wird aber vom UniFi-Controller als getrennt gemeldet (Port 8080/tcp)."
+    },
+    "rule_ap_ip_lease_loss": {
+      "title": "Access Point mit Strom versorgt, aber ohne IP-Adresse / unerreichbar",
+      "summary": "PoE-Stromversorgung und physischer Link sind aktiv, aber der AP antwortet nicht auf IP-Ebene."
+    },
+    "rule_generic_failure": {
+      "title": "Geräteausfall: {{name}}",
+      "summary": "Das Gerät '{{name}}' ist vom Monitor aus nicht erreichbar. Kein vorgelagerter Knoten ist fehlerhaft."
+    }
   }
 }
