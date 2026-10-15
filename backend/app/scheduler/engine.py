@@ -193,6 +193,10 @@ class SchedulerEngine:
             # Parse parameters
             try:
                 params = json.loads(chk.params_json) if chk.params_json else {}
+                from app.crypto import decrypt_secret
+                for k in ["password", "token", "api_key", "secret", "access_token"]:
+                    if k in params and isinstance(params[k], str):
+                        params[k] = decrypt_secret(params[k])
             except Exception:
                 params = {}
 

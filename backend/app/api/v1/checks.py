@@ -20,7 +20,7 @@ def _to_check_read(chk: Check) -> CheckRead:
     """Convert Check model to CheckRead."""
     params = json.loads(chk.params_json) if chk.params_json else {}
     # Decrypt any encrypted fields for authorized read
-    for k in ["password", "token", "api_key", "secret"]:
+    for k in ["password", "token", "api_key", "secret", "access_token"]:
         if k in params and isinstance(params[k], str):
             params[k] = decrypt_secret(params[k])
 
@@ -87,7 +87,7 @@ async def create_check(payload: CheckCreate, db: AsyncSession = Depends(get_db))
 
     # Encrypt sensitive params
     params = payload.params.copy()
-    for k in ["password", "token", "api_key", "secret"]:
+    for k in ["password", "token", "api_key", "secret", "access_token"]:
         if k in params and isinstance(params[k], str):
             params[k] = encrypt_secret(params[k])
 
@@ -127,7 +127,7 @@ async def execute_check_now(check_id: str, db: AsyncSession = Depends(get_db)) -
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collector '{chk.type}' non disponibile.")
 
     params = json.loads(chk.params_json) if chk.params_json else {}
-    for k in ["password", "token", "api_key", "secret"]:
+    for k in ["password", "token", "api_key", "secret", "access_token"]:
         if k in params and isinstance(params[k], str):
             params[k] = decrypt_secret(params[k])
 
@@ -170,7 +170,7 @@ async def update_check(
         chk.name = payload.name
     if payload.params is not None:
         params = payload.params.copy()
-        for k in ["password", "token", "api_key", "secret"]:
+        for k in ["password", "token", "api_key", "secret", "access_token"]:
             if k in params and isinstance(params[k], str):
                 params[k] = encrypt_secret(params[k])
         chk.params_json = json.dumps(params)

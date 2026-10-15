@@ -22,9 +22,20 @@ import {
   Calendar,
   Eye,
   FlaskConical,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Check as CheckIcon,
+  Battery,
+  Layers,
+  HardDrive,
+  Lock,
+  Server,
+  Terminal,
+  Activity,
 } from 'lucide-react';
 import { Check, Device, Dependency, DeviceKind } from '../../types';
-import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck } from '../../api/client';
+import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck, fetchObservations } from '../../api/client';
 import { PRESET_COLORS, getDeviceColorId, setDeviceColorTag, getColorConfig } from '../../constants/colors';
 import { formatTimeOnly } from '../../utils/date';
 import { DeviceColorModal } from './DeviceColorModal';
@@ -124,10 +135,41 @@ const buildCheckToastDescription = (chk: Check, res: any, t: TFunc): string => {
       }
       return details.error || t('device_detail.toast_nut_fail');
     }
-    case 'generic_http_json':
-    case 'home_assistant':
-    case 'adguard_home':
     case 'unifi': {
+      const clients = details.num_sta ?? details.clients_count ?? details.active_clients ?? '—';
+      const poe = details.poe_power ?? details.total_poe_power ?? '0';
+      const model = details.model ?? 'UniFi';
+      if (res?.status === 'ok') {
+        return details.message || t('device_detail.toast_unifi_ok', { model, clients, poe: `${poe}W` });
+      }
+      return details.error || details.message || t('device_detail.toast_integration_fail', { type: 'UniFi' });
+    }
+    case 'adguard_home': {
+      const queries = details.num_dns_queries ?? '—';
+      const blocked = details.num_blocked_filtering ?? '—';
+      const prot = details.protection_enabled !== false ? 'ON' : 'OFF';
+      if (res?.status === 'ok') {
+        return details.message || t('device_detail.toast_adguard_ok', { queries, blocked, prot });
+      }
+      return details.error || details.message || t('device_detail.toast_integration_fail', { type: 'AdGuard' });
+    }
+    case 'home_assistant': {
+      const valStr = details.state ?? val ?? '—';
+      const unit = details.unit_of_measurement ? ` ${details.unit_of_measurement}` : '';
+      const entity = details.friendly_name || details.entity_id || chk.params?.entity_id || 'Entità';
+      if (res?.status === 'ok') {
+        return details.message || t('device_detail.toast_ha_ok', { entity, value: `${valStr}${unit}` });
+      }
+      return details.error || details.message || t('device_detail.toast_integration_fail', { type: 'Home Assistant' });
+    }
+    case 'snmp': {
+      const descr = details.sysDescr || details.description || (val !== undefined ? `Valore: ${val}` : 'OK');
+      if (res?.status === 'ok') {
+        return details.message || t('device_detail.toast_snmp_ok', { descr });
+      }
+      return details.error || details.message || t('device_detail.toast_integration_fail', { type: 'SNMP' });
+    }
+    case 'generic_http_json': {
       if (res?.status === 'ok') {
         return details.message || t('device_detail.toast_integration_ok', { type: chk.type });
       }
@@ -201,12 +243,28 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isColorModalOpen, setIsColorModalOpen] = useState<boolean>(false);
 
+  // Check observations & telemetry state
+  const [checkObservations, setCheckObservations] = useState<Record<string, any>>({});
+  const [expandedCheckIds, setExpandedCheckIds] = useState<Set<string>>(new Set());
+  const [copiedCheckId, setCopiedCheckId] = useState<string | null>(null);
+
   // Custom check creation state
   const [showAddCheck, setShowAddCheck] = useState<boolean>(false);
   const [newCheckType, setNewCheckType] = useState<string>('tcp_port');
   const [newCheckName, setNewCheckName] = useState<string>('');
   const [newCheckPort, setNewCheckPort] = useState<string>('80');
   const [newCheckUrl, setNewCheckUrl] = useState<string>('');
+  const [newCheckUsername, setNewCheckUsername] = useState<string>('');
+  const [newCheckPassword, setNewCheckPassword] = useState<string>('');
+  const [newCheckApiKey, setNewCheckApiKey] = useState<string>('');
+  const [newCheckSite, setNewCheckSite] = useState<string>('default');
+  const [newCheckUpsName, setNewCheckUpsName] = useState<string>('ups');
+  const [newCheckEntityId, setNewCheckEntityId] = useState<string>('');
+  const [newCheckCommunity, setNewCheckCommunity] = useState<string>('public');
+  const [newCheckOid, setNewCheckOid] = useState<string>('');
+  const [newCheckUseHttps, setNewCheckUseHttps] = useState<boolean>(false);
+  const [newCheckDnsServer, setNewCheckDnsServer] = useState<string>('');
+  const [newCheckDnsDomain, setNewCheckDnsDomain] = useState<string>('google.com');
   const [newCheckInterval, setNewCheckInterval] = useState<number>(30);
   const [isCreatingCheck, setIsCreatingCheck] = useState<boolean>(false);
 
@@ -214,6 +272,15 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
     if (device) {
       fetchDeviceChecks(device.id).then(setChecks).catch(() => setChecks([]));
       fetchEvents(device.id, 20).then(setEvents).catch(() => setEvents([]));
+      fetchObservations(device.id, 50).then((obsList) => {
+        const obsMap: Record<string, any> = {};
+        for (const obs of obsList) {
+          if (obs.check_id && !obsMap[obs.check_id]) {
+            obsMap[obs.check_id] = obs;
+          }
+        }
+        setCheckObservations(obsMap);
+      }).catch(() => setCheckObservations({}));
 
       // Reset edit state to current device
       setEditName(device.name);
@@ -258,6 +325,14 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
       const res = await executeCheckNow(checkId);
       const updated = await fetchDeviceChecks(device.id);
       setChecks(updated);
+
+      setCheckObservations((prev) => ({
+        ...prev,
+        [checkId]: res,
+      }));
+
+      // Auto-expand this check card so user can immediately view the live telemetry details!
+      setExpandedCheckIds((prev) => new Set([...prev, checkId]));
 
       if (onRefreshTopology) {
         onRefreshTopology();
@@ -373,17 +448,64 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
         const url = newCheckUrl.trim() || `http://${ip}/`;
         params = { url };
         if (!autoName) autoName = `HTTP ${url.replace(/^https?:\/\//, '')}`;
+      } else if (newCheckType === 'dns') {
+        const srv = newCheckDnsServer.trim() || ip;
+        const dom = newCheckDnsDomain.trim() || 'google.com';
+        params = { server: srv, query_name: dom, record_type: 'A' };
+        if (!autoName) autoName = `DNS (${dom})`;
       } else if (newCheckType === 'synology_dsm') {
-        const port = Number(newCheckPort) || 5000;
-        params = { host: ip, port };
+        const port = Number(newCheckPort) || (newCheckUseHttps ? 5001 : 5000);
+        params = {
+          host: ip,
+          port,
+          https: newCheckUseHttps,
+          username: newCheckUsername.trim() || undefined,
+          password: newCheckPassword.trim() || undefined,
+        };
         if (!autoName) autoName = `Synology DSM (${port})`;
       } else if (newCheckType === 'nut') {
         const port = Number(newCheckPort) || 3493;
-        params = { host: ip, port };
-        if (!autoName) autoName = `UPS NUT (${port})`;
-      } else if (newCheckType === 'dns') {
-        params = { server: ip, query_name: 'google.com', record_type: 'A' };
-        if (!autoName) autoName = `DNS Query`;
+        const ups = newCheckUpsName.trim() || 'ups';
+        params = { host: ip, port, ups_name: ups };
+        if (!autoName) autoName = `UPS NUT (${ups})`;
+      } else if (newCheckType === 'unifi') {
+        const ctrlUrl = newCheckUrl.trim() || `https://${ip}:8443`;
+        params = {
+          controller_url: ctrlUrl,
+          api_key: newCheckApiKey.trim() || undefined,
+          username: newCheckUsername.trim() || undefined,
+          password: newCheckPassword.trim() || undefined,
+          site: newCheckSite.trim() || 'default',
+          verify_ssl: newCheckUseHttps,
+        };
+        if (!autoName) autoName = `UniFi Controller`;
+      } else if (newCheckType === 'adguard_home') {
+        const adgUrl = newCheckUrl.trim() || `http://${ip}:3000`;
+        params = {
+          adguard_url: adgUrl,
+          username: newCheckUsername.trim() || undefined,
+          password: newCheckPassword.trim() || undefined,
+        };
+        if (!autoName) autoName = `AdGuard Home`;
+      } else if (newCheckType === 'home_assistant') {
+        const haUrl = newCheckUrl.trim() || `http://${ip}:8123`;
+        params = {
+          ha_url: haUrl,
+          access_token: newCheckApiKey.trim() || undefined,
+          entity_id: newCheckEntityId.trim() || undefined,
+        };
+        const entSuffix = newCheckEntityId.trim() ? ` (${newCheckEntityId.trim()})` : '';
+        if (!autoName) autoName = `Home Assistant${entSuffix}`;
+      } else if (newCheckType === 'snmp') {
+        const port = Number(newCheckPort) || 161;
+        params = {
+          host: ip,
+          port,
+          community: newCheckCommunity.trim() || 'public',
+          version: '2c',
+          oids: newCheckOid.trim() ? [newCheckOid.trim()] : undefined,
+        };
+        if (!autoName) autoName = `SNMP Port ${port}`;
       }
 
       await createCheck({
@@ -402,8 +524,19 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
       setNewCheckName('');
       setNewCheckPort('80');
       setNewCheckUrl('');
+      setNewCheckUsername('');
+      setNewCheckPassword('');
+      setNewCheckApiKey('');
+      setNewCheckSite('default');
+      setNewCheckUpsName('ups');
+      setNewCheckEntityId('');
+      setNewCheckCommunity('public');
+      setNewCheckOid('');
+      setNewCheckUseHttps(false);
+      setNewCheckDnsServer('');
+      setNewCheckDnsDomain('google.com');
 
-      // Immediately run the check so user sees the result in toast!
+      // Immediately run the check so user sees the result in toast & telemetry!
       handleRunCheck(checkId);
     } catch (err: any) {
       alert('Check creation error: ' + (err.message || 'Verify parameters.'));
@@ -420,6 +553,25 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
       setChecks(updated);
     } catch (err: any) {
       alert('Delete check error: ' + (err.message || 'Check backend.'));
+    }
+  };
+
+  const toggleCheckExpanded = (checkId: string) => {
+    setExpandedCheckIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(checkId)) next.delete(checkId);
+      else next.add(checkId);
+      return next;
+    });
+  };
+
+  const handleCopyTelemetry = (checkId: string, data: any) => {
+    try {
+      navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      setCopiedCheckId(checkId);
+      setTimeout(() => setCopiedCheckId(null), 2000);
+    } catch (err) {
+      console.error('Copy error', err);
     }
   };
 
@@ -990,21 +1142,30 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewCheckType(val);
-                            if (val === 'ping') setNewCheckName('Ping ICMP');
+                            const ip = device.addresses?.ip || '';
+                            if (val === 'ping') setNewCheckName(`Ping ICMP (${ip})`);
                             else if (val === 'tcp_port') setNewCheckName(`TCP Port ${newCheckPort || 80}`);
                             else if (val === 'http') setNewCheckName('HTTP Healthcheck');
+                            else if (val === 'dns') setNewCheckName('DNS (google.com)');
                             else if (val === 'synology_dsm') setNewCheckName('Synology DSM');
                             else if (val === 'nut') setNewCheckName('UPS NUT');
-                            else if (val === 'dns') setNewCheckName('DNS Query');
+                            else if (val === 'unifi') setNewCheckName('UniFi Controller');
+                            else if (val === 'adguard_home') setNewCheckName('AdGuard Home');
+                            else if (val === 'home_assistant') setNewCheckName('Home Assistant');
+                            else if (val === 'snmp') setNewCheckName('SNMP v1/v2c');
                           }}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500 font-medium"
                         >
                           <option value="tcp_port">{t('device_detail.check_type_tcp')}</option>
                           <option value="ping">{t('device_detail.check_type_ping')}</option>
                           <option value="http">{t('device_detail.check_type_http')}</option>
-                          <option value="synology_dsm">Synology DSM (Storage)</option>
-                          <option value="nut">UPS NUT</option>
-                          <option value="dns">DNS Query</option>
+                          <option value="dns">{t('device_detail.check_type_dns')}</option>
+                          <option value="nut">{t('device_detail.check_type_nut')}</option>
+                          <option value="synology_dsm">{t('device_detail.check_type_dsm')}</option>
+                          <option value="unifi">{t('device_detail.check_type_unifi')}</option>
+                          <option value="adguard_home">{t('device_detail.check_type_adguard')}</option>
+                          <option value="home_assistant">{t('device_detail.check_type_ha')}</option>
+                          <option value="snmp">{t('device_detail.check_type_snmp')}</option>
                         </select>
                       </div>
 
@@ -1020,7 +1181,8 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                       </div>
                     </div>
 
-                    {(newCheckType === 'tcp_port' || newCheckType === 'synology_dsm' || newCheckType === 'nut') && (
+                    {/* TCP / Port-based Checks */}
+                    {(newCheckType === 'tcp_port' || newCheckType === 'synology_dsm' || newCheckType === 'nut' || newCheckType === 'snmp') && (
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
@@ -1030,7 +1192,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                             type="number"
                             value={newCheckPort}
                             onChange={(e) => setNewCheckPort(e.target.value)}
-                            placeholder={newCheckType === 'synology_dsm' ? '5000' : newCheckType === 'nut' ? '3493' : '80'}
+                            placeholder={newCheckType === 'synology_dsm' ? '5000' : newCheckType === 'nut' ? '3493' : newCheckType === 'snmp' ? '161' : '80'}
                             className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
                             required
                           />
@@ -1051,6 +1213,24 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                       </div>
                     )}
 
+                    {/* Ping / DNS Interval if not rendered above */}
+                    {(newCheckType === 'ping' || newCheckType === 'http' || newCheckType === 'dns' || newCheckType === 'unifi' || newCheckType === 'adguard_home' || newCheckType === 'home_assistant') && (
+                      <div>
+                        <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                          {t('device_detail.check_interval_label')}
+                        </label>
+                        <input
+                          type="number"
+                          value={newCheckInterval}
+                          onChange={(e) => setNewCheckInterval(Number(e.target.value))}
+                          min={5}
+                          max={3600}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    )}
+
+                    {/* HTTP Healthcheck */}
                     {newCheckType === 'http' && (
                       <div>
                         <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
@@ -1064,6 +1244,290 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                           className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
                           required
                         />
+                      </div>
+                    )}
+
+                    {/* DNS Query */}
+                    {newCheckType === 'dns' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_dns_server_label')}
+                          </label>
+                          <input
+                            type="text"
+                            value={newCheckDnsServer}
+                            onChange={(e) => setNewCheckDnsServer(e.target.value)}
+                            placeholder={device.addresses?.ip || '192.168.1.1'}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_dns_domain_label')}
+                          </label>
+                          <input
+                            type="text"
+                            value={newCheckDnsDomain}
+                            onChange={(e) => setNewCheckDnsDomain(e.target.value)}
+                            placeholder="google.com"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* NUT UPS */}
+                    {newCheckType === 'nut' && (
+                      <div>
+                        <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                          {t('device_detail.check_ups_name_label')}
+                        </label>
+                        <input
+                          type="text"
+                          value={newCheckUpsName}
+                          onChange={(e) => setNewCheckUpsName(e.target.value)}
+                          placeholder="ups"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    )}
+
+                    {/* Synology DSM */}
+                    {newCheckType === 'synology_dsm' && (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                              {t('device_detail.check_username_label')}
+                            </label>
+                            <input
+                              type="text"
+                              value={newCheckUsername}
+                              onChange={(e) => setNewCheckUsername(e.target.value)}
+                              placeholder="Admin DSM"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                              {t('device_detail.check_password_label')}
+                            </label>
+                            <input
+                              type="password"
+                              value={newCheckPassword}
+                              onChange={(e) => setNewCheckPassword(e.target.value)}
+                              placeholder="••••••••"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={newCheckUseHttps}
+                            onChange={(e) => {
+                              setNewCheckUseHttps(e.target.checked);
+                              if (newCheckPort === '5000' && e.target.checked) setNewCheckPort('5001');
+                              else if (newCheckPort === '5001' && !e.target.checked) setNewCheckPort('5000');
+                            }}
+                            className="rounded text-sky-500 focus:ring-0"
+                          />
+                          <span>{t('device_detail.check_use_https_label')}</span>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* UniFi Controller */}
+                    {newCheckType === 'unifi' && (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_url_label')}
+                          </label>
+                          <input
+                            type="text"
+                            value={newCheckUrl}
+                            onChange={(e) => setNewCheckUrl(e.target.value)}
+                            placeholder={`https://${device.addresses?.ip || '192.168.1.1'}:8443`}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_unifi_api_key_label')}
+                          </label>
+                          <input
+                            type="password"
+                            value={newCheckApiKey}
+                            onChange={(e) => setNewCheckApiKey(e.target.value)}
+                            placeholder="UniFi OS API Key (Bypassa 2FA)"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                              {t('device_detail.check_username_label')}
+                            </label>
+                            <input
+                              type="text"
+                              value={newCheckUsername}
+                              onChange={(e) => setNewCheckUsername(e.target.value)}
+                              placeholder="Local User"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                              {t('device_detail.check_password_label')}
+                            </label>
+                            <input
+                              type="password"
+                              value={newCheckPassword}
+                              onChange={(e) => setNewCheckPassword(e.target.value)}
+                              placeholder="Password"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                              {t('device_detail.check_unifi_site_label')}
+                            </label>
+                            <input
+                              type="text"
+                              value={newCheckSite}
+                              onChange={(e) => setNewCheckSite(e.target.value)}
+                              placeholder="default"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={newCheckUseHttps}
+                            onChange={(e) => setNewCheckUseHttps(e.target.checked)}
+                            className="rounded text-sky-500 focus:ring-0"
+                          />
+                          <span>{t('device_detail.check_ssl_verify_label')}</span>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* AdGuard Home */}
+                    {newCheckType === 'adguard_home' && (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_url_label')}
+                          </label>
+                          <input
+                            type="text"
+                            value={newCheckUrl}
+                            onChange={(e) => setNewCheckUrl(e.target.value)}
+                            placeholder={`http://${device.addresses?.ip || '192.168.1.1'}:3000`}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                              {t('device_detail.check_username_label')}
+                            </label>
+                            <input
+                              type="text"
+                              value={newCheckUsername}
+                              onChange={(e) => setNewCheckUsername(e.target.value)}
+                              placeholder="Admin (opzionale)"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                              {t('device_detail.check_password_label')}
+                            </label>
+                            <input
+                              type="password"
+                              value={newCheckPassword}
+                              onChange={(e) => setNewCheckPassword(e.target.value)}
+                              placeholder="••••••••"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Home Assistant */}
+                    {newCheckType === 'home_assistant' && (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_url_label')}
+                          </label>
+                          <input
+                            type="text"
+                            value={newCheckUrl}
+                            onChange={(e) => setNewCheckUrl(e.target.value)}
+                            placeholder={`http://${device.addresses?.ip || '192.168.1.1'}:8123`}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_ha_token_label')}
+                          </label>
+                          <input
+                            type="password"
+                            value={newCheckApiKey}
+                            onChange={(e) => setNewCheckApiKey(e.target.value)}
+                            placeholder="eyJhbGciOi..."
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_ha_entity_label')}
+                          </label>
+                          <input
+                            type="text"
+                            value={newCheckEntityId}
+                            onChange={(e) => setNewCheckEntityId(e.target.value)}
+                            placeholder="sensor.presa_pc_power"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SNMP */}
+                    {newCheckType === 'snmp' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_snmp_community_label')}
+                          </label>
+                          <input
+                            type="text"
+                            value={newCheckCommunity}
+                            onChange={(e) => setNewCheckCommunity(e.target.value)}
+                            placeholder="public"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                            {t('device_detail.check_snmp_oid_label')}
+                          </label>
+                          <input
+                            type="text"
+                            value={newCheckOid}
+                            onChange={(e) => setNewCheckOid(e.target.value)}
+                            placeholder="1.3.6.1.2.1.1.1.0"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -1093,51 +1557,284 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                     {t('device_detail.no_checks')}
                   </div>
                 ) : (
-                  checks.map((chk) => (
-                    <div key={chk.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/60 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200">{chk.name}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                            {chk.type} • {t('device_detail.interval_sec', { sec: chk.interval_seconds })}
+                  checks.map((chk) => {
+                    const obs = checkObservations[chk.id];
+                    const details = obs?.details || {};
+                    const isExpanded = expandedCheckIds.has(chk.id);
+
+                    return (
+                      <div key={chk.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/60 space-y-2.5 transition">
+                        {/* Header Row */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">{chk.name}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              <span className="font-mono uppercase font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 px-1 rounded border border-sky-500/20">
+                                {chk.type}
+                              </span>
+                              <span>•</span>
+                              <span>{t('device_detail.interval_sec', { sec: chk.interval_seconds })}</span>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
+                              chk.current_status === 'ok'
+                                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                : chk.current_status === 'crit'
+                                ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            {chk.current_status}
+                          </span>
+                        </div>
+
+                        {/* Live Telemetry Quick Badges */}
+                        {obs && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            {/* Ping / ICMP */}
+                            {chk.type === 'ping' && (
+                              <>
+                                {obs.value !== undefined && obs.value !== null && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
+                                    RTT: {Number(obs.value).toFixed(1)} ms
+                                  </span>
+                                )}
+                                {details.packet_loss_percent !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[10px]">
+                                    Loss: {details.packet_loss_percent}%
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* TCP Port */}
+                            {chk.type === 'tcp_port' && obs.value !== undefined && obs.value !== null && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
+                                Handshake: {Number(obs.value).toFixed(1)} ms
+                              </span>
+                            )}
+
+                            {/* HTTP */}
+                            {chk.type === 'http' && (
+                              <>
+                                {details.status_code && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">
+                                    HTTP {details.status_code}
+                                  </span>
+                                )}
+                                {details.response_time_ms && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
+                                    {details.response_time_ms} ms
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* DNS */}
+                            {chk.type === 'dns' && (
+                              <>
+                                {details.resolved_ip && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono text-[10px]">
+                                    IP: {details.resolved_ip}
+                                  </span>
+                                )}
+                                {details.query_time_ms && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
+                                    {details.query_time_ms} ms
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* NUT UPS */}
+                            {chk.type === 'nut' && (
+                              <>
+                                {details.battery_charge !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-semibold">
+                                    <Battery className="w-3 h-3" /> {details.battery_charge}%
+                                  </span>
+                                )}
+                                {details.ups_status && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[10px]">
+                                    Stato: {details.ups_status}
+                                  </span>
+                                )}
+                                {details.ups_load !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[10px]">
+                                    Carico: {details.ups_load}%
+                                  </span>
+                                )}
+                                {details.input_voltage && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
+                                    {details.input_voltage}V
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* UniFi */}
+                            {chk.type === 'unifi' && (
+                              <>
+                                {details.model && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
+                                    {details.model}
+                                  </span>
+                                )}
+                                {details.num_sta !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] font-semibold">
+                                    {details.num_sta} Client
+                                  </span>
+                                )}
+                                {details.poe_power !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[10px]">
+                                    PoE: {details.poe_power}W
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* AdGuard Home */}
+                            {chk.type === 'adguard_home' && (
+                              <>
+                                {details.num_dns_queries !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
+                                    {details.num_dns_queries} Query
+                                  </span>
+                                )}
+                                {details.num_blocked_filtering !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-mono text-[10px]">
+                                    Bloccate: {details.num_blocked_filtering}
+                                  </span>
+                                )}
+                                {details.avg_processing_time_ms !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[10px]">
+                                    {details.avg_processing_time_ms} ms
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* Home Assistant */}
+                            {chk.type === 'home_assistant' && (
+                              <>
+                                {details.state !== undefined && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold">
+                                    {details.state} {details.unit_of_measurement || ''}
+                                  </span>
+                                )}
+                                {details.friendly_name && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono text-[10px]">
+                                    {details.friendly_name}
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* Synology DSM */}
+                            {chk.type === 'synology_dsm' && (
+                              <>
+                                {details.model && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
+                                    {details.model}
+                                  </span>
+                                )}
+                                {details.temperature && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[10px]">
+                                    {details.temperature}°C
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* SNMP */}
+                            {chk.type === 'snmp' && details.sysDescr && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[10px] truncate max-w-[220px]" title={details.sysDescr}>
+                                {details.sysDescr}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Collapsible Detailed Telemetry Drawer */}
+                        {isExpanded && (
+                          <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/60 text-xs space-y-2 animate-in fade-in zoom-in-95 duration-150">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                                <Activity className="w-3 h-3 text-sky-500" />
+                                {t('device_detail.telemetry_title')}
+                              </span>
+                              {obs && Object.keys(details).length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyTelemetry(chk.id, details)}
+                                  className="text-[10px] text-slate-500 hover:text-sky-500 flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700"
+                                >
+                                  {copiedCheckId === chk.id ? (
+                                    <>
+                                      <CheckIcon className="w-3 h-3 text-emerald-500" />
+                                      <span className="text-emerald-500 font-bold">{t('device_detail.telemetry_copied')}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3" />
+                                      <span>{t('device_detail.telemetry_copy_json')}</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+
+                            {obs && Object.keys(details).length > 0 ? (
+                              <pre className="text-[10px] font-mono p-2 bg-slate-900 text-slate-200 rounded-lg overflow-x-auto max-h-48 border border-slate-700 leading-relaxed">
+                                {JSON.stringify(details, null, 2)}
+                              </pre>
+                            ) : (
+                              <div className="text-[11px] text-slate-400 italic py-1">
+                                {t('device_detail.telemetry_no_data')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-between items-center pt-1.5 border-t border-slate-200 dark:border-slate-700/40">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCheck(chk.id)}
+                            className="text-slate-400 hover:text-rose-500 transition p-1 rounded"
+                            title={t('device_detail.btn_cancel')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleCheckExpanded(chk.id)}
+                              className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition"
+                            >
+                              <span>{isExpanded ? t('device_detail.telemetry_collapse') : t('device_detail.telemetry_expand')}</span>
+                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </button>
+
+                            <button
+                              onClick={() => handleRunCheck(chk.id)}
+                              disabled={runningCheckId === chk.id}
+                              className="flex items-center gap-1.5 px-2.5 py-1 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white rounded text-[11px] font-medium transition shadow-sm"
+                            >
+                              {runningCheckId === chk.id ? (
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Play className="w-3 h-3" />
+                              )}
+                              {t('device_detail.btn_run_now')}
+                            </button>
                           </div>
                         </div>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
-                            chk.current_status === 'ok'
-                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                              : chk.current_status === 'crit'
-                              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                              : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                          }`}
-                        >
-                          {chk.current_status}
-                        </span>
                       </div>
-                      <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-slate-700/40">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCheck(chk.id)}
-                          className="text-slate-400 hover:text-rose-500 transition p-1 rounded"
-                          title={t('device_detail.btn_cancel')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleRunCheck(chk.id)}
-                          disabled={runningCheckId === chk.id}
-                          className="flex items-center gap-1.5 px-2.5 py-1 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white rounded text-[11px] font-medium transition shadow-sm"
-                        >
-                          {runningCheckId === chk.id ? (
-                            <RefreshCw className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Play className="w-3 h-3" />
-                          )}
-                          {t('device_detail.btn_run_now')}
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
