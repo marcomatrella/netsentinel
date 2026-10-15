@@ -25,7 +25,7 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
   const currentDns = devices.find((d) => d.roles?.includes('dns_resolver'))?.id || '';
   const currentDhcp = devices.find((d) => d.roles?.includes('dhcp_server'))?.id || '';
   const currentGateway = devices.find((d) => d.roles?.includes('gateway') || d.kind === 'router')?.id || '';
-  const currentVp = vantagePointId || devices.find((d) => d.roles?.includes('vantage_point'))?.id || '';
+  const currentVp = devices.find((d) => d.roles?.includes('vantage_point'))?.id || vantagePointId || '';
 
   const [selectedDns, setSelectedDns] = useState<string>(currentDns);
   const [selectedDhcp, setSelectedDhcp] = useState<string>(currentDhcp);

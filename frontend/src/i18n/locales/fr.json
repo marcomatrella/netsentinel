@@ -404,6 +404,8 @@
     "role_dns_resolver_badge": "Serveur DNS (AdGuard Home)",
     "role_dhcp_server_badge": "Serveur DHCP",
     "role_vantage_point_badge": "Vantage Point (Moniteur)",
+    "role_vantage_point_hint": "Hôte sur lequel s'exécute NetSentinel (noeud d'observation unique pour tout le réseau)",
+    "role_vantage_point_transfer": "Remarque : le rôle sera transféré et retiré de '{{name}}'",
     "notes_title": "Notes Câblage / Installation",
     "delete_device": "Supprimer l'appareil de la topologie",
     "delete_confirm": "Voulez-vous vraiment supprimer '{{name}}' ? Tous les liens associés seront également supprimés.",

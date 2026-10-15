@@ -416,6 +416,8 @@
     "role_dns_resolver_badge": "Server DNS (AdGuard Home)",
     "role_dhcp_server_badge": "Server DHCP",
     "role_vantage_point_badge": "Vantage Point (Monitor)",
+    "role_vantage_point_hint": "Host su cui risiede NetSentinel (nodo di monitoraggio unico per l'intera rete)",
+    "role_vantage_point_transfer": "Nota: il ruolo verrà trasferito rimuovendolo da '{{name}}'",
     "notes_title": "Note Cablaggio / Installazione",
     "delete_device": "Elimina apparato dalla topologia",
     "delete_confirm": "Sei sicuro di voler eliminare '{{name}}'? Verranno rimossi anche tutti i collegamenti associati.",

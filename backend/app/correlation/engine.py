@@ -4,6 +4,7 @@ import json
 import logging
 from typing import Any
 
+from app.config import settings
 from app.correlation.incident_manager import incident_manager
 from app.correlation.rules.rule_evaluator import RuleEvaluator
 from app.db.models import Dependency, Device, Incident, Link, to_utc_iso, utcnow
@@ -40,6 +41,10 @@ class CorrelationEngine:
             if "vantage_point" in roles:
                 vp_id = d.id
                 break
+        if not vp_id:
+            vp_id = settings.vantage_point_id
+        if vp_id:
+            settings.vantage_point_id = vp_id
 
         self.topology.load_from_db_entities(devices, links, dependencies, vantage_point_id=vp_id)
 
@@ -62,7 +67,9 @@ class CorrelationEngine:
         is_vp_isolated = False
         if vp_id and vp_id in dev_map:
             vp_providers = self.topology.get_upstream_providers(vp_id)
-            if vp_providers and all(dev_map[p].status in ["down", "unknown"] for p in vp_providers if p in dev_map):
+            if vp_providers and all(
+                dev_map[p].status in ["down", "unknown"] for p in vp_providers if p in dev_map
+            ):
                 is_vp_isolated = True
 
         # 4. Root cause candidate isolation
@@ -94,7 +101,11 @@ class CorrelationEngine:
                     for p in unhealthy_providers
                     if (dev.id, p) in self.topology.dep_graph.edges
                 ]
-                symptom_type = "affected" if any(k in ["power", "service"] for k in dep_kinds) else "unreachable"
+                symptom_type = (
+                    "affected"
+                    if any(k in ["power", "service"] for k in dep_kinds)
+                    else "unreachable"
+                )
                 symptoms[dev.id] = symptom_type
 
                 # Update device status to reflect honesty on knowledge (symptom, not primary DOWN)
@@ -121,7 +132,9 @@ class CorrelationEngine:
 
         for candidate in candidates:
             # If the candidate device itself is under planned maintenance, suppress alert generation!
-            is_maint, maint_win = await maintenance_tracker.is_device_in_maintenance(session, candidate.id)
+            is_maint, maint_win = await maintenance_tracker.is_device_in_maintenance(
+                session, candidate.id
+            )
             if is_maint:
                 logger.info(
                     "⏸️ [MANUTENZIONE ATTIVA] Soppressione generazione incidente per '%s' (Slot: %s)",
@@ -148,13 +161,15 @@ class CorrelationEngine:
             parents = self.topology.get_upstream_providers(candidate.id)
             for p_id in parents:
                 if p_id in dev_map and dev_map[p_id].status == "ok":
-                    evidence.append({
-                        "device_id": p_id,
-                        "status": "ok",
-                        "ts": to_utc_iso(dev_map[p_id].status_since),
-                        "message": f"Il nodo a monte '{dev_map[p_id].name}' è regolarmente attivo (esclude guasto a monte).",
-                        "positive": True,
-                    })
+                    evidence.append(
+                        {
+                            "device_id": p_id,
+                            "status": "ok",
+                            "ts": to_utc_iso(dev_map[p_id].status_since),
+                            "message": f"Il nodo a monte '{dev_map[p_id].name}' è regolarmente attivo (esclude guasto a monte).",
+                            "positive": True,
+                        }
+                    )
 
             # Evaluate diagnostic rule
             diag = self.rule_evaluator.evaluate_candidate(
@@ -186,14 +201,25 @@ class CorrelationEngine:
         for open_inc in active_res.scalars().all():
             if open_inc.root_cause_device_id not in resulting_candidate_ids:
                 # Check 1: Is this device currently under maintenance?
-                is_maint, _ = await maintenance_tracker.is_device_in_maintenance(session, open_inc.root_cause_device_id)
+                is_maint, _ = await maintenance_tracker.is_device_in_maintenance(
+                    session, open_inc.root_cause_device_id
+                )
                 if is_maint:
-                    logger.debug("Incidente %s sotto manutenzione: nessuna risoluzione automatica.", open_inc.id)
+                    logger.debug(
+                        "Incidente %s sotto manutenzione: nessuna risoluzione automatica.",
+                        open_inc.id,
+                    )
                     continue
 
                 root_dev = dev_map.get(open_inc.root_cause_device_id)
                 # Check 2: Is the device still down/unreachable/affected?
-                if root_dev and root_dev.status in ["down", "unreachable", "affected", "degraded", "flapping"]:
+                if root_dev and root_dev.status in [
+                    "down",
+                    "unreachable",
+                    "affected",
+                    "degraded",
+                    "flapping",
+                ]:
                     # Device is NOT recovered! It is a subordinate symptom of an upstream failure
                     primary_cand = candidates[0].id if candidates else None
                     logger.info(
@@ -206,7 +232,9 @@ class CorrelationEngine:
                     await incident_manager.merge_incident(
                         session=session,
                         subordinate_incident=open_inc,
-                        primary_incident_id=resulting_incidents[0].id if resulting_incidents else None,
+                        primary_incident_id=resulting_incidents[0].id
+                        if resulting_incidents
+                        else None,
                         primary_device_id=primary_cand,
                         reason=f"Dispositivo nello stato '{root_dev.status}' per guasto a monte (Causa radice: {primary_cand or 'Rete'}).",
                     )

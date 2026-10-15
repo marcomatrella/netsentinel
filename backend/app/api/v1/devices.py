@@ -2,7 +2,17 @@ import json
 import logging
 from typing import Any
 
-from app.db.models import CanvasLayout, Check, Device, Incident, Observation, utcnow
+from app.config import settings
+from app.db.models import (
+    CanvasLayout,
+    Check,
+    Dependency,
+    Device,
+    Incident,
+    Link,
+    Observation,
+    utcnow,
+)
 from app.db.session import get_db
 from app.schemas.entities import (
     DeviceBatchDeleteRequest,
@@ -11,6 +21,7 @@ from app.schemas.entities import (
     DeviceUpdate,
     InterfaceBase,
 )
+from app.topology.deduction import deduce_dependencies_from_topology
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -141,7 +152,11 @@ async def list_devices(
     for d in devices:
         obs_res = await db.execute(
             select(Observation.value)
-            .where(Observation.device_id == d.id, Observation.status == "ok", Observation.value.isnot(None))
+            .where(
+                Observation.device_id == d.id,
+                Observation.status == "ok",
+                Observation.value.isnot(None),
+            )
             .order_by(desc(Observation.ts))
             .limit(1)
         )
@@ -163,7 +178,11 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_db)) -> Devi
 
     obs_res = await db.execute(
         select(Observation.value)
-        .where(Observation.device_id == device.id, Observation.status == "ok", Observation.value.isnot(None))
+        .where(
+            Observation.device_id == device.id,
+            Observation.status == "ok",
+            Observation.value.isnot(None),
+        )
         .order_by(desc(Observation.ts))
         .limit(1)
     )
@@ -173,12 +192,19 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_db)) -> Devi
     return _to_device_read(device, rtt_ms=rtt)
 
 
-@router.post("", response_model=DeviceRead, status_code=status.HTTP_201_CREATED, summary="Aggiungi nuovo apparato")
+@router.post(
+    "",
+    response_model=DeviceRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Aggiungi nuovo apparato",
+)
 async def create_device(payload: DeviceCreate, db: AsyncSession = Depends(get_db)) -> DeviceRead:
     """Create a new device and provision its active checks."""
     existing = await db.get(Device, payload.id)
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ID apparato già esistente.")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="ID apparato già esistente."
+        )
 
     new_ip = payload.addresses.ip.strip() if payload.addresses and payload.addresses.ip else None
     if new_ip:
@@ -192,17 +218,22 @@ async def create_device(payload: DeviceCreate, db: AsyncSession = Depends(get_db
                 )
 
     if payload.roles:
-        if "dns_resolver" in payload.roles or "dhcp_server" in payload.roles:
+        single_roles = {"dns_resolver", "dhcp_server", "vantage_point"}
+        if any(r in single_roles for r in payload.roles):
             all_devs_roles = (await db.execute(select(Device))).scalars().all()
             for od in all_devs_roles:
                 od_roles = json.loads(od.roles_json) if od.roles_json else []
                 new_od_roles = [
-                    r for r in od_roles
+                    r
+                    for r in od_roles
                     if not (r == "dns_resolver" and "dns_resolver" in payload.roles)
                     and not (r == "dhcp_server" and "dhcp_server" in payload.roles)
+                    and not (r == "vantage_point" and "vantage_point" in payload.roles)
                 ]
                 if len(new_od_roles) != len(od_roles):
                     od.roles_json = json.dumps(new_od_roles)
+            if "vantage_point" in payload.roles:
+                settings.vantage_point_id = payload.id
 
     device = Device(
         id=payload.id,
@@ -270,25 +301,81 @@ async def update_device(
         device.addresses_json = json.dumps(payload.addresses.model_dump())
     if payload.tags is not None:
         device.tags_json = json.dumps(payload.tags)
+    vp_changed = False
     if payload.roles is not None:
-        if "dns_resolver" in payload.roles or "dhcp_server" in payload.roles:
-            other_devs = (await db.execute(select(Device).where(Device.id != device_id))).scalars().all()
+        single_roles = {"dns_resolver", "dhcp_server", "vantage_point"}
+        old_roles = json.loads(device.roles_json) if device.roles_json else []
+        had_vp = "vantage_point" in old_roles
+        has_vp = "vantage_point" in payload.roles
+        if had_vp != has_vp:
+            vp_changed = True
+
+        if any(r in single_roles for r in payload.roles):
+            other_devs = (
+                (await db.execute(select(Device).where(Device.id != device_id))).scalars().all()
+            )
             for od in other_devs:
                 od_roles = json.loads(od.roles_json) if od.roles_json else []
                 new_od_roles = [
-                    r for r in od_roles
+                    r
+                    for r in od_roles
                     if not (r == "dns_resolver" and "dns_resolver" in payload.roles)
                     and not (r == "dhcp_server" and "dhcp_server" in payload.roles)
+                    and not (r == "vantage_point" and "vantage_point" in payload.roles)
                 ]
                 if len(new_od_roles) != len(od_roles):
                     od.roles_json = json.dumps(new_od_roles)
+
         device.roles_json = json.dumps(payload.roles)
+        if has_vp:
+            settings.vantage_point_id = device_id
+        elif had_vp and settings.vantage_point_id == device_id:
+            other_vp = (
+                (await db.execute(select(Device).where(Device.id != device_id))).scalars().all()
+            )
+            fallback_vp = None
+            for od in other_vp:
+                od_roles = json.loads(od.roles_json) if od.roles_json else []
+                if "vantage_point" in od_roles:
+                    fallback_vp = od.id
+                    break
+            settings.vantage_point_id = fallback_vp
+
     if payload.notes is not None:
         device.notes = payload.notes
 
     addrs = json.loads(device.addresses_json) if device.addresses_json else {}
     roles = json.loads(device.roles_json) if device.roles_json else []
     await ensure_device_checks(db, device.id, device.name, addrs, roles)
+
+    if vp_changed:
+        dev_res = await db.execute(select(Device))
+        all_d = dev_res.scalars().all()
+        link_res = await db.execute(select(Link))
+        all_l = link_res.scalars().all()
+        vp_target = settings.vantage_point_id or (all_d[0].id if all_d else None)
+        if vp_target:
+            deduced = deduce_dependencies_from_topology(
+                devices=all_d,
+                links=all_l,
+                vantage_point_id=vp_target,
+            )
+            curr_deps = await db.execute(select(Dependency))
+            for cd in curr_deps.scalars().all():
+                await db.delete(cd)
+            await db.flush()
+            for dep_create in deduced:
+                db.add(
+                    Dependency(
+                        id=dep_create.id,
+                        dependent_id=dep_create.dependent_id,
+                        provider_id=dep_create.provider_id,
+                        kind=dep_create.kind,
+                        strength=dep_create.strength,
+                        source=dep_create.source,
+                        reason=dep_create.reason,
+                    )
+                )
 
     await db.commit()
 
@@ -298,7 +385,11 @@ async def update_device(
 
     obs_res = await db.execute(
         select(Observation.value)
-        .where(Observation.device_id == device.id, Observation.status == "ok", Observation.value.isnot(None))
+        .where(
+            Observation.device_id == device.id,
+            Observation.status == "ok",
+            Observation.value.isnot(None),
+        )
         .order_by(desc(Observation.ts))
         .limit(1)
     )
@@ -335,7 +426,8 @@ async def batch_delete_devices(
             edges = json.loads(layout.edges_json) if layout.edges_json else []
             new_nodes = [n for n in nodes if n.get("id") not in to_delete_set]
             new_edges = [
-                e for e in edges
+                e
+                for e in edges
                 if e.get("source") not in to_delete_set and e.get("target") not in to_delete_set
             ]
             layout.nodes_json = json.dumps(new_nodes)
@@ -346,6 +438,7 @@ async def batch_delete_devices(
 
     # 3. Resolve any active incidents targeting these deleted devices
     from app.correlation.incident_manager import incident_manager
+
     inc_res = await db.execute(
         select(Incident).where(
             Incident.status.in_(["open", "monitoring"]),
@@ -360,6 +453,7 @@ async def batch_delete_devices(
     # Trigger correlation cycle to update status of remaining devices and clear incident state
     try:
         from app.correlation.engine import correlation_engine
+
         await correlation_engine.run_correlation_cycle(db)
     except Exception as e:
         logger.warning("Errore correlazione post-batch-delete: %s", e)
@@ -382,8 +476,7 @@ async def delete_device(device_id: str, db: AsyncSession = Depends(get_db)) -> N
             edges = json.loads(layout.edges_json) if layout.edges_json else []
             new_nodes = [n for n in nodes if n.get("id") != device_id]
             new_edges = [
-                e for e in edges
-                if e.get("source") != device_id and e.get("target") != device_id
+                e for e in edges if e.get("source") != device_id and e.get("target") != device_id
             ]
             layout.nodes_json = json.dumps(new_nodes)
             layout.edges_json = json.dumps(new_edges)
@@ -393,6 +486,7 @@ async def delete_device(device_id: str, db: AsyncSession = Depends(get_db)) -> N
 
     # Resolve any incident for this device
     from app.correlation.incident_manager import incident_manager
+
     inc_res = await db.execute(
         select(Incident).where(
             Incident.status.in_(["open", "monitoring"]),
@@ -408,6 +502,7 @@ async def delete_device(device_id: str, db: AsyncSession = Depends(get_db)) -> N
     # Trigger correlation cycle to update status of remaining devices and clear incident state
     try:
         from app.correlation.engine import correlation_engine
+
         await correlation_engine.run_correlation_cycle(db)
     except Exception as e:
         logger.warning("Errore correlazione post-delete: %s", e)

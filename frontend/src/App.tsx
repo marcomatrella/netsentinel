@@ -252,16 +252,19 @@ export const App: React.FC = () => {
 
     const isNewDns = newDev.roles?.includes('dns_resolver');
     const isNewDhcp = newDev.roles?.includes('dhcp_server');
+    const isNewVp = newDev.roles?.includes('vantage_point');
 
     const cleanDevices = topology.devices.map((d) => {
       let r = d.roles || [];
       if (isNewDns && r.includes('dns_resolver')) r = r.filter((x) => x !== 'dns_resolver');
       if (isNewDhcp && r.includes('dhcp_server')) r = r.filter((x) => x !== 'dhcp_server');
+      if (isNewVp && r.includes('vantage_point')) r = r.filter((x) => x !== 'vantage_point');
       return { ...d, roles: r };
     });
 
     setTopology({
       ...topology,
+      vantage_point_id: isNewVp ? newDev.id : topology.vantage_point_id,
       devices: [...cleanDevices, newDev],
       layout: {
         ...(topology.layout || { id: 'default', edges: [], groups: [], updated_at: new Date().toISOString() }),
@@ -386,11 +389,19 @@ export const App: React.FC = () => {
 
     const isNewDns = updatedData.roles?.includes('dns_resolver');
     const isNewDhcp = updatedData.roles?.includes('dhcp_server');
+    const isNewVp = updatedData.roles?.includes('vantage_point');
 
     // In Edit Mode: stage device updates locally in canvas topology state
     if (isEditMode) {
       setTopology((prev) => {
         if (!prev) return prev;
+        let newVpId = prev.vantage_point_id;
+        if (isNewVp) {
+          newVpId = deviceId;
+        } else if (updatedData.roles && prev.vantage_point_id === deviceId) {
+          newVpId = undefined;
+        }
+
         const newDevs = prev.devices.map((d) => {
           if (d.id === deviceId) return { ...d, ...updatedData };
           let roles = d.roles || [];
@@ -400,9 +411,12 @@ export const App: React.FC = () => {
           if (isNewDhcp && roles.includes('dhcp_server')) {
             roles = roles.filter((r) => r !== 'dhcp_server');
           }
+          if (isNewVp && roles.includes('vantage_point')) {
+            roles = roles.filter((r) => r !== 'vantage_point');
+          }
           return { ...d, roles };
         });
-        return { ...prev, devices: newDevs };
+        return { ...prev, devices: newDevs, vantage_point_id: newVpId };
       });
       setSelectedDevice((prev) => (prev && prev.id === deviceId ? { ...prev, ...updatedData } : prev));
       return;
@@ -437,6 +451,13 @@ export const App: React.FC = () => {
 
       setTopology((prev) => {
         if (!prev) return prev;
+        let newVpId = prev.vantage_point_id;
+        if (isNewVp) {
+          newVpId = deviceId;
+        } else if (updatedData.roles && prev.vantage_point_id === deviceId) {
+          newVpId = undefined;
+        }
+
         const newDevs = prev.devices.map((d) => {
           if (d.id === deviceId) return { ...d, ...updated };
           let roles = d.roles || [];
@@ -446,9 +467,12 @@ export const App: React.FC = () => {
           if (isNewDhcp && roles.includes('dhcp_server')) {
             roles = roles.filter((r) => r !== 'dhcp_server');
           }
+          if (isNewVp && roles.includes('vantage_point')) {
+            roles = roles.filter((r) => r !== 'vantage_point');
+          }
           return { ...d, roles };
         });
-        return { ...prev, devices: newDevs };
+        return { ...prev, devices: newDevs, vantage_point_id: newVpId };
       });
       setSelectedDevice((prev) => (prev && prev.id === deviceId ? { ...prev, ...updated } : prev));
       await loadData();

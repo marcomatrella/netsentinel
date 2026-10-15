@@ -235,6 +235,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const upstreamDeps = dependencies.filter((d) => d.dependent_id === device.id);
   const downstreamDeps = dependencies.filter((d) => d.provider_id === device.id);
   const devMap = new Map(allDevices.map((d) => [d.id, d]));
+  const currentVpOther = allDevices.find((d) => d.id !== device.id && d.roles?.includes('vantage_point'));
 
   const handleSaveColor = async (colorId: string) => {
     if (!device) return;
@@ -712,6 +713,14 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                 />
                 <div>
                   <span className="font-semibold block text-blue-600 dark:text-blue-300">{t('device_detail.role_vantage_point_badge')}</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                    {t('device_detail.role_vantage_point_hint')}
+                  </span>
+                  {currentVpOther && editRoles.includes('vantage_point') && (
+                    <span className="text-[10px] text-amber-500 dark:text-amber-400 block font-medium mt-0.5">
+                      {t('device_detail.role_vantage_point_transfer', { name: currentVpOther.name })}
+                    </span>
+                  )}
                 </div>
               </label>
 
