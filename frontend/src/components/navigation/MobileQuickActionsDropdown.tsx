@@ -98,23 +98,18 @@ export const MobileQuickActionsDropdown: React.FC<MobileQuickActionsDropdownProp
                 onToggleEditMode();
                 setIsOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
                 isEditMode
                   ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-semibold'
                   : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                {isEditMode ? (
-                  <Eye className="w-4 h-4 text-amber-500" />
-                ) : (
-                  <Edit3 className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-                )}
-                <span>{isEditMode ? t('header.view_live') : t('header.edit_canvas')}</span>
-              </div>
-              <span className="text-[10px] text-slate-400 font-mono">
-                {isEditMode ? t('header.live_view') : t('header.edit_mode')}
-              </span>
+              {isEditMode ? (
+                <Eye className="w-4 h-4 text-amber-500 shrink-0" />
+              ) : (
+                <Edit3 className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
+              )}
+              <span className="truncate">{isEditMode ? t('header.view_live') : t('header.edit_canvas')}</span>
             </button>
 
             {/* 2 - Log Eventi */}
@@ -125,25 +120,22 @@ export const MobileQuickActionsDropdown: React.FC<MobileQuickActionsDropdownProp
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
-              <ScrollText className="w-4 h-4 text-sky-500 dark:text-sky-400" />
-              <span>{t('header.event_logs')}</span>
+              <ScrollText className="w-4 h-4 text-sky-500 dark:text-sky-400 shrink-0" />
+              <span className="truncate">{t('header.event_logs')}</span>
             </button>
 
             {/* 3 - Dark / Light Mode */}
             <button
               onClick={() => toggleTheme()}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
-              <div className="flex items-center gap-2.5">
-                {isDark ? (
-                  <Sun className="w-4 h-4 text-amber-400" />
-                ) : (
-                  <Moon className="w-4 h-4 text-indigo-600" />
-                )}
-                <span>{t('header.theme_toggle')}</span>
-              </div>
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                {isDark ? t('header.theme_dark') : t('header.theme_light')}
+              {isDark ? (
+                <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-600 shrink-0" />
+              )}
+              <span className="truncate">
+                {isDark ? t('header.theme_light') : t('header.theme_dark')}
               </span>
             </button>
           </div>
