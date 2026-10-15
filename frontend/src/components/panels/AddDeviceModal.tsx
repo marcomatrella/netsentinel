@@ -399,25 +399,27 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
     : null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[92vh]">
         {/* Header with Two Tabs */}
-        <div className="p-4 border-b border-slate-800 bg-slate-950/80">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
+        <div className="px-3.5 py-3 sm:p-4 border-b border-slate-800 bg-slate-950/80 shrink-0">
+          <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 shrink-0">
                 <Plus className="w-5 h-5" />
               </div>
-              <div>
-                <h2 className="font-bold text-slate-100 text-sm">Aggiungi Apparato alla Topologia</h2>
-                <p className="text-[11px] text-slate-400">
+              <div className="min-w-0 flex-1">
+                <h2 className="font-bold text-slate-100 text-sm truncate">Aggiungi Apparato alla Topologia</h2>
+                <p className="text-[11px] text-slate-400 truncate hidden xs:block">
                   Importa apparati rilevati dalla scansione di rete o aggiungine uno manualmente
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-xl transition shrink-0 ml-1 cursor-pointer"
+              title="Chiudi"
+              aria-label="Chiudi"
             >
               <X className="w-5 h-5" />
             </button>

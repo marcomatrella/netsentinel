@@ -63,22 +63,27 @@ export const NetworkRolesModal: React.FC<NetworkRolesModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+        <div className="px-3.5 py-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
               <Shield className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="font-bold text-slate-100 text-sm">{t('network_roles.modal_title')}</h2>
-              <p className="text-[11px] text-slate-400">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-bold text-slate-100 text-sm truncate">{t('network_roles.modal_title')}</h2>
+              <p className="text-[11px] text-slate-400 truncate hidden xs:block">
                 {t('network_roles.modal_desc')}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
+          <button
+            onClick={onClose}
+            className="p-1.5 sm:p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-xl transition shrink-0 ml-1 cursor-pointer"
+            title={t('common.close')}
+            aria-label={t('common.close')}
+          >
             <X className="w-5 h-5" />
           </button>
         </div>

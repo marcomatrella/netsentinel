@@ -323,61 +323,93 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[94vh] sm:max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100">
         
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
-              <Mail className="w-5 h-5" />
+        <div className="px-3.5 py-3 sm:px-6 sm:py-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-700/80 shrink-0">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 truncate">
+                  <span className="truncate">{t('notifications.modal_title')}</span>
+                  <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/30 font-semibold shrink-0">
+                    {t('notifications.modal_badge')}
+                  </span>
+                </h2>
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 hidden xs:block truncate">
+                  {t('notifications.modal_desc')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                {t('notifications.modal_title')}
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/30 font-semibold">
-                  {t('notifications.modal_badge')}
-                </span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('notifications.modal_desc')}
-              </p>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* Desktop Tab switch */}
+              <div className="hidden sm:flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-700/60 text-xs">
+                <button
+                  onClick={() => setActiveTab('config')}
+                  className={`px-3 py-1 rounded-md font-medium transition ${
+                    activeTab === 'config'
+                      ? 'bg-sky-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {t('notifications.tab_config')}
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('logs');
+                    loadLogs();
+                  }}
+                  className={`px-3 py-1 rounded-md font-medium transition flex items-center gap-1.5 ${
+                    activeTab === 'logs'
+                      ? 'bg-sky-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span>{t('notifications.tab_logs')}</span>
+                </button>
+              </div>
+
+              {/* Close button: Fixed & Always visible */}
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-200/60 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition shrink-0 ml-1 cursor-pointer"
+                title={t('common.close')}
+                aria-label={t('common.close')}
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Tab switch */}
-            <div className="bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-700/60 flex text-xs">
-              <button
-                onClick={() => setActiveTab('config')}
-                className={`px-3 py-1 rounded-md font-medium transition ${
-                  activeTab === 'config'
-                    ? 'bg-sky-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
-                }`}
-              >
-                {t('notifications.tab_config')}
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('logs');
-                  loadLogs();
-                }}
-                className={`px-3 py-1 rounded-md font-medium transition flex items-center gap-1.5 ${
-                  activeTab === 'logs'
-                    ? 'bg-sky-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span>{t('notifications.tab_logs')}</span>
-              </button>
-            </div>
-
+          {/* Mobile Tab switch (row below) */}
+          <div className="flex sm:hidden items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-750 text-xs mt-2.5">
             <button
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition"
+              onClick={() => setActiveTab('config')}
+              className={`flex-1 py-1 rounded-md font-medium transition text-center ${
+                activeTab === 'config'
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
             >
-              <X className="w-5 h-5" />
+              {t('notifications.tab_config')}
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('logs');
+                loadLogs();
+              }}
+              className={`flex-1 py-1 rounded-md font-medium transition text-center ${
+                activeTab === 'logs'
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-400'
+              }`}
+            >
+              {t('notifications.tab_logs')}
             </button>
           </div>
         </div>

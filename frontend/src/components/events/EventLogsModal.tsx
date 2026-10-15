@@ -624,93 +624,151 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-5xl h-[88vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-5xl h-[94vh] sm:h-[88vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
         
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/80">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
-              <Activity className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                  {t('events.modal_title')}
-                </h2>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-100 text-sky-700 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200 dark:border-sky-800 font-mono">
-                  {events.length} {t('events.events_count')}
-                </span>
-                {currentHistoricalTime && (
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
-                    <History className="w-3 h-3" />
-                    {t('events.historical_active')}: {parseUtcDate(currentHistoricalTime).toLocaleTimeString(activeLocale)}
-                  </span>
-                )}
+        <div className="px-3.5 py-3 sm:px-6 sm:py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 shrink-0">
+          <div className="flex items-center justify-between gap-2.5">
+            {/* Title & Badge */}
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0">
+                <Activity className="w-5 h-5" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {t('events.modal_desc')}
-              </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 truncate">
+                    {t('events.modal_title')}
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-sky-100 text-sky-700 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200 dark:border-sky-800 font-mono shrink-0">
+                    {events.length}
+                  </span>
+                  {currentHistoricalTime && (
+                    <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1 shrink-0">
+                      <History className="w-3 h-3" />
+                      <span className="hidden xs:inline">{t('events.historical_active')}: </span>
+                      {parseUtcDate(currentHistoricalTime).toLocaleTimeString(activeLocale)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 hidden xs:block truncate">
+                  {t('events.modal_desc')}
+                </p>
+              </div>
+            </div>
+
+            {/* Desktop Actions & Close button */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* Desktop View Mode Toggle */}
+              <div className="hidden sm:flex items-center bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700">
+                <button
+                  onClick={() => setCompactView(true)}
+                  className={`p-1.5 rounded-md transition flex items-center gap-1 cursor-pointer ${
+                    compactView
+                      ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-semibold'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                  title="Vista Compatta / Minimale"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span className="text-[11px] hidden md:inline">Compatta</span>
+                </button>
+                <button
+                  onClick={() => setCompactView(false)}
+                  className={`p-1.5 rounded-md transition flex items-center gap-1 cursor-pointer ${
+                    !compactView
+                      ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-semibold'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                  title="Vista Dettagliata"
+                >
+                  <AlignJustify className="w-3.5 h-3.5" />
+                  <span className="text-[11px] hidden md:inline">Estesa</span>
+                </button>
+              </div>
+
+              <button
+                onClick={handleExportLogs}
+                className="hidden sm:inline-flex p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                title={t('events.export_tooltip')}
+              >
+                <Download className="w-4 h-4" />
+              </button>
+              <button
+                onClick={loadEvents}
+                disabled={loading}
+                className="hidden sm:inline-flex p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition disabled:opacity-50"
+                title={t('events.refresh_tooltip')}
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-sky-500' : ''}`} />
+              </button>
+
+              {/* Close Button: Fixed & Always Visible */}
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-200/60 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-xl transition shrink-0 ml-1 cursor-pointer shadow-xs"
+                title={t('common.close')}
+                aria-label={t('common.close')}
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle: Compact vs Detailed */}
-            <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700">
+          {/* Mobile Secondary Action Toolbar */}
+          <div className="flex sm:hidden items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+            {/* Mobile View Toggle */}
+            <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs">
               <button
                 onClick={() => setCompactView(true)}
-                className={`p-1.5 rounded-md transition flex items-center gap-1 cursor-pointer ${
+                className={`px-2 py-1 rounded transition flex items-center gap-1 ${
                   compactView
-                    ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-semibold'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs font-semibold'
+                    : 'text-slate-500'
                 }`}
-                title="Vista Compatta / Minimale"
               >
                 <List className="w-3.5 h-3.5" />
-                <span className="text-[11px] hidden sm:inline">Compatta</span>
+                <span>Compatta</span>
               </button>
               <button
                 onClick={() => setCompactView(false)}
-                className={`p-1.5 rounded-md transition flex items-center gap-1 cursor-pointer ${
+                className={`px-2 py-1 rounded transition flex items-center gap-1 ${
                   !compactView
-                    ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-semibold'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs font-semibold'
+                    : 'text-slate-500'
                 }`}
-                title="Vista Dettagliata"
               >
                 <AlignJustify className="w-3.5 h-3.5" />
-                <span className="text-[11px] hidden sm:inline">Estesa</span>
+                <span>Estesa</span>
               </button>
             </div>
 
-            <button
-              onClick={handleExportLogs}
-              className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
-              title={t('events.export_tooltip')}
-            >
-              <Download className="w-4 h-4" />
-            </button>
-            <button
-              onClick={loadEvents}
-              disabled={loading}
-              className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition disabled:opacity-50"
-              title={t('events.refresh_tooltip')}
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-sky-500' : ''}`} />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-150 dark:hover:bg-slate-800 rounded-lg transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* Mobile Export & Refresh buttons */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleExportLogs}
+                className="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition text-xs flex items-center gap-1 border border-slate-200 dark:border-slate-750"
+                title={t('events.export_tooltip')}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="text-[11px]">CSV</span>
+              </button>
+              <button
+                onClick={loadEvents}
+                disabled={loading}
+                className="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition border border-slate-200 dark:border-slate-750"
+                title={t('events.refresh_tooltip')}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-500' : ''}`} />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Filter and Search Bar */}
-        <div className="px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-          {/* Severity Tabs */}
-          <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-1 rounded-xl">
+        <div className="px-3.5 py-2.5 sm:px-6 sm:py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-2.5 text-xs shrink-0">
+          {/* Severity Tabs with horizontal scroll on mobile */}
+          <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto max-w-full shrink-0">
             <button
               onClick={() => setSeverityFilter('all')}
               className={`px-3 py-1 rounded-lg font-medium transition ${

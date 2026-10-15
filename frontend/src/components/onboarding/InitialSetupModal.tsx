@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Loader2,
   RefreshCw,
+  X,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 import { Device, DeviceKind, Link, LinkMedium, FullTopology } from '../../types';
@@ -678,28 +679,74 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl h-[88vh] shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 md:p-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-5xl h-[94vh] sm:h-[88vh] shadow-2xl overflow-hidden flex flex-col relative">
         {/* Modal Top Banner */}
-        <div className="p-6 border-b border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/30">
-              <Shield className="w-7 h-7" />
+        <div className="px-3.5 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/30 shrink-0">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="font-extrabold text-white text-base sm:text-xl tracking-tight truncate">
+                  {t('wizard.title')}
+                </h1>
+                <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 hidden xs:block truncate">
+                  {t('wizard.subtitle')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="font-extrabold text-white text-xl tracking-tight">{t('wizard.title')}</h1>
-              <p className="text-xs text-slate-300 mt-0.5">
-                {t('wizard.subtitle')}
-              </p>
+
+            {/* Desktop Tab Selector */}
+            <div className="hidden md:flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs shrink-0">
+              <button
+                onClick={() => setActiveTab('guided')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                  activeTab === 'guided' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{t('wizard.tab_guided')}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('templates')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                  activeTab === 'templates' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>{t('wizard.tab_templates')}</span>
+              </button>
+              <button
+                onClick={() => {
+                  onStartManualDrawing();
+                  onClose();
+                }}
+                className="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>{t('wizard.tab_canvas')}</span>
+              </button>
             </div>
+
+            {/* Close Button: Fixed & Always Visible */}
+            <button
+              onClick={onClose}
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700/90 rounded-xl transition shrink-0 ml-1 cursor-pointer border border-slate-700/60 shadow-xs"
+              title={t('common.close')}
+              aria-label={t('common.close')}
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          {/* Tab Selector */}
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+          {/* Mobile Tab Selector (dedicated row) */}
+          <div className="flex md:hidden items-center gap-1 bg-slate-900/95 p-1 rounded-xl border border-slate-800 text-xs mt-2.5 overflow-x-auto max-w-full">
             <button
               onClick={() => setActiveTab('guided')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
-                activeTab === 'guided' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              className={`flex-1 py-1.5 px-2 rounded-lg font-medium transition flex items-center justify-center gap-1 whitespace-nowrap ${
+                activeTab === 'guided' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -707,8 +754,8 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('templates')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
-                activeTab === 'templates' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              className={`flex-1 py-1.5 px-2 rounded-lg font-medium transition flex items-center justify-center gap-1 whitespace-nowrap ${
+                activeTab === 'templates' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -719,7 +766,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 onStartManualDrawing();
                 onClose();
               }}
-              className="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5"
+              className="flex-1 py-1.5 px-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1 whitespace-nowrap"
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>{t('wizard.tab_canvas')}</span>
@@ -731,7 +778,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
         {activeTab === 'guided' && (
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {/* Step Pills */}
-            <div className="px-6 py-2.5 bg-slate-950/40 border-b border-slate-800 flex items-center justify-between text-xs shrink-0">
+            <div className="px-3.5 sm:px-6 py-2.5 bg-slate-950/40 border-b border-slate-800 flex items-center justify-between text-xs shrink-0 overflow-x-auto max-w-full">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setGuidedStep(1)}
