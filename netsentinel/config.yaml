@@ -10,26 +10,31 @@ startup: application
 boot: auto
 host_network: true
 ingress: true
-ingress_port: 8181
+ingress_port: 8099
 panel_icon: mdi:shield-check
 panel_title: NetSentinel
-ports:
-  8181/tcp: 8181
-ports_description:
-  8181/tcp: Web Interface & API (optional if accessing via Ingress)
-webui: "http://[HOST]:[PORT:8181]"
+webui: "[PROTO:port]://[HOST]:[PORT:port]"
+map:
+  - ssl
 schema:
   port: port?
+  ssl: bool?
+  certfile: str?
+  keyfile: str?
   subnet: str?
   auth_enabled: bool?
   timezone: str?
 options:
   port: 8181
+  ssl: false
+  certfile: "fullchain.pem"
+  keyfile: "privkey.pem"
   subnet: ""
   auth_enabled: false
   timezone: "Europe/Rome"
 environment:
   NETSENTINEL_DATA_DIR: "/data"
+  NETSENTINEL_INGRESS_PORT: "8099"
 privileged:
   - NET_ADMIN
   - NET_RAW

@@ -129,28 +129,107 @@ else:
         )
 
 
+def resolve_cert_path(path_str: str | None) -> Path | None:
+    """Resolve SSL certificate file path, checking direct path and Home Assistant /ssl directory."""
+    if not path_str:
+        return None
+    p = Path(path_str)
+    if p.is_file():
+        return p
+    ha_ssl = Path("/ssl") / path_str
+    if ha_ssl.is_file():
+        return ha_ssl
+    return None
+
+
 def main():
-    """CLI entrypoint."""
+    """CLI entrypoint with dual-binding support for direct LAN access (HTTP or HTTPS) and Home Assistant Ingress."""
     import asyncio
     import socket
 
     import uvicorn
 
-    ha_ingress_port = 8181
     configured_port = settings.port
+    ingress_port = settings.ingress_port
 
-    if configured_port == ha_ingress_port or settings.debug:
+    ssl_cert = resolve_cert_path(settings.ssl_certfile) if settings.ssl_enabled else None
+    ssl_key = resolve_cert_path(settings.ssl_keyfile) if settings.ssl_enabled else None
+    use_ssl = bool(settings.ssl_enabled and ssl_cert and ssl_key)
+
+    if settings.ssl_enabled and not use_ssl:
+        logger.error(
+            "SSL abilitato nelle impostazioni, ma i file certificato non sono stati trovati (cert: %s, key: %s). "
+            "Verifica la cartella /ssl o i percorsi specificati. Avvio in modalità HTTP di fallback.",
+            settings.ssl_certfile,
+            settings.ssl_keyfile,
+        )
+
+    # In debug mode, run standard single server with reload
+    if settings.debug:
         uvicorn.run(
             "app.main:app",
             host=settings.host,
             port=configured_port,
-            reload=settings.debug,
+            reload=True,
+            ssl_keyfile=str(ssl_key) if use_ssl else None,
+            ssl_certfile=str(ssl_cert) if use_ssl else None,
         )
         return
 
-    # If user customized port (e.g. 8282), try to also bind to 8181 for Ingress
+    # Case 1: Direct access via HTTPS (Ingress remains HTTP on dedicated ingress_port)
+    if use_ssl:
+        eff_ingress_port = ingress_port
+        if eff_ingress_port == configured_port:
+            eff_ingress_port = 8099 if configured_port != 8099 else 8098
+            logger.warning(
+                "La porta Ingress coincide con la porta HTTPS configurata (%d). Ingress spostato sulla porta %d.",
+                configured_port,
+                eff_ingress_port,
+            )
+
+        logger.info(
+            "Avvio NetSentinel in HTTPS su %s:%d (cert: %s)",
+            settings.host,
+            configured_port,
+            ssl_cert,
+        )
+        logger.info("Avvio endpoint Home Assistant Ingress in HTTP su 0.0.0.0:%d", eff_ingress_port)
+
+        main_config = uvicorn.Config(
+            app=app,
+            host=settings.host,
+            port=configured_port,
+            ssl_keyfile=str(ssl_key),
+            ssl_certfile=str(ssl_cert),
+            log_config=None,
+            lifespan="on",
+        )
+        ingress_config = uvicorn.Config(
+            app=app,
+            host="0.0.0.0",
+            port=eff_ingress_port,
+            log_config=None,
+            lifespan="off",
+        )
+
+        main_server = uvicorn.Server(main_config)
+        ingress_server = uvicorn.Server(ingress_config)
+
+        async def serve_dual():
+            await asyncio.gather(main_server.serve(), ingress_server.serve())
+
+        asyncio.run(serve_dual())
+        return
+
+    # Case 2: Plain HTTP for direct access (Multi-port transparent binding)
+    ports_to_bind = [configured_port]
+    if ingress_port not in ports_to_bind:
+        ports_to_bind.append(ingress_port)
+    if 8181 not in ports_to_bind:
+        ports_to_bind.append(8181)
+
     sockets: list[socket.socket] = []
-    for port in [configured_port, ha_ingress_port]:
+    for port in ports_to_bind:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -158,13 +237,13 @@ def main():
             s.listen(128)
             s.setblocking(False)
             sockets.append(s)
-            logger.info("Socket web server in ascolto su %s:%d", settings.host, port)
+            logger.info("Socket HTTP NetSentinel attivo su %s:%d", settings.host, port)
         except OSError as e:
             if port == configured_port:
-                logger.error("Impossibile associare la porta configurata %d: %s", port, e)
+                logger.error("Impossibile associare la porta principale configurata %d: %s", port, e)
                 raise
             else:
-                logger.warning("Porta Ingress secondaria %d non disponibile (%s).", port, e)
+                logger.warning("Porta secondaria/ingress %d non disponibile (%s).", port, e)
 
     config = uvicorn.Config(app=app, log_config=None)
     server = uvicorn.Server(config)

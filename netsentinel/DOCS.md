@@ -35,14 +35,29 @@ Navigate to the **Configuration** tab in the add-on page to customize these sett
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `port` | `port` | `8181` | Port used to expose NetSentinel's Web UI and API. Change this if `8181` conflicts with other add-ons or services on your Home Assistant host (e.g. `8182`, `9090`). |
+| `port` | `port` | `8181` | Port used to expose NetSentinel's Web UI and API directly on your LAN. You can change this to any port (e.g. `9000`, `8080`) if `8181` conflicts with another service. Home Assistant sidebar Ingress will continue working seamlessly without disruption. |
+| `ssl` | `boolean` | `false` | Enable HTTPS on NetSentinel's direct Web UI port. Home Assistant Ingress continues to proxy internally via HTTP. |
+| `certfile` | `string` | `"fullchain.pem"` | Name or path of the SSL certificate file inside Home Assistant's `/ssl` folder (e.g. `fullchain.pem`). Only used if `ssl: true`. |
+| `keyfile` | `string` | `"privkey.pem"` | Name or path of the SSL private key file inside Home Assistant's `/ssl` folder (e.g. `privkey.pem`). Only used if `ssl: true`. |
 | `subnet` | `string` | `""` (empty) | Local network CIDR for discovery sweeps (e.g. `192.168.1.0/24` or `10.0.0.0/24`). If left empty, NetSentinel will auto-detect the local subnet of your Home Assistant host. |
 | `timezone` | `string` | `"Europe/Rome"` | Timezone identifier (e.g. `Europe/Rome`, `America/New_York`, `UTC`). Used for Time Machine navigation, scheduled maintenance intervals, and log timestamps. |
 | `auth_enabled` | `boolean` | `false` | Enable or disable NetSentinel's internal standalone authentication. Set to `false` when accessing via Home Assistant Ingress for seamless single sign-on. |
 
-### Example Configuration:
+### Example Configuration (Standard HTTP):
 ```yaml
 port: 8181
+ssl: false
+subnet: "192.168.1.0/24"
+timezone: "Europe/Rome"
+auth_enabled: false
+```
+
+### Example Configuration (Direct HTTPS with SSL Certificates):
+```yaml
+port: 8443
+ssl: true
+certfile: "fullchain.pem"
+keyfile: "privkey.pem"
 subnet: "192.168.1.0/24"
 timezone: "Europe/Rome"
 auth_enabled: false
@@ -50,13 +65,14 @@ auth_enabled: false
 
 ---
 
-## 🌐 Network Access & Privileges
+## 🌐 Network Access & Transparent Dual-Binding
 
 This add-on is configured with:
 - **`host_network: true`**: Required to allow NetSentinel to perform local Layer 2 ARP sweeps and broadcast device discovery on your physical LAN.
 - **`NET_ADMIN` & `NET_RAW` Capabilities**: Allows raw, low-overhead ICMP ping measurements without requiring root privileges.
-- **Home Assistant Ingress**: Access NetSentinel seamlessly inside Home Assistant through the left sidebar without exposing separate ports externally.
-- **Direct LAN Access**: You can also reach NetSentinel directly via `http://<HOME_ASSISTANT_IP>:<CONFIGURED_PORT>`.
+- **Home Assistant Ingress (Sidebar)**: Access NetSentinel seamlessly inside Home Assistant through the left sidebar without exposing separate ports externally. Ingress always communicates internally via plain HTTP on port `8099`, completely isolated from external SSL or port changes.
+- **Direct LAN Access (HTTP or HTTPS)**: You can also reach NetSentinel directly via `http://<HOME_ASSISTANT_IP>:<PORT>` (or `https://...` if SSL is enabled).
+- **External Reverse Proxy Friendly**: If you run Nginx Proxy Manager, Traefik, Caddy, or Cloudflare Tunnel to expose NetSentinel in HTTPS externally while keeping the internal service in HTTP, simply keep `ssl: false` and point your reverse proxy to `http://<HA_IP>:<PORT>`.
 
 ---
 

@@ -21,8 +21,15 @@ class Settings(BaseSettings):
     app_env: str = "production"
     debug: bool = False
 
+    # Network & Ports
     host: str = "0.0.0.0"
     port: int = 8181
+    ingress_port: int = 8099
+
+    # SSL / TLS Configuration
+    ssl_enabled: bool = False
+    ssl_certfile: str | None = None
+    ssl_keyfile: str | None = None
 
     # Storage paths
     data_dir: str = os.getenv("NETSENTINEL_DATA_DIR", "./data")
@@ -60,8 +67,41 @@ class Settings(BaseSettings):
     # Subnet override for discovery (e.g. '192.168.1.0/24')
     subnet: str | None = None
 
+    def load_ha_options(self) -> None:
+        """Safely load add-on options from /data/options.json if running inside Home Assistant."""
+        import json
+
+        options_file = Path(os.getenv("HA_OPTIONS_FILE", "/data/options.json"))
+        if not options_file.is_file():
+            return
+        try:
+            with open(options_file, "r", encoding="utf-8") as f:
+                opts = json.load(f)
+            if not isinstance(opts, dict):
+                return
+            if opts.get("port"):
+                self.port = int(opts["port"])
+            if "ssl" in opts:
+                self.ssl_enabled = bool(opts["ssl"])
+            if opts.get("certfile"):
+                self.ssl_certfile = str(opts["certfile"])
+            if opts.get("keyfile"):
+                self.ssl_keyfile = str(opts["keyfile"])
+            if opts.get("subnet"):
+                self.subnet = str(opts["subnet"])
+            if opts.get("timezone"):
+                self.timezone = str(opts["timezone"])
+            if "auth_enabled" in opts:
+                self.auth_enabled = bool(opts["auth_enabled"])
+            if opts.get("ingress_port"):
+                self.ingress_port = int(opts["ingress_port"])
+        except Exception:
+            # Non-blocking if options.json is unreadable or malformed
+            pass
+
     def resolve_paths(self) -> None:
         """Ensure directories exist and resolve absolute database path."""
+        self.load_ha_options()
         path = Path(self.data_dir).resolve()
         try:
             path.mkdir(parents=True, exist_ok=True)
