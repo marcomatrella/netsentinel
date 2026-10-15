@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -75,6 +75,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ingress Middleware (Home Assistant reverse proxy support)
+@app.middleware("http")
+async def ingress_middleware(request: Request, call_next):
+    ingress_path = request.headers.get("X-Ingress-Path")
+    if ingress_path:
+        request.scope["root_path"] = ingress_path.rstrip("/")
+    return await call_next(request)
+
 # Register core health & metrics endpoints
 app.include_router(health_router)
 app.include_router(api_v1_router)
@@ -85,15 +93,22 @@ if static_path.exists() and (static_path / "index.html").exists():
     app.mount("/assets", StaticFiles(directory=str(static_path / "assets")), name="assets")
 
     @app.get("/{full_path:path}", response_class=HTMLResponse)
-    async def serve_spa(full_path: str):
+    async def serve_spa(request: Request, full_path: str):
         # Ignore API and health requests
         if full_path.startswith("api/") or full_path in ["healthz", "metrics"]:
             return None
         file_to_serve = static_path / full_path
         if file_to_serve.is_file():
             return FileResponse(file_to_serve)
-        return FileResponse(
-            static_path / "index.html",
+
+        index_file = static_path / "index.html"
+        content = index_file.read_text(encoding="utf-8")
+        ingress_path = request.headers.get("X-Ingress-Path", "")
+        if ingress_path:
+            meta_tag = f'<meta name="ingress-path" content="{ingress_path.rstrip("/")}">'
+            content = content.replace("<head>", f"<head>\n    {meta_tag}", 1)
+        return HTMLResponse(
+            content=content,
             headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
         )
 else:
@@ -116,13 +131,44 @@ else:
 
 def main():
     """CLI entrypoint."""
+    import asyncio
+    import socket
+
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host=settings.host,
-        port=settings.port,
-        reload=settings.debug,
-    )
+
+    ha_ingress_port = 8181
+    configured_port = settings.port
+
+    if configured_port == ha_ingress_port or settings.debug:
+        uvicorn.run(
+            "app.main:app",
+            host=settings.host,
+            port=configured_port,
+            reload=settings.debug,
+        )
+        return
+
+    # If user customized port (e.g. 8282), try to also bind to 8181 for Ingress
+    sockets: list[socket.socket] = []
+    for port in [configured_port, ha_ingress_port]:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind((settings.host, port))
+            s.listen(128)
+            s.setblocking(False)
+            sockets.append(s)
+            logger.info("Socket web server in ascolto su %s:%d", settings.host, port)
+        except OSError as e:
+            if port == configured_port:
+                logger.error("Impossibile associare la porta configurata %d: %s", port, e)
+                raise
+            else:
+                logger.warning("Porta Ingress secondaria %d non disponibile (%s).", port, e)
+
+    config = uvicorn.Config(app=app, log_config=None)
+    server = uvicorn.Server(config)
+    asyncio.run(server.serve(sockets=sockets))
 
 
 if __name__ == "__main__":

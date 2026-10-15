@@ -1,6 +1,6 @@
 name: "NetSentinel"
 description: "Topology-aware network monitoring and Root Cause Analysis for LAN and HomeLab"
-version: "1.1.4"
+version: "1.1.5"
 slug: "netsentinel"
 init: false
 arch:
@@ -10,14 +10,14 @@ startup: application
 boot: auto
 host_network: true
 ingress: true
-ingress_port: 8080
-panel_icon: mdi:shield-network-outline
+ingress_port: 8181
+panel_icon: mdi:shield-check
 panel_title: NetSentinel
 ports:
-  8080/tcp: 8080
+  8181/tcp: 8181
 ports_description:
-  8080/tcp: Web Interface & API (optional if accessing via Ingress)
-webui: "http://[HOST]:[PORT:8080]"
+  8181/tcp: Web Interface & API (optional if accessing via Ingress)
+webui: "http://[HOST]:[PORT:8181]"
 map:
   - share:rw
   - config:rw
@@ -27,7 +27,7 @@ schema:
   auth_enabled: bool?
   timezone: str?
 options:
-  port: 8080
+  port: 8181
   subnet: ""
   auth_enabled: false
   timezone: "Europe/Rome"

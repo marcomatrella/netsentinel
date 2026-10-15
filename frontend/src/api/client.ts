@@ -2,7 +2,28 @@
 
 import { Device, FullTopology, Incident, Check, EventItem } from '../types';
 
-const API_BASE = '/api/v1';
+/**
+ * Detect dynamic API prefix.
+ * In standalone mode (e.g. http://192.168.1.28:8181/): returns '/api/v1'
+ * In Home Assistant Ingress (e.g. /api/hassio_ingress/<token>/): returns '/api/hassio_ingress/<token>/api/v1'
+ */
+export function getApiBase(): string {
+  if (typeof document !== 'undefined') {
+    const meta = document.querySelector('meta[name="ingress-path"]')?.getAttribute('content');
+    if (meta && meta.trim()) {
+      return `${meta.replace(/\/$/, '')}/api/v1`;
+    }
+  }
+  if (typeof window !== 'undefined') {
+    const match = window.location.pathname.match(/^(\/api\/hassio_ingress\/[^/]+)/);
+    if (match) {
+      return `${match[1]}/api/v1`;
+    }
+  }
+  return '/api/v1';
+}
+
+const API_BASE = getApiBase();
 
 export async function fetchTopology(): Promise<FullTopology> {
   const res = await fetch(`${API_BASE}/topology`);

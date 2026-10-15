@@ -22,6 +22,6 @@ fi
 mkdir -p /data/netsentinel
 export NETSENTINEL_DATA_DIR=/data/netsentinel
 
-echo "[NetSentinel Add-on] Avvio NetSentinel su porta ${NETSENTINEL_PORT:-8080}..."
+echo "[NetSentinel Add-on] Avvio NetSentinel su porta ${NETSENTINEL_PORT:-8181}..."
 exec python3 -m app.main
 

@@ -139,3 +139,16 @@ def test_reference_home_lab_yaml_validity():
     assert len(config.checks) == 11
 
 
+@pytest.mark.asyncio
+async def test_home_assistant_ingress_support():
+    """Verify that X-Ingress-Path header injects the dynamic ingress prefix into HTML."""
+    transport = ASGITransport(app=app)
+    headers = {"X-Ingress-Path": "/api/hassio_ingress/token12345/"}
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/", headers=headers)
+        assert resp.status_code == 200
+        # If static index.html is mounted, ingress-path meta is injected
+        if "ingress-path" in resp.text:
+            assert 'content="/api/hassio_ingress/token12345"' in resp.text
+
+

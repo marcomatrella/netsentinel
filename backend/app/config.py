@@ -17,12 +17,12 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "NetSentinel"
-    app_version: str = "1.1.4"
+    app_version: str = "1.1.5"
     app_env: str = "production"
     debug: bool = False
 
     host: str = "0.0.0.0"
-    port: int = 8080
+    port: int = 8181
 
     # Storage paths
     data_dir: str = os.getenv("NETSENTINEL_DATA_DIR", "./data")
