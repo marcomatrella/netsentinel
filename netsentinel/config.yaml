@@ -18,9 +18,6 @@ ports:
 ports_description:
   8181/tcp: Web Interface & API (optional if accessing via Ingress)
 webui: "http://[HOST]:[PORT:8181]"
-map:
-  - share:rw
-  - config:rw
 schema:
   port: port?
   subnet: str?
@@ -36,4 +33,4 @@ environment:
 privileged:
   - NET_ADMIN
   - NET_RAW
-apparmor: false
+

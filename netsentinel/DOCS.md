@@ -35,14 +35,14 @@ Navigate to the **Configuration** tab in the add-on page to customize these sett
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `port` | `port` | `8080` | Port used to expose NetSentinel's Web UI and API. Change this if `8080` conflicts with other add-ons or services on your Home Assistant host (e.g. `8088`, `9090`). |
+| `port` | `port` | `8181` | Port used to expose NetSentinel's Web UI and API. Change this if `8181` conflicts with other add-ons or services on your Home Assistant host (e.g. `8182`, `9090`). |
 | `subnet` | `string` | `""` (empty) | Local network CIDR for discovery sweeps (e.g. `192.168.1.0/24` or `10.0.0.0/24`). If left empty, NetSentinel will auto-detect the local subnet of your Home Assistant host. |
 | `timezone` | `string` | `"Europe/Rome"` | Timezone identifier (e.g. `Europe/Rome`, `America/New_York`, `UTC`). Used for Time Machine navigation, scheduled maintenance intervals, and log timestamps. |
 | `auth_enabled` | `boolean` | `false` | Enable or disable NetSentinel's internal standalone authentication. Set to `false` when accessing via Home Assistant Ingress for seamless single sign-on. |
 
 ### Example Configuration:
 ```yaml
-port: 8088
+port: 8181
 subnet: "192.168.1.0/24"
 timezone: "Europe/Rome"
 auth_enabled: false
