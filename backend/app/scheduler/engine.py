@@ -565,7 +565,7 @@ class SchedulerEngine:
                     )
 
                 # 3. Optimize and checkpoint SQLite WAL to prevent unbounded disk/memory growth
-                if is_sqlite():
+                if is_sqlite:
                     await session.execute(text("PRAGMA wal_checkpoint(PASSIVE)"))
                     await session.execute(text("PRAGMA optimize"))
 

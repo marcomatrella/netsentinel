@@ -564,7 +564,12 @@ export const App: React.FC = () => {
     });
     if (nextSelected) setSelectedLink(nextSelected);
 
-    // Auto-persist changes to backend if not actively in edit mode (or in edit mode)
+    // In Edit Mode, changes are staged locally in the canvas and saved together with "Salva plancia"
+    if (isEditMode) {
+      return;
+    }
+
+    // In Live Mode, persist link changes immediately
     try {
       const vp =
         topology.vantage_point_id ||

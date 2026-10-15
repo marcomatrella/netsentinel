@@ -48,7 +48,10 @@ export async function deduceDependencies(payload: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error('Errore durante la deduzione delle dipendenze.');
+  if (!res.ok) {
+    const errData = await res.json().catch(() => null);
+    throw new Error(errData?.detail || 'Errore durante la deduzione delle dipendenze.');
+  }
   return res.json();
 }
 
@@ -65,7 +68,10 @@ export async function applyTopology(payload: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error('Errore durante il salvataggio della topologia.');
+  if (!res.ok) {
+    const errData = await res.json().catch(() => null);
+    throw new Error(errData?.detail || 'Errore durante il salvataggio della topologia.');
+  }
   return res.json();
 }
 

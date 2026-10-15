@@ -136,16 +136,16 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         type="target"
         position={Position.Top}
         isConnectable={isEdit}
-        className={`!bg-sky-400 !w-2.5 !h-2.5 transition-all duration-150 ${
-          isEdit ? '!opacity-100 hover:scale-125' : '!opacity-0 !pointer-events-none !border-none'
+        className={`!bg-sky-500 !border-2 !border-white dark:!border-slate-900 !w-3 !h-3 cursor-crosshair transition-colors duration-100 ${
+          isEdit ? '!opacity-100 hover:!bg-sky-300 hover:ring-4 hover:ring-sky-400/50' : '!opacity-0 !pointer-events-none !border-none'
         }`}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         isConnectable={isEdit}
-        className={`!bg-sky-400 !w-2.5 !h-2.5 transition-all duration-150 ${
-          isEdit ? '!opacity-100 hover:scale-125' : '!opacity-0 !pointer-events-none !border-none'
+        className={`!bg-sky-500 !border-2 !border-white dark:!border-slate-900 !w-3 !h-3 cursor-crosshair transition-colors duration-100 ${
+          isEdit ? '!opacity-100 hover:!bg-sky-300 hover:ring-4 hover:ring-sky-400/50' : '!opacity-0 !pointer-events-none !border-none'
         }`}
       />
       <Handle
@@ -153,8 +153,8 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         position={Position.Left}
         id="left"
         isConnectable={isEdit}
-        className={`!bg-sky-400 !w-2.5 !h-2.5 transition-all duration-150 ${
-          isEdit ? '!opacity-100 hover:scale-125' : '!opacity-0 !pointer-events-none !border-none'
+        className={`!bg-sky-500 !border-2 !border-white dark:!border-slate-900 !w-3 !h-3 cursor-crosshair transition-colors duration-100 ${
+          isEdit ? '!opacity-100 hover:!bg-sky-300 hover:ring-4 hover:ring-sky-400/50' : '!opacity-0 !pointer-events-none !border-none'
         }`}
       />
       <Handle
@@ -162,8 +162,8 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         position={Position.Right}
         id="right"
         isConnectable={isEdit}
-        className={`!bg-sky-400 !w-2.5 !h-2.5 transition-all duration-150 ${
-          isEdit ? '!opacity-100 hover:scale-125' : '!opacity-0 !pointer-events-none !border-none'
+        className={`!bg-sky-500 !border-2 !border-white dark:!border-slate-900 !w-3 !h-3 cursor-crosshair transition-colors duration-100 ${
+          isEdit ? '!opacity-100 hover:!bg-sky-300 hover:ring-4 hover:ring-sky-400/50' : '!opacity-0 !pointer-events-none !border-none'
         }`}
       />
 
