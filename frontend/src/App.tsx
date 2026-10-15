@@ -63,6 +63,7 @@ import { HeaderMenuDropdown } from './components/navigation/HeaderMenuDropdown';
 import { LanguageSwitcher } from './components/navigation/LanguageSwitcher';
 import { ThemeSwitcher } from './components/navigation/ThemeSwitcher';
 import { TimeMachineSlider } from './components/timemachine/TimeMachineSlider';
+import packageJson from '../package.json';
 import { useTranslation } from './i18n/I18nContext';
 
 export const App: React.FC = () => {
@@ -742,7 +743,7 @@ export const App: React.FC = () => {
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <h1 className="font-extrabold text-xs sm:text-sm tracking-tight text-slate-900 dark:text-white truncate">NetSentinel</h1>
                 <span className="text-[9px] sm:text-[10px] bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-mono px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-slate-300 dark:border-slate-700 shrink-0">
-                  v1.1.0
+                  v{packageJson.version}
                 </span>
               </div>
               <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden md:block truncate">{t('header.subtitle')}</p>
