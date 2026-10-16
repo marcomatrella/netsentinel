@@ -2,6 +2,14 @@
 
 Tutte le modifiche rilevanti per l'add-on NetSentinel di Home Assistant sono documentate qui.
 
+## 1.1.11
+
+### Risolto
+- **Allineamento Immagine Add-on Supervisor (`build.yaml`)**: Aggiornato `netsentinel/build.yaml` per puntare alla versione corrente dell'immagine container su GHCR per tutte le architetture (`aarch64` e `amd64`), consentendo a Home Assistant Supervisor di scaricare effettivamente la versione più recente anziché rimanere bloccato su v1.1.8.
+- **Risoluzione Simulazione What-If e Raggiungibilità LAN**: Integrato il fix definitivo per la connettività LAN locale nominale durante i guasti simulati di router e WAN.
+
+---
+
 ## 1.1.10
 
 ### Risolto
