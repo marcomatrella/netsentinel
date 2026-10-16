@@ -1,6 +1,6 @@
 [project]
 name = "netsentinel"
-version = "1.1.8"
+version = "1.1.9"
 description = "Self-hosted network monitoring with topological correlation and root-cause analysis"
 readme = "README.md"
 license = "MIT"

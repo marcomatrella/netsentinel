@@ -8,6 +8,7 @@ from app.db.models import Dependency, Device, Link, NotificationChannel
 from app.db.session import get_db
 from app.topology.graph import TopologyGraph
 from fastapi import APIRouter, Depends
+import networkx as nx
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -128,14 +129,57 @@ async def simulate_failure(
     root_cause_id = candidates[0] if candidates else None
     root_dev = topo.get_device(root_cause_id) if root_cause_id else None
 
-    # Compute all downstream impacted devices
-    downstream_impacted = (
-        list(topo.get_all_downstream_impacted(root_cause_id)) if root_cause_id else []
-    )
-    for d_imp in downstream_impacted:
-        symptoms[d_imp] = "unreachable"
+    # Compute physical reachability from vantage point (Section 4.1 & 4.6)
+    all_dev_ids = {d.id for d in devices}
 
-    all_impacted = list(set(([root_cause_id] if root_cause_id else []) + downstream_impacted))
+    if vp_id and vp_id in topo.phys_graph:
+        phys_active = topo.phys_graph.copy()
+        phys_active.remove_nodes_from(simulated_down)
+
+        reachable_from_vp: set[str] = set()
+        if vp_id in phys_active:
+            try:
+                reachable_from_vp = nx.node_connected_component(phys_active, vp_id)
+            except Exception:
+                reachable_from_vp = {vp_id}
+
+        # 1. Any device not in simulated_down that cannot physically reach VP is unreachable from NetSentinel
+        for dev_id in all_dev_ids - simulated_down:
+            if dev_id == vp_id:
+                continue
+            if dev_id not in reachable_from_vp:
+                symptoms[dev_id] = "unreachable"
+
+        # 2. Devices that ARE physically reachable from VP:
+        # Check if they depend on any simulated_down node for services, gateway or power
+        for dev_id in reachable_from_vp:
+            if dev_id == vp_id or dev_id in simulated_down:
+                continue
+            upstream_ancestors = topo.get_all_upstream_ancestors(dev_id)
+            affected_by = upstream_ancestors.intersection(simulated_down)
+            if affected_by:
+                # Check if power is lost from an upstream provider
+                lost_power = False
+                for p in affected_by:
+                    if (dev_id, p) in topo.dep_graph.edges:
+                        k = topo.dep_graph.edges[dev_id, p].get("kind")
+                        if k == "power":
+                            lost_power = True
+                            break
+                if lost_power:
+                    symptoms[dev_id] = "unreachable"
+                else:
+                    # Gateway / WAN / DNS / DHCP / Service loss -> reachable on LAN, but service degraded
+                    symptoms[dev_id] = "affected"
+    else:
+        # Fallback if no vantage point is known or configured in phys_graph
+        downstream_impacted = (
+            list(topo.get_all_downstream_impacted(root_cause_id)) if root_cause_id else []
+        )
+        for d_imp in downstream_impacted:
+            symptoms[d_imp] = "unreachable"
+
+    all_impacted = list(set(([root_cause_id] if root_cause_id else []) + list(symptoms.keys())))
 
     # Fault path from vantage point
     fault_path = topo.get_path_from_vantage_point(root_cause_id) if root_cause_id else []

@@ -241,7 +241,7 @@ def deduce_dependencies_from_topology(
                         dependent_id=other_dev.id,
                         provider_id=dev.id,
                         kind="l3_gateway",
-                        strength="hard",
+                        strength="soft",
                         source="inferred",
                         reason=reason,
                     ))
@@ -257,7 +257,7 @@ def deduce_dependencies_from_topology(
                         dependent_id=other_dev.id,
                         provider_id=dev.id,
                         kind="dhcp",
-                        strength="hard",
+                        strength="soft",
                         source="inferred",
                         reason=reason,
                     ))
@@ -273,7 +273,7 @@ def deduce_dependencies_from_topology(
                         dependent_id=other_dev.id,
                         provider_id=dev.id,
                         kind="dns",
-                        strength="hard",
+                        strength="soft",
                         source="inferred",
                         reason=reason,
                     ))

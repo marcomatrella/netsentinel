@@ -300,3 +300,57 @@ def test_cascading_router_switch_devices_dependency_direction():
     assert ("switch-netgear", "pc-client", "l2_path") not in deduced_set
 
 
+@pytest.mark.asyncio
+async def test_router_failure_simulation_preserves_lan_reachability():
+    """Verify that simulating router failure does NOT take local LAN devices offline."""
+    await init_db()
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Topology: WAN <-> Router <-> Switch <-> [HA (VP), NAS, AP]
+        apply_payload = {
+            "vantage_point_id": "ha-host",
+            "description": "User Topology Test",
+            "devices": [
+                {"id": "ha-host", "name": "Home Assistant", "kind": "server", "roles": ["vantage_point"]},
+                {"id": "switch-core", "name": "Switch", "kind": "switch", "roles": []},
+                {"id": "router-gw", "name": "Router", "kind": "router", "roles": ["gateway"]},
+                {"id": "wan-inet", "name": "WAN", "kind": "wan_gateway", "roles": ["wan_provider"]},
+                {"id": "nas-srv", "name": "NAS", "kind": "nas", "roles": ["dns_resolver", "dhcp_server"]},
+                {"id": "ap-wifi", "name": "Access Point", "kind": "access_point", "roles": []},
+            ],
+            "links": [
+                {"id": "l1", "from": "wan-inet", "to": "router-gw", "medium": "fiber"},
+                {"id": "l2", "from": "router-gw", "to": "switch-core", "medium": "ethernet"},
+                {"id": "l3", "from": "switch-core", "to": "ha-host", "medium": "ethernet"},
+                {"id": "l4", "from": "switch-core", "to": "nas-srv", "medium": "ethernet"},
+                {"id": "l5", "from": "switch-core", "to": "ap-wifi", "medium": "ethernet"},
+            ],
+            "dependencies": [],
+            "layout": {"nodes": [], "edges": [], "groups": []},
+        }
+        await client.post("/api/v1/topology/apply", json=apply_payload)
+
+        # Simulate router failure
+        sim_res = await client.post("/api/v1/simulate/failure", json={"failed_device_ids": ["router-gw"]})
+        assert sim_res.status_code == 200
+        data = sim_res.json()
+
+        assert data["root_cause_device_id"] == "router-gw"
+        assert data["root_cause_category"] == "gateway"
+
+        # WAN is physically unreachable because it is behind the router
+        assert data["symptoms"].get("wan-inet") == "unreachable"
+
+        # LAN devices (Switch, NAS, AP, HA) MUST NOT be unreachable!
+        assert data["symptoms"].get("switch-core") != "unreachable"
+        assert data["symptoms"].get("nas-srv") != "unreachable"
+        assert data["symptoms"].get("ap-wifi") != "unreachable"
+        assert data["symptoms"].get("ha-host") != "unreachable"
+
+        # LAN devices are affected (WAN gateway lost)
+        assert data["symptoms"].get("nas-srv") in ("affected", None)
+        assert data["symptoms"].get("ap-wifi") in ("affected", None)
+
+
+
