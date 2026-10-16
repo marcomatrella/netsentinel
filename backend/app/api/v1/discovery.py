@@ -266,19 +266,30 @@ async def _analyze_device(
             roles.extend(["gateway", "dhcp_server", "dns_resolver"])
             name = f"Router Gateway ({h})" if h else f"Router Gateway ({ip})"
             loc = "Ingresso / Rack"
-        # 2. NetSentinel Host (MacBook / Host machine running Docker)
-        elif is_local or any(k in h_lower for k in ["mbp", "macbook", "imac", "mac-mini"]):
-            kind = "server"
+        # 2. NetSentinel Host (the actual machine where NetSentinel is running)
+        elif is_local:
+            if any(k in h_lower for k in ["homeassistant", "hass"]) or 8123 in open_ports:
+                kind = "smart_hub"
+                name = "Home Assistant (Host NetSentinel)"
+                loc = "Domotica"
+            elif any(k in h_lower for k in ["synology", "qnap", "nas"]):
+                kind = "nas"
+                name = "NAS Storage (Host NetSentinel)"
+                loc = "Storage / Rack"
+            elif any(k in h_lower for k in ["mbp", "macbook"]):
+                kind = "server"
+                name = "MacBook Pro (Host NetSentinel)"
+                loc = "Host NetSentinel"
+            else:
+                kind = "server"
+                name = f"Host NetSentinel ({h})" if h else f"Host NetSentinel ({ip})"
+                loc = "Host NetSentinel"
             roles.append("vantage_point")
-            name = "MacBook Pro (Host NetSentinel)" if "mbp" in h_lower else (f"Host NetSentinel ({h})" if h else f"Host NetSentinel ({ip})")
-            loc = "Host NetSentinel"
-        # 3. Dedicated Storage / NAS
+        # 3. Dedicated Storage / NAS (storage only, never default to DNS resolver)
         elif any(k in h_lower for k in ["synology", "qnap", "truenas", "unraid", "diskstation"]) or (
             "nas" in h_lower and "homepod" not in h_lower
         ):
             kind = "nas"
-            if 53 in open_ports and "synology" in h_lower:
-                roles.append("dns_resolver")
             name = f"NAS Synology ({h})" if "synology" in h_lower else f"NAS Storage ({h or ip})"
             loc = "Storage / Rack"
         # 4. Networking Switch (ONLY explicit switch names, never default to switch)
@@ -340,7 +351,12 @@ async def _analyze_device(
             kind = "client"
             name = f"Apple HomePod ({h})"
             loc = "Audio / Salotto"
-        # 11. Mobile / Wearable Clients
+        # 11. Computers, Laptops & Workstations
+        elif any(k in h_lower for k in ["mbp", "macbook", "imac", "mac-mini", "laptop", "notebook", "pc-", "desktop", "workstation"]):
+            kind = "client"
+            name = f"MacBook Pro ({h})" if any(k in h_lower for k in ["mbp", "macbook"]) else (f"iMac ({h})" if "imac" in h_lower else f"Computer ({h or ip})")
+            loc = "Studio"
+        # 12. Mobile / Wearable Clients
         elif any(k in h_lower for k in ["iphone", "ipad", "watch", "phone"]):
             kind = "client"
             name = h.replace("-", " ").title() if h else f"Mobile {ip}"
@@ -471,6 +487,32 @@ async def scan_network(
             host_candidate.is_vantage_point = True
             if "vantage_point" not in host_candidate.roles:
                 host_candidate.roles.append("vantage_point")
+
+    # Enforce SINGLETON invariants: exactly at most one vantage_point, dns_resolver, and dhcp_server
+    vp_devices = [d for d in discovered if "vantage_point" in d.roles or d.is_vantage_point]
+    if len(vp_devices) > 1:
+        primary_vp = next((d for d in vp_devices if d.is_vantage_point), vp_devices[0])
+        for d in vp_devices:
+            if d.id != primary_vp.id:
+                d.is_vantage_point = False
+                if "vantage_point" in d.roles:
+                    d.roles.remove("vantage_point")
+
+    dns_devices = [d for d in discovered if "dns_resolver" in d.roles]
+    if len(dns_devices) > 1:
+        primary_dns = next((d for d in dns_devices if d.is_gateway), dns_devices[0])
+        for d in dns_devices:
+            if d.id != primary_dns.id:
+                if "dns_resolver" in d.roles:
+                    d.roles.remove("dns_resolver")
+
+    dhcp_devices = [d for d in discovered if "dhcp_server" in d.roles]
+    if len(dhcp_devices) > 1:
+        primary_dhcp = next((d for d in dhcp_devices if d.is_gateway), dhcp_devices[0])
+        for d in dhcp_devices:
+            if d.id != primary_dhcp.id:
+                if "dhcp_server" in d.roles:
+                    d.roles.remove("dhcp_server")
 
     # Sort devices logically: Gateway -> Vantage Point -> Switch -> AP -> NAS -> Server -> UPS -> Smart Hub -> Clients
     def sort_key(d: DiscoveredDevice) -> tuple[int, str]:

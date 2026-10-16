@@ -165,18 +165,45 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
         });
         setReachabilityMap(rMap);
 
-        // Auto-select vantage point, primary dns, and dhcp
+        // Auto-select single vantage point, primary dns, and dhcp
         const vp =
           scannedDevs.find((d) => d.roles.includes('vantage_point')) ||
-          scannedDevs.find((d) => d.kind === 'nas' || d.kind === 'server') ||
+          scannedDevs.find((d) => d.kind === 'smart_hub' || d.kind === 'server') ||
           scannedDevs[0];
-        if (vp) setVantagePointId(vp.id);
+        if (vp) {
+          setVantagePointId(vp.id);
+          scannedDevs.forEach((d) => {
+            if (d.id === vp.id) {
+              if (!d.roles.includes('vantage_point')) d.roles.push('vantage_point');
+            } else {
+              d.roles = d.roles.filter((r) => r !== 'vantage_point');
+            }
+          });
+        }
 
         const dns = scannedDevs.find((d) => d.roles.includes('dns_resolver')) || scannedDevs.find((d) => d.kind === 'router');
-        if (dns) setDnsServerId(dns.id);
+        if (dns) {
+          setDnsServerId(dns.id);
+          scannedDevs.forEach((d) => {
+            if (d.id === dns.id) {
+              if (!d.roles.includes('dns_resolver')) d.roles.push('dns_resolver');
+            } else {
+              d.roles = d.roles.filter((r) => r !== 'dns_resolver');
+            }
+          });
+        }
 
         const dhcp = scannedDevs.find((d) => d.roles.includes('dhcp_server')) || scannedDevs.find((d) => d.kind === 'router');
-        if (dhcp) setDhcpServerId(dhcp.id);
+        if (dhcp) {
+          setDhcpServerId(dhcp.id);
+          scannedDevs.forEach((d) => {
+            if (d.id === dhcp.id) {
+              if (!d.roles.includes('dhcp_server')) d.roles.push('dhcp_server');
+            } else {
+              d.roles = d.roles.filter((r) => r !== 'dhcp_server');
+            }
+          });
+        }
       }
     } catch (err) {
       console.error('Errore durante la scansione di rete:', err);
@@ -1132,17 +1159,18 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                               const isChecking = reach?.checking;
                               const isPassive = d.roles.includes('passive_tracking') || d.kind === 'client';
 
-                              return (
-                                <div
-                                  key={d.id}
-                                  className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
-                                    editingDeviceId === d.id
-                                      ? 'border-sky-500 bg-sky-950/20'
-                                      : isUnreachable
-                                      ? 'border-amber-500/80 bg-amber-950/20 shadow-sm shadow-amber-500/10'
-                                      : 'border-slate-800 bg-slate-900 hover:border-slate-700'
-                                  }`}
-                                >
+                                return (
+                                  <div
+                                    key={d.id}
+                                    onClick={() => handleStartEdit(d)}
+                                    className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition cursor-pointer select-none ${
+                                      editingDeviceId === d.id
+                                        ? 'border-sky-500 bg-sky-950/30 ring-1 ring-sky-500/50 shadow-sm shadow-sky-500/10'
+                                        : isUnreachable
+                                        ? 'border-amber-500/80 bg-amber-950/20 shadow-sm shadow-amber-500/10 hover:border-amber-400 hover:bg-amber-950/30'
+                                        : 'border-slate-800 bg-slate-900 hover:border-slate-600 hover:bg-slate-800/60'
+                                    }`}
+                                  >
                                   <div className="flex items-center gap-2.5 overflow-hidden">
                                     <div
                                       className={`p-2 rounded-lg ${
@@ -1217,15 +1245,25 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                                   <div className="flex items-center gap-1">
                                     <button
                                       type="button"
-                                      onClick={() => handleStartEdit(d)}
-                                      className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded-lg transition"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStartEdit(d);
+                                      }}
+                                      className={`p-1.5 rounded-lg transition ${
+                                        editingDeviceId === d.id
+                                          ? 'text-sky-400 bg-sky-500/20'
+                                          : 'text-slate-400 hover:text-sky-400 hover:bg-sky-500/10'
+                                      }`}
                                       title={t('common.edit')}
                                     >
                                       <Edit3 className="w-4 h-4" />
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => handleRemoveDevice(d.id)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveDevice(d.id);
+                                      }}
                                       className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
                                       title={t('common.delete')}
                                     >

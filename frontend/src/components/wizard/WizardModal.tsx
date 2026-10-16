@@ -805,8 +805,11 @@ export const WizardModal: React.FC<WizardModalProps> = ({
                       return (
                         <div
                           key={d.id}
-                          className={`p-2.5 bg-slate-900 border rounded-xl flex items-center justify-between text-xs transition ${
-                            editingDeviceId === d.id ? 'border-sky-500 bg-sky-950/20' : 'border-slate-800 hover:border-slate-700'
+                          onClick={() => handleStartEditDevice(d)}
+                          className={`p-2.5 bg-slate-900 border rounded-xl flex items-center justify-between text-xs transition cursor-pointer select-none ${
+                            editingDeviceId === d.id
+                              ? 'border-sky-500 bg-sky-950/30 ring-1 ring-sky-500/50 shadow-sm shadow-sky-500/10'
+                              : 'border-slate-800 hover:border-slate-600 hover:bg-slate-800/60'
                           }`}
                         >
                           <div className="flex items-center gap-2.5 overflow-hidden">
@@ -835,15 +838,25 @@ export const WizardModal: React.FC<WizardModalProps> = ({
                           <div className="flex items-center gap-1 shrink-0">
                             <button
                               type="button"
-                              onClick={() => handleStartEditDevice(d)}
-                              className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded-lg transition"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartEditDevice(d);
+                              }}
+                              className={`p-1.5 rounded-lg transition ${
+                                editingDeviceId === d.id
+                                  ? 'text-sky-400 bg-sky-500/20'
+                                  : 'text-slate-400 hover:text-sky-400 hover:bg-sky-500/10'
+                              }`}
                               title="Modifica IP o nome"
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleRemoveDevice(d.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveDevice(d.id);
+                              }}
                               className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
                               title="Rimuovi apparato"
                             >
