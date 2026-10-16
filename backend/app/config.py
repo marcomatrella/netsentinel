@@ -75,7 +75,7 @@ class Settings(BaseSettings):
         if not options_file.is_file():
             return
         try:
-            with open(options_file, "r", encoding="utf-8") as f:
+            with open(options_file, encoding="utf-8") as f:
                 opts = json.load(f)
             if not isinstance(opts, dict):
                 return

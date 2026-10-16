@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+
 import pytest
 from app.config import Settings
 from app.main import resolve_cert_path
