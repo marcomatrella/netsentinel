@@ -13,7 +13,11 @@ ingress: true
 ingress_port: 8099
 panel_icon: mdi:shield-check
 panel_title: NetSentinel
-webui: "[PROTO:port]://[HOST]:[PORT:port]"
+webui: "[PROTO:ssl]://[HOST]:[PORT:8181]"
+ports:
+  8181/tcp: 8181
+ports_description:
+  8181/tcp: Direct Web Interface & API (optional if accessing via Ingress)
 map:
   - ssl
 schema:
@@ -38,4 +42,3 @@ environment:
 privileged:
   - NET_ADMIN
   - NET_RAW
-
