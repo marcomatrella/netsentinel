@@ -1,4 +1,4 @@
-ARG BUILD_FROM=ghcr.io/marcomatrella/netsentinel:1.1.6
+ARG BUILD_FROM=ghcr.io/marcomatrella/netsentinel:1.1.7
 FROM ${BUILD_FROM}
 
 USER root
@@ -7,7 +7,5 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
-
-HEALTHCHECK NONE
 
 ENTRYPOINT ["/entrypoint.sh"]
