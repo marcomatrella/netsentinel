@@ -147,8 +147,9 @@ async def test_home_assistant_ingress_support():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/", headers=headers)
         assert resp.status_code == 200
-        # If static index.html is mounted, ingress-path meta is injected
+        # If static index.html is mounted, ingress-path meta and base href are injected
         if "ingress-path" in resp.text:
             assert 'content="/api/hassio_ingress/token12345"' in resp.text
+            assert '<base href="/api/hassio_ingress/token12345/">' in resp.text
 
 

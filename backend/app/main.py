@@ -75,14 +75,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Ingress Middleware (Home Assistant reverse proxy support)
-@app.middleware("http")
-async def ingress_middleware(request: Request, call_next):
-    ingress_path = request.headers.get("X-Ingress-Path")
-    if ingress_path:
-        request.scope["root_path"] = ingress_path.rstrip("/")
-    return await call_next(request)
-
 # Register core health & metrics endpoints
 app.include_router(health_router)
 app.include_router(api_v1_router)
@@ -105,7 +97,11 @@ if static_path.exists() and (static_path / "index.html").exists():
         content = index_file.read_text(encoding="utf-8")
         ingress_path = request.headers.get("X-Ingress-Path", "")
         if ingress_path:
-            meta_tag = f'<meta name="ingress-path" content="{ingress_path.rstrip("/")}">'
+            clean_ingress = ingress_path.rstrip("/")
+            meta_tag = (
+                f'<meta name="ingress-path" content="{clean_ingress}">\n'
+                f'    <base href="{clean_ingress}/">'
+            )
             content = content.replace("<head>", f"<head>\n    {meta_tag}", 1)
         return HTMLResponse(
             content=content,

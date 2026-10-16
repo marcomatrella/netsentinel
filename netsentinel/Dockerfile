@@ -8,4 +8,6 @@ RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
 
+HEALTHCHECK NONE
+
 ENTRYPOINT ["/entrypoint.sh"]
