@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.1.10] - 2026-10-16
+
+### Risolto
+- **What-If Simulation e Raggiungibilità LAN**: Risolta definitivamente l'anomalia per cui la simulazione di guasto sul Router o sulla WAN portava l'intera rete locale (Switch, NAS, AP, HA) offline.
+- **Isolamento Guasti WAN / Gateway**: La caduta della connessione WAN o del router preserva al 100% lo stato nominale (`ok`, verde) dei dispositivi attestati sullo switch locale raggiungibili dal Vantage Point.
+- **Sintomi di Simulazione Coerenti**: I nodi raggiungibili via LAN non vengono più aggiunti ai sintomi né marcati come impattati in assenza di reale perdita di alimentazione/connettività fisica.
+- **Fallback Automatico Vantage Point**: Se il Vantage Point non è esplicitamente designato, la simulazione individua automaticamente un nodo attivo della topologia fisica senza degradare arbitrariamente l'albero downstream.
+
 ## [1.1.9] - 2026-10-16
 
 ### Risolto

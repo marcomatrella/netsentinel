@@ -2,6 +2,16 @@
 
 Tutte le modifiche rilevanti per l'add-on NetSentinel di Home Assistant sono documentate qui.
 
+## 1.1.10
+
+### Risolto
+- **What-If Simulation e Raggiungibilità LAN**: Risolta definitivamente l'anomalia per cui la simulazione di guasto sul Router o sulla WAN portava l'intera rete locale (Switch, NAS, AP, HA) offline.
+- **Isolamento Guasti WAN / Gateway**: La caduta della connessione WAN o del router preserva al 100% lo stato nominale (`ok`, verde) dei dispositivi attestati sullo switch locale raggiungibili dal Vantage Point.
+- **Sintomi di Simulazione Coerenti**: I nodi raggiungibili via LAN non vengono più aggiunti ai sintomi né marcati come impattati in assenza di reale perdita di alimentazione/connettività fisica.
+- **Fallback Automatico Vantage Point**: Se il Vantage Point non è esplicitamente designato, la simulazione individua automaticamente un nodo attivo della topologia fisica senza degradare arbitrariamente l'albero downstream.
+
+---
+
 ## 1.1.9
 
 ### Risolto
@@ -40,3 +50,4 @@ Tutte le modifiche rilevanti per l'add-on NetSentinel di Home Assistant sono doc
 ### Aggiunto
 - **Doppio Socket HTTP / Ingress**: Supporto nativo per l'accesso simultaneo tramite Ingress (porta 8099) e porta esterna diretta (default 8181) configurabile dalle opzioni dell'add-on.
 - **Configurazione Opzioni HA**: Gestione timezone, subnet e certificati SSL direttamente dal pannello Configurazione dell'add-on.
+

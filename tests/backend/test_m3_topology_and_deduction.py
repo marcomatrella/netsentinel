@@ -342,15 +342,23 @@ async def test_router_failure_simulation_preserves_lan_reachability():
         # WAN is physically unreachable because it is behind the router
         assert data["symptoms"].get("wan-inet") == "unreachable"
 
-        # LAN devices (Switch, NAS, AP, HA) MUST NOT be unreachable!
-        assert data["symptoms"].get("switch-core") != "unreachable"
-        assert data["symptoms"].get("nas-srv") != "unreachable"
-        assert data["symptoms"].get("ap-wifi") != "unreachable"
-        assert data["symptoms"].get("ha-host") != "unreachable"
+        # LAN devices MUST NOT have failure symptoms (they are completely healthy on LAN)
+        assert data["symptoms"].get("switch-core") is None
+        assert data["symptoms"].get("nas-srv") is None
+        assert data["symptoms"].get("ap-wifi") is None
+        assert data["symptoms"].get("ha-host") is None
 
-        # LAN devices are affected (WAN gateway lost)
-        assert data["symptoms"].get("nas-srv") in ("affected", None)
-        assert data["symptoms"].get("ap-wifi") in ("affected", None)
+        # Simulate WAN failure
+        wan_sim_res = await client.post("/api/v1/simulate/failure", json={"failed_device_ids": ["wan-inet"]})
+        assert wan_sim_res.status_code == 200
+        wan_data = wan_sim_res.json()
+
+        assert wan_data["root_cause_device_id"] == "wan-inet"
+        assert wan_data["root_cause_category"] == "wan"
+        # LAN is 100% healthy, no symptoms on any LAN device
+        assert wan_data["symptoms"] == {}
+        assert wan_data["impacted_devices"] == ["wan-inet"]
+
 
 
 

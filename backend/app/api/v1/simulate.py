@@ -132,6 +132,14 @@ async def simulate_failure(
     # Compute physical reachability from vantage point (Section 4.1 & 4.6)
     all_dev_ids = {d.id for d in devices}
 
+    # Ensure we have a valid vantage point in phys_graph
+    if not vp_id or vp_id not in topo.phys_graph:
+        candidates_vp = [d.id for d in devices if d.id in topo.phys_graph and d.kind in ("server", "nas")]
+        if not candidates_vp and topo.phys_graph.nodes:
+            candidates_vp = list(topo.phys_graph.nodes)
+        if candidates_vp:
+            vp_id = candidates_vp[0]
+
     if vp_id and vp_id in topo.phys_graph:
         phys_active = topo.phys_graph.copy()
         phys_active.remove_nodes_from(simulated_down)
@@ -151,14 +159,15 @@ async def simulate_failure(
                 symptoms[dev_id] = "unreachable"
 
         # 2. Devices that ARE physically reachable from VP:
-        # Check if they depend on any simulated_down node for services, gateway or power
+        # Check ONLY if they lost power from an upstream provider (e.g. PoE switch or UPS).
+        # We do NOT mark reachable LAN devices as "affected" or "unreachable" when WAN or Gateway fails,
+        # because local LAN connectivity remains completely functional and reachable from NetSentinel.
         for dev_id in reachable_from_vp:
             if dev_id == vp_id or dev_id in simulated_down:
                 continue
             upstream_ancestors = topo.get_all_upstream_ancestors(dev_id)
             affected_by = upstream_ancestors.intersection(simulated_down)
             if affected_by:
-                # Check if power is lost from an upstream provider
                 lost_power = False
                 for p in affected_by:
                     if (dev_id, p) in topo.dep_graph.edges:
@@ -168,9 +177,6 @@ async def simulate_failure(
                             break
                 if lost_power:
                     symptoms[dev_id] = "unreachable"
-                else:
-                    # Gateway / WAN / DNS / DHCP / Service loss -> reachable on LAN, but service degraded
-                    symptoms[dev_id] = "affected"
     else:
         # Fallback if no vantage point is known or configured in phys_graph
         downstream_impacted = (
