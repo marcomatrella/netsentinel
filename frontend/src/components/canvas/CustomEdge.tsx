@@ -56,8 +56,8 @@ export const CustomEdge = memo(({
   const fromDevStatus = edgeData.fromDeviceStatus || 'ok';
   const toDevStatus = edgeData.toDeviceStatus || 'ok';
 
-  const hasDownNode = fromDevStatus === 'down' || fromDevStatus === 'unreachable' || fromDevStatus === 'flapping' ||
-                      toDevStatus === 'down' || toDevStatus === 'unreachable' || toDevStatus === 'flapping';
+  const hasDownNode = fromDevStatus === 'down' || fromDevStatus === 'unreachable' || fromDevStatus === 'isolated' || fromDevStatus === 'flapping' ||
+                      toDevStatus === 'down' || toDevStatus === 'unreachable' || toDevStatus === 'isolated' || toDevStatus === 'flapping';
   const hasDegradedNode = fromDevStatus === 'degraded' || toDevStatus === 'degraded';
 
   // Effective status of link: if either connected node is down, link is considered down/KO; if degraded, degraded.

@@ -2,6 +2,15 @@
 
 Tutte le modifiche rilevanti per l'add-on NetSentinel di Home Assistant sono documentate qui.
 
+## 1.1.12
+
+### Novità & Miglioramenti
+- **Distinzione Visiva Guasto Primario vs Nodi Irraggiungibili**: Nel canvas di rete, i nodi con guasto primario (`down` / Root Cause) mostrano ora il badge rosso di allarme `🚨 GUASTO`, mentre i nodi a valle impattati collateralmente mostrano chiaramente il badge ambra `⚠️ IRRAGGIUNGIBILE` con bordo tratteggiato.
+- **Rilevamento e Segnalazione Isolamento Vantage Point**: Quando il Vantage Point (es. Home Assistant) perde l'intero collegamento con lo switch di attestazione o la LAN, non rimane più ingannevolmente verde `ok`, ma assume lo stato `ISOLATO DA LAN` con bordo indaco pulsante e badge dedicato.
+- **Supporto multilingua completo**: Aggiunte e aggiornate le etichette di stato `status_down`, `status_unreachable` e `status_isolated` per italiano, inglese, tedesco e francese.
+
+---
+
 ## 1.1.11
 
 ### Risolto

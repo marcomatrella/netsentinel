@@ -78,22 +78,24 @@ const statusBorderColors: Record<DeviceStatus, string> = {
   ok: 'border-emerald-500/70 shadow-emerald-500/20',
   degraded: 'border-amber-500/80 shadow-amber-500/20',
   down: 'border-rose-500 shadow-rose-500/40',
-  unreachable: 'border-slate-600 border-dashed opacity-60',
+  unreachable: 'border-amber-500/80 border-dashed bg-amber-500/5',
   affected: 'border-amber-600 border-dashed opacity-75',
   flapping: 'border-orange-500 animate-pulse',
   unknown: 'border-slate-700 opacity-60',
   maintenance: 'border-blue-500 shadow-blue-500/20',
+  isolated: 'border-indigo-500/90 shadow-indigo-500/30 animate-pulse bg-indigo-500/5',
 };
 
 const statusBadgeBg: Record<DeviceStatus, string> = {
   ok: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   degraded: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   down: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-  unreachable: 'bg-slate-800 text-slate-400 border-slate-700',
+  unreachable: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   affected: 'bg-amber-900/30 text-amber-300 border-amber-800',
   flapping: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   unknown: 'bg-slate-800 text-slate-500 border-slate-700',
   maintenance: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  isolated: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
 };
 
 export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
@@ -104,7 +106,10 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
   const isRoot = Boolean(nodeData.isRootCause);
   const status = nodeData.status || 'unknown';
   const isEdit = Boolean(nodeData.isEditMode);
-  const isOffline = status === 'down' || status === 'unreachable';
+  const isDown = status === 'down';
+  const isUnreachable = status === 'unreachable';
+  const isIsolated = status === 'isolated';
+  const isOffline = isDown || isUnreachable || isIsolated;
 
   const nodeColor = getColorConfig(nodeData.color || 'slate');
   const isColored = Boolean(nodeData.color && nodeData.color !== 'slate');
@@ -116,8 +121,12 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
   return (
     <div
       className={`relative min-w-[190px] rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-3.5 py-3 border transition-all duration-300 ${
-        isOffline
+        isDown
           ? 'node-offline-glow scale-[1.05] z-20 border-rose-500 ring-2 ring-rose-500/70 bg-rose-50/90 dark:bg-rose-950/40'
+          : isUnreachable
+          ? 'scale-[0.98] z-10 border-amber-500/80 border-dashed bg-amber-50/40 dark:bg-amber-950/20 opacity-85'
+          : isIsolated
+          ? 'scale-[1.02] z-20 border-indigo-500 ring-2 ring-indigo-400/60 bg-indigo-50/60 dark:bg-indigo-950/30'
           : statusBorderColors[status]
       } ${selected ? 'ring-2 ring-sky-400 shadow-lg' : 'shadow-md'} ${
         isRoot ? 'root-cause-ring border-rose-500 ring-2 ring-rose-500' : ''
@@ -167,14 +176,34 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         }`}
       />
 
-      {/* Offline Alarm Floating Badge */}
-      {isOffline && (
+      {/* Floating Status Badges: Distinct for Down (Root), Unreachable (Downstream), and Isolated (Vantage Point) */}
+      {isDown && (
         <div
           className="absolute -top-3 -right-2.5 z-30 flex items-center gap-1 bg-gradient-to-r from-rose-600 to-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-rose-600/50 ring-2 ring-rose-300 dark:ring-rose-400 animate-pulse"
-          title={status === 'unreachable' ? t('custom_node.unreachable_tooltip') : t('custom_node.offline_alert_tooltip')}
+          title={t('custom_node.offline_alert_tooltip')}
         >
           <Siren className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-          <span>OFFLINE</span>
+          <span>{isRoot ? t('custom_node.status_down') : 'OFFLINE'}</span>
+        </div>
+      )}
+
+      {isUnreachable && (
+        <div
+          className="absolute -top-3 -right-2.5 z-30 flex items-center gap-1 bg-gradient-to-r from-amber-600 to-orange-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md ring-2 ring-amber-300 dark:ring-amber-500/50"
+          title={t('custom_node.unreachable_tooltip')}
+        >
+          <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0" />
+          <span>{t('custom_node.status_unreachable')}</span>
+        </div>
+      )}
+
+      {isIsolated && (
+        <div
+          className="absolute -top-3 -right-2.5 z-30 flex items-center gap-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md ring-2 ring-indigo-300 dark:ring-indigo-400 animate-pulse"
+          title={t('custom_node.isolated_badge_tooltip')}
+        >
+          <Radio className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+          <span>{t('custom_node.status_isolated')}</span>
         </div>
       )}
 
@@ -206,8 +235,12 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         <div
           className={`absolute -top-3.5 ${
             isOffline ? '-left-3' : '-right-3'
-          } bg-sky-500 text-white p-1.5 rounded-full z-30 ring-2 ring-sky-300 dark:ring-sky-400 vantage-point-glow flex items-center justify-center`}
-          title="Vantage Point (Monitor)"
+          } ${
+            isIsolated
+              ? 'bg-indigo-600 ring-2 ring-indigo-300 animate-pulse'
+              : 'bg-sky-500 ring-2 ring-sky-300 dark:ring-sky-400 vantage-point-glow'
+          } text-white p-1.5 rounded-full z-30 flex items-center justify-center`}
+          title={isIsolated ? t('custom_node.isolated_badge_tooltip') : 'Vantage Point (Monitor)'}
         >
           <Eye className="w-4 h-4 stroke-[2.5]" />
         </div>
@@ -216,8 +249,12 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       <div className="flex items-center gap-2.5">
         <div
           className={`p-2 rounded-lg border transition-all ${
-            isOffline
+            isDown
               ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/50 shadow-md shadow-rose-500/30 animate-pulse'
+              : isUnreachable
+              ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/50'
+              : isIsolated
+              ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/50 animate-pulse'
               : statusBadgeBg[status]
           }`}
         >
@@ -225,10 +262,21 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         </div>
         <div className="overflow-hidden flex-1">
           <div className="font-semibold text-xs text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5" title={nodeData.name}>
-            {isOffline && (
+            {isDown && (
               <span className="relative flex h-2 w-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+              </span>
+            )}
+            {isUnreachable && (
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+            )}
+            {isIsolated && (
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
               </span>
             )}
             {isColored && !isOffline && (

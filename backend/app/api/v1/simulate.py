@@ -158,6 +158,11 @@ async def simulate_failure(
             if dev_id not in reachable_from_vp:
                 symptoms[dev_id] = "unreachable"
 
+        # Check if Vantage Point itself is completely isolated from all peers in the LAN
+        if vp_id not in simulated_down and reachable_from_vp == {vp_id} and len(all_dev_ids) > 1:
+            symptoms[vp_id] = "isolated"
+
+
         # 2. Devices that ARE physically reachable from VP:
         # Check ONLY if they lost power from an upstream provider (e.g. PoE switch or UPS).
         # We do NOT mark reachable LAN devices as "affected" or "unreachable" when WAN or Gateway fails,

@@ -359,6 +359,21 @@ async def test_router_failure_simulation_preserves_lan_reachability():
         assert wan_data["symptoms"] == {}
         assert wan_data["impacted_devices"] == ["wan-inet"]
 
+        # Simulate Switch failure
+        sw_sim_res = await client.post("/api/v1/simulate/failure", json={"failed_device_ids": ["switch-core"]})
+        assert sw_sim_res.status_code == 200
+        sw_data = sw_sim_res.json()
+
+        assert sw_data["root_cause_device_id"] == "switch-core"
+        # Vantage point is isolated from the network
+        assert sw_data["symptoms"].get("ha-host") == "isolated"
+        # Peers behind the broken switch are unreachable from vantage point
+        assert sw_data["symptoms"].get("router-gw") == "unreachable"
+        assert sw_data["symptoms"].get("nas-srv") == "unreachable"
+        assert sw_data["symptoms"].get("ap-wifi") == "unreachable"
+        assert sw_data["symptoms"].get("wan-inet") == "unreachable"
+
+
 
 
 

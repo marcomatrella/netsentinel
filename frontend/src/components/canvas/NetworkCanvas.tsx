@@ -201,8 +201,10 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         simulatedIncident?.root_cause_device_id === l.to_device_id ||
         fromStatus === 'down' ||
         fromStatus === 'unreachable' ||
+        fromStatus === 'isolated' ||
         toStatus === 'down' ||
-        toStatus === 'unreachable';
+        toStatus === 'unreachable' ||
+        toStatus === 'isolated';
 
       return {
         id: l.id,

@@ -29,7 +29,8 @@ export type DeviceStatus =
   | 'affected'
   | 'flapping'
   | 'unknown'
-  | 'maintenance';
+  | 'maintenance'
+  | 'isolated';
 
 export type LinkMedium =
   | 'ethernet'

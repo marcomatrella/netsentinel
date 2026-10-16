@@ -4,6 +4,13 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.1.12] - 2026-10-17
+
+### Novità & Miglioramenti
+- **Distinzione Visiva Guasto Primario vs Nodi Irraggiungibili**: Nel canvas di rete, i nodi con guasto primario (`down` / Root Cause) mostrano ora il badge rosso di allarme `🚨 GUASTO`, mentre i nodi a valle impattati collateralmente mostrano chiaramente il badge ambra `⚠️ IRRAGGIUNGIBILE` con bordo tratteggiato.
+- **Rilevamento e Segnalazione Isolamento Vantage Point**: Quando il Vantage Point (es. Home Assistant) perde l'intero collegamento con lo switch di attestazione o la LAN, non rimane più ingannevolmente verde `ok`, ma assume lo stato `ISOLATO DA LAN` con bordo indaco pulsante e badge dedicato.
+- **Supporto multilingua completo**: Aggiunte e aggiornate le etichette di stato `status_down`, `status_unreachable` e `status_isolated` per italiano, inglese, tedesco e francese.
+
 ## [1.1.11] - 2026-10-17
 
 ### Risolto
