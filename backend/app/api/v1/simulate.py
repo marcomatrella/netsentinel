@@ -2,13 +2,13 @@
 
 import json
 
+import networkx as nx
 from app.config import settings
 from app.correlation.rules.rule_evaluator import RuleEvaluator
 from app.db.models import Dependency, Device, Link, NotificationChannel
 from app.db.session import get_db
 from app.topology.graph import TopologyGraph
 from fastapi import APIRouter, Depends
-import networkx as nx
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

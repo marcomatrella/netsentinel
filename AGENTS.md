@@ -54,9 +54,10 @@ flowchart TD
 | **4** | `pyproject.toml` | `version = "X.Y.Z"` | Aggiornare la sezione `[project]` |
 | **5** | `uv.lock` | Eseguire `uv sync` | Rigenera il lockfile con la versione corretta |
 | **6** | `netsentinel/config.yaml` | `version: "X.Y.Z"` | Utilizzato da Home Assistant Supervisor per rilevare aggiornamenti |
-| **7** | `netsentinel/Dockerfile` | `ARG BUILD_FROM=ghcr.io/marcomatrella/netsentinel:X.Y.Z` | Punta all'immagine GHCR pubblicata dalla CI/CD per quella versione |
-| **8** | `netsentinel/CHANGELOG.md` | Inserire `## X.Y.Z` in cima | Previene l'errore HA *"No changelog found for app..."*. Deve contenere un riassunto in italiano |
-| **9** | `CHANGELOG.md` (root) | Inserire `## [X.Y.Z] - YYYY-MM-DD` | Changelog ufficiale del repository |
+| **7** | `netsentinel/build.yaml` | `aarch64: "...:X.Y.Z"`, `amd64: "...:X.Y.Z"` | **FONDAMENTALE**: Definisce per Home Assistant Supervisor l'immagine esatta da scaricare per ogni architettura |
+| **8** | `netsentinel/Dockerfile` | `ARG BUILD_FROM=ghcr.io/marcomatrella/netsentinel:X.Y.Z` | Fallback immagine GHCR pubblicata dalla CI/CD per quella versione |
+| **9** | `netsentinel/CHANGELOG.md` | Inserire `## X.Y.Z` in cima | Previene l'errore HA *"No changelog found for app..."*. Deve contenere un riassunto in italiano |
+| **10** | `CHANGELOG.md` (root) | Inserire `## [X.Y.Z] - YYYY-MM-DD` | Changelog ufficiale del repository |
 
 ---
 
@@ -116,3 +117,4 @@ git push origin vX.Y.Z
 
 > [!IMPORTANT]
 > Il push del tag `vX.Y.Z` scatena automaticamente la GitHub Action `.github/workflows/cd.yml`, che compila le immagini multi-arch (`linux/amd64`, `linux/arm64`) e le pubblica su GitHub Container Registry (`ghcr.io/marcomatrella/netsentinel:X.Y.Z`).
+
