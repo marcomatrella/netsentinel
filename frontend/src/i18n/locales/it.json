@@ -57,15 +57,21 @@
   "menu": {
     "title": "Menu Principale",
     "subtitle": "Configurazione, strumenti e gestione",
-    "section_config": "Configurazione Topologia",
+    "section_config": "Topologia & Mappa",
+    "section_topology": "Topologia & Mappa",
     "devices_setup": "Configurazione Apparati & Modelli",
     "devices_setup_desc": "Gestisci apparati, indirizzi IP e carica modelli di rete",
     "network_discovery": "Scansione & Rilevamento Rete",
     "network_discovery_desc": "Scansiona la subnet LAN e aggiungi apparati con 1 click",
     "backup_restore": "Backup & Ripristino Plancia",
     "backup_restore_desc": "Esporta o ripristina la topologia e layout via JSON",
+    "section_general_config": "Configurazioni generali",
+    "notifications": "Notifiche",
+    "notifications_desc": "Configura notifiche Email (SMTP) e Push Web (PWA)",
     "dns_dhcp_roles": "Servizi DNS & DHCP",
     "dns_dhcp_roles_desc": "Assegna ruoli di rete, resolver AdGuard/Pi-hole e DHCP",
+    "scheduled_maintenance": "Interventi programmati",
+    "scheduled_maintenance_desc": "Pianifica finestre di manutenzione e fermi senza allarmi",
     "wizard_8_steps": "Wizard Guidato (8 Passi)",
     "wizard_8_steps_desc": "Procedura guidata completa end-to-end per la rete",
     "section_notifications": "Allarmi & Canali",
@@ -77,9 +83,7 @@
     "toggle_edit_mode": "Passa a Modalità Modifica",
     "toggle_live_view": "Torna a Vista Operativa LIVE",
     "fullscreen": "Modalità Kiosk / Schermo Intero",
-    "force_refresh": "Forza Aggiornamento Dati",
-    "scheduled_maintenance": "Manutenzioni Programmate",
-    "scheduled_maintenance_desc": "Pianifica riavvii e stop senza allarmi"
+    "force_refresh": "Forza Aggiornamento Dati"
   },
   "edit_bar": {
     "title": "Modalità Modifica Attiva:",

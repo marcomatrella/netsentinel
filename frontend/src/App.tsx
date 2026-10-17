@@ -67,6 +67,7 @@ import { TimeMachineSlider } from './components/timemachine/TimeMachineSlider';
 import packageJson from '../package.json';
 import { useTranslation } from './i18n/I18nContext';
 import { translateDiagnosisTitle, translateIncidentSummary } from './utils/diagnosisI18n';
+import { sendWebPushNotification, getWebPushSettings } from './utils/webPush';
 
 export const App: React.FC = () => {
   const { t } = useTranslation();
@@ -114,6 +115,7 @@ export const App: React.FC = () => {
   const [isMaintenanceDetailsOpen, setIsMaintenanceDetailsOpen] = useState<boolean>(false);
 
   const isHistoricalModeRef = React.useRef<boolean>(false);
+  const prevIncidentIdRef = React.useRef<string | null>(null);
   useEffect(() => {
     isHistoricalModeRef.current = isHistoricalMode;
   }, [isHistoricalMode]);
@@ -134,6 +136,7 @@ export const App: React.FC = () => {
       setTopology(topoData);
       setIncidents(incData);
       setActiveIncident(incData.length > 0 ? incData[0] : null);
+      prevIncidentIdRef.current = incData.length > 0 ? incData[0].id : null;
       setActiveScheduledMaintenance(maintActiveData);
       if (settingsData?.retention_period) {
         setRetentionPeriod(settingsData.retention_period);
@@ -187,6 +190,28 @@ export const App: React.FC = () => {
         });
       }
       if (diff.active_incident !== undefined) {
+        const nextInc = diff.active_incident;
+        const prevId = prevIncidentIdRef.current;
+        const nextId = nextInc ? nextInc.id : null;
+
+        if (nextId !== prevId) {
+          prevIncidentIdRef.current = nextId;
+          const pushCfg = getWebPushSettings();
+          if (pushCfg.enabled) {
+            if (nextInc && pushCfg.notifyCritical) {
+              const rootName = nextInc.root_cause_device_name || 'Dispositivo Rete';
+              sendWebPushNotification(`NetSentinel: Allarme su ${rootName}`, {
+                body: nextInc.title || 'Rilevato nuovo incidente o guasto di rete',
+                tag: `incident-${nextInc.id}`,
+              });
+            } else if (!nextInc && prevId && pushCfg.notifyRecovery) {
+              sendWebPushNotification('NetSentinel: Incidente Risolto', {
+                body: 'La connettività della rete è tornata nominale. Tutti i nodi sono operativi.',
+                tag: 'incident-recovery',
+              });
+            }
+          }
+        }
         setActiveIncident(diff.active_incident);
       }
       if (diff.maintenance !== undefined) {

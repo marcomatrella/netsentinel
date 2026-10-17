@@ -57,15 +57,21 @@
   "menu": {
     "title": "Main Menu",
     "subtitle": "Configuration, tools and management",
-    "section_config": "Topology Configuration",
+    "section_config": "Topology & Map",
+    "section_topology": "Topology & Map",
     "devices_setup": "Device Setup & Templates",
     "devices_setup_desc": "Manage devices, IP addresses and load home lab templates",
     "network_discovery": "Network Scan & Discovery",
     "network_discovery_desc": "Scan LAN subnet and add devices with 1-click",
     "backup_restore": "Topology Backup & Restore",
     "backup_restore_desc": "Export or restore topology and canvas layout via JSON",
+    "section_general_config": "General Settings",
+    "notifications": "Notifications",
+    "notifications_desc": "Configure Email (SMTP) and Web Push (PWA) alerts",
     "dns_dhcp_roles": "DNS & DHCP Services",
     "dns_dhcp_roles_desc": "Assign network roles, local AdGuard/Pi-hole resolvers & DHCP",
+    "scheduled_maintenance": "Scheduled Maintenance",
+    "scheduled_maintenance_desc": "Plan maintenance windows and downtime without alerts",
     "wizard_8_steps": "Guided Setup Wizard (8 Steps)",
     "wizard_8_steps_desc": "Comprehensive step-by-step guided onboarding",
     "section_notifications": "Alerts & Channels",
@@ -77,9 +83,7 @@
     "toggle_edit_mode": "Switch to Edit Mode",
     "toggle_live_view": "Return to LIVE View",
     "fullscreen": "Fullscreen / Kiosk Mode",
-    "force_refresh": "Force Refresh Data",
-    "scheduled_maintenance": "Scheduled Maintenance",
-    "scheduled_maintenance_desc": "Plan reboots and downtime without alerts"
+    "force_refresh": "Force Refresh Data"
   },
   "edit_bar": {
     "title": "Edit Mode Active:",

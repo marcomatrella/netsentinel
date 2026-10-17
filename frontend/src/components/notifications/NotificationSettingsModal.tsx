@@ -18,6 +18,11 @@ import {
   RefreshCw,
   Sparkles,
   Info,
+  Bell,
+  Smartphone,
+  Check,
+  ShieldCheck,
+  Radio,
 } from 'lucide-react';
 import {
   fetchNotificationChannels,
@@ -28,6 +33,15 @@ import {
 } from '../../api/client';
 import { useTranslation } from '../../i18n/I18nContext';
 import { formatDateTime } from '../../utils/date';
+import {
+  isWebPushSupported,
+  getPushPermission,
+  getWebPushSettings,
+  saveWebPushSettings,
+  requestPushPermission,
+  sendTestWebPush,
+  WebPushSettings,
+} from '../../utils/webPush';
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
@@ -39,9 +53,9 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   onClose,
 }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'config' | 'logs'>('config');
+  const [activeTab, setActiveTab] = useState<'email' | 'push' | 'logs'>('email');
 
-  // Channel configuration state
+  // Channel configuration state (SMTP)
   const [channelId, setChannelId] = useState<string>('smtp-primary');
   const [channelName, setChannelName] = useState<string>('Server Notifiche SMTP');
   const [enabled, setEnabled] = useState<boolean>(true);
@@ -74,9 +88,26 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Web Push Settings state
+  const [pushSupported, setPushSupported] = useState<boolean>(true);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const [pushSettings, setPushSettings] = useState<WebPushSettings>(getWebPushSettings());
+  const [pushTesting, setPushTesting] = useState<boolean>(false);
+  const [pushMessage, setPushMessage] = useState<string | null>(null);
+
   // Logs state
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState<boolean>(false);
+
+  // Check push state
+  const refreshPushState = useCallback(() => {
+    const supported = isWebPushSupported();
+    setPushSupported(supported);
+    if (supported) {
+      setPushPermission(getPushPermission());
+      setPushSettings(getWebPushSettings());
+    }
+  }, []);
 
   // Load existing channel if available
   const loadChannelData = useCallback(async () => {
@@ -139,11 +170,13 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   useEffect(() => {
     if (isOpen) {
       loadChannelData();
+      refreshPushState();
       setTestResult(null);
       setSaveSuccessMsg(null);
       setErrorMsg(null);
+      setPushMessage(null);
     }
-  }, [isOpen, loadChannelData]);
+  }, [isOpen, loadChannelData, refreshPushState]);
 
   if (!isOpen) return null;
 
@@ -152,7 +185,6 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
     const trimmed = newRecipientInput.trim();
     if (!trimmed) return;
 
-    // Check multiple emails separated by commas or spaces
     const parts = trimmed.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
     const validEmails = parts.filter((email) => email.includes('@') && email.includes('.'));
 
@@ -261,34 +293,70 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
     }
   };
 
-  // Save channel configuration
+  // Push notification handlers
+  const handleRequestPushPermission = async () => {
+    try {
+      const perm = await requestPushPermission();
+      setPushPermission(perm);
+      if (perm === 'granted') {
+        setPushSettings(getWebPushSettings());
+        setPushMessage('Notifiche push autorizzate con successo!');
+      } else if (perm === 'denied') {
+        setPushMessage('Permesso negato nel browser. Sbloccalo nelle impostazioni del sito.');
+      }
+    } catch (err: any) {
+      setPushMessage(err.message || 'Errore nella richiesta di autorizzazione.');
+    }
+  };
+
+  const handleTogglePushSetting = (key: keyof WebPushSettings) => {
+    const updated = saveWebPushSettings({ [key]: !pushSettings[key] });
+    setPushSettings(updated);
+  };
+
+  const handleTestPush = async () => {
+    setPushTesting(true);
+    setPushMessage(null);
+    try {
+      const success = await sendTestWebPush();
+      if (success) {
+        setPushMessage('Notifica push di prova inviata al tuo browser!');
+      } else {
+        setPushMessage('Impossibile inviare la notifica: verifica che le notifiche siano consentite.');
+      }
+    } catch (err: any) {
+      setPushMessage(err.message || 'Errore durante l\'invio della notifica di prova.');
+    } finally {
+      setPushTesting(false);
+    }
+  };
+
+  // Save current SMTP configuration to backend
   const handleSave = async () => {
     setErrorMsg(null);
     setSaveSuccessMsg(null);
     setTestResult(null);
 
-    if (!host) {
-      setErrorMsg('Specificare l\'host del server SMTP.');
-      return;
-    }
-
     const finalRecipients = [...recipients];
-    if (newRecipientInput.trim() && newRecipientInput.includes('@')) {
-      finalRecipients.push(newRecipientInput.trim());
-      setRecipients(finalRecipients);
-      setNewRecipientInput('');
+    if (newRecipientInput.trim()) {
+      const parts = newRecipientInput.trim().split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+      for (const p of parts) {
+        if (p.includes('@') && !finalRecipients.includes(p)) {
+          finalRecipients.push(p);
+        }
+      }
     }
 
-    if (finalRecipients.length === 0) {
-      setErrorMsg('Inserisci almeno un destinatario per ricevere le notifiche.');
+    if (enabled && finalRecipients.length === 0) {
+      setErrorMsg('Aggiungi almeno un indirizzo email di destinazione prima di salvare.');
       return;
     }
 
     setSaving(true);
     try {
       const payload = {
-        id: channelId || 'smtp-primary',
-        name: channelName || 'Server Notifiche SMTP',
+        id: channelId,
+        name: channelName,
         type: 'smtp',
         enabled,
         min_severity: minSeverity,
@@ -330,18 +398,18 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
         <div className="px-3.5 py-3 sm:px-6 sm:py-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-700/80 shrink-0">
           <div className="flex items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
-                <Mail className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
+                <Bell className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 truncate">
-                  <span className="truncate">{t('notifications.modal_title')}</span>
+                  <span className="truncate">Notifiche di Rete</span>
                   <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/30 font-semibold shrink-0">
-                    {t('notifications.modal_badge')}
+                    Email & PWA Push
                   </span>
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 hidden xs:block truncate">
-                  {t('notifications.modal_desc')}
+                  Configura gli alert automatici via e-mail o notifiche istantanee del browser
                 </p>
               </div>
             </div>
@@ -350,14 +418,26 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
               {/* Desktop Tab switch */}
               <div className="hidden sm:flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-700/60 text-xs">
                 <button
-                  onClick={() => setActiveTab('config')}
-                  className={`px-3 py-1 rounded-md font-medium transition ${
-                    activeTab === 'config'
+                  onClick={() => setActiveTab('email')}
+                  className={`px-3 py-1 rounded-md font-medium transition flex items-center gap-1.5 ${
+                    activeTab === 'email'
                       ? 'bg-sky-600 text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
-                  {t('notifications.tab_config')}
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Email (SMTP)</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('push')}
+                  className={`px-3 py-1 rounded-md font-medium transition flex items-center gap-1.5 ${
+                    activeTab === 'push'
+                      ? 'bg-sky-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Notifiche Push (PWA)</span>
                 </button>
                 <button
                   onClick={() => {
@@ -367,301 +447,282 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                   className={`px-3 py-1 rounded-md font-medium transition flex items-center gap-1.5 ${
                     activeTab === 'logs'
                       ? 'bg-sky-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
-                  <span>{t('notifications.tab_logs')}</span>
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Registro Invii</span>
                 </button>
               </div>
 
-              {/* Close button: Fixed & Always visible */}
+              {/* Close button */}
               <button
                 onClick={onClose}
                 className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-200/60 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition shrink-0 ml-1 cursor-pointer"
                 title={t('common.close')}
-                aria-label={t('common.close')}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* Mobile Tab switch (row below) */}
-          <div className="flex sm:hidden items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-750 text-xs mt-2.5">
+          {/* Mobile Tabs */}
+          <div className="flex sm:hidden mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-800 gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg text-xs overflow-x-auto">
             <button
-              onClick={() => setActiveTab('config')}
-              className={`flex-1 py-1 rounded-md font-medium transition text-center ${
-                activeTab === 'config'
+              onClick={() => setActiveTab('email')}
+              className={`flex-1 min-w-[90px] py-1 rounded font-medium text-center transition flex items-center justify-center gap-1 ${
+                activeTab === 'email'
                   ? 'bg-sky-600 text-white shadow-sm'
                   : 'text-slate-600 dark:text-slate-400'
               }`}
             >
-              {t('notifications.tab_config')}
+              <Mail className="w-3 h-3" />
+              <span>Email</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('push')}
+              className={`flex-1 min-w-[90px] py-1 rounded font-medium text-center transition flex items-center justify-center gap-1 ${
+                activeTab === 'push'
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              <Smartphone className="w-3 h-3" />
+              <span>Push PWA</span>
             </button>
             <button
               onClick={() => {
                 setActiveTab('logs');
                 loadLogs();
               }}
-              className={`flex-1 py-1 rounded-md font-medium transition text-center ${
+              className={`flex-1 min-w-[90px] py-1 rounded font-medium text-center transition flex items-center justify-center gap-1 ${
                 activeTab === 'logs'
                   ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-400'
+                  : 'text-slate-600 dark:text-slate-400'
               }`}
             >
-              {t('notifications.tab_logs')}
+              <Clock className="w-3 h-3" />
+              <span>Log</span>
             </button>
           </div>
         </div>
 
-        {/* Content area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Top Feedback Messages */}
+        {/* Content Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm">
+          
+          {/* Messages & Alerts */}
           {errorMsg && (
-            <div className="p-3.5 bg-rose-950/50 border border-rose-800 text-rose-200 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <strong>Attenzione:</strong> {errorMsg}
-              </div>
-              <button onClick={() => setErrorMsg(null)} className="text-rose-400 hover:text-rose-200">
-                <X className="w-3.5 h-3.5" />
-              </button>
+            <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
             </div>
           )}
 
           {saveSuccessMsg && (
-            <div className="p-3.5 bg-emerald-950/50 border border-emerald-800 text-emerald-200 rounded-xl text-xs flex items-center gap-2.5 animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{saveSuccessMsg}</span>
             </div>
           )}
 
           {testResult && (
             <div
-              className={`p-4 rounded-xl border text-xs flex items-start gap-3 animate-in fade-in ${
+              className={`p-3.5 rounded-xl text-xs flex items-center gap-2 border ${
                 testResult.success
-                  ? 'bg-emerald-950/60 border-emerald-700 text-emerald-100'
-                  : 'bg-rose-950/60 border-rose-700 text-rose-100'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
               }`}
             >
               {testResult.success ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
               ) : (
-                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 shrink-0" />
               )}
-              <div className="flex-1">
-                <div className="font-bold text-sm mb-1">
-                  {testResult.success ? 'Invio Email Riuscito!' : 'Invio Email Fallito'}
-                </div>
-                <div>{testResult.message}</div>
-                {testResult.success && (
-                  <div className="mt-2 text-[11px] text-emerald-300/80">
-                    Controlla la tua casella di posta elettronica (anche nella cartella spam/posta indesiderata se è il primo invio) per visualizzare il report HTML completo.
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setTestResult(null)}
-                className="text-slate-400 hover:text-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <span>{testResult.message}</span>
             </div>
           )}
 
-          {activeTab === 'config' ? (
+          {pushMessage && (
+            <div className="p-3.5 bg-sky-500/10 border border-sky-500/30 rounded-xl text-sky-600 dark:text-sky-300 text-xs flex items-center gap-2">
+              <Info className="w-4 h-4 shrink-0" />
+              <span>{pushMessage}</span>
+            </div>
+          )}
+
+          {/* TAB 1: EMAIL (SMTP) */}
+          {activeTab === 'email' && (
             <div className="space-y-6">
-              {/* Presets banner */}
-              <div className="p-4 bg-slate-850/80 border border-slate-700/70 rounded-xl space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-300 font-semibold flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    Preimpostazioni rapide provider:
-                  </span>
-                  <span className="text-[11px] text-slate-500">Compila automaticamente host, porta e sicurezza</span>
+              {/* Enable / Disable Switch */}
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-sky-500" />
+                    <span>Abilita Canale Notifiche Email</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Invia un'email automatica al verificarsi di disconnessioni o incidenti
+                  </p>
                 </div>
-                <div className="flex flex-wrap gap-2 pt-1">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={(e) => setEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                </label>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Preset Rapidi Provider
+                </span>
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => applyPreset('gmail')}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-medium transition"
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5"
                   >
-                    Gmail (smtp.gmail.com)
+                    <span>Google Gmail</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset('outlook')}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-medium transition"
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5"
                   >
-                    Outlook / 365
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset('mailgun')}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-medium transition"
-                  >
-                    Mailgun
+                    <span>Microsoft 365 / Outlook</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset('brevo')}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-medium transition"
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5"
                   >
-                    Brevo (Sendinblue)
+                    <span>Brevo (Sendinblue)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset('mailgun')}
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5"
+                  >
+                    <span>Mailgun</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset('relay')}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-medium transition"
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5"
                   >
-                    Relay Locale (Porta 25)
+                    <span>Relay Locale Anonimo (Porta 25)</span>
                   </button>
                 </div>
               </div>
 
-              {/* Section 1: Server SMTP */}
-              <div className="p-5 bg-slate-850/50 border border-slate-700/60 rounded-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Server className="w-4 h-4 text-sky-400" />
-                    <h3 className="text-sm font-bold text-slate-200">1. Parametri Connessione Server SMTP</h3>
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={enabled}
-                      onChange={(e) => setEnabled(e.target.checked)}
-                      className="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-sky-500"
-                    />
-                    <span>Canale Abilitato</span>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      Host Server SMTP *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="es. smtp.gmail.com o mail.tuodominio.it"
-                      value={host}
-                      onChange={(e) => setHost(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:border-sky-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      Porta *
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="587"
-                      value={port}
-                      onChange={(e) => setPort(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:border-sky-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      Crittografia / Sicurezza
-                    </label>
-                    <select
-                      value={security}
-                      onChange={(e: any) => {
-                        const val = e.target.value;
-                        setSecurity(val);
-                        if (val === 'ssl' && port === 587) setPort(465);
-                        if (val === 'starttls' && port === 465) setPort(587);
-                        if (val === 'none' && (port === 587 || port === 465)) setPort(25);
-                      }}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:border-sky-500 focus:outline-none"
-                    >
-                      <option value="starttls">STARTTLS (Consigliata, Porta 587)</option>
-                      <option value="ssl">SSL / TLS Implicito (Porta 465)</option>
-                      <option value="none">Nessuna (In chiaro, Porta 25)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      Nome Utente / Username
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="es. noreply@dominio.it"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:border-sky-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      Password / App Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder={password === '******' ? '•••••••• (salvata)' : 'Password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3 py-2 pr-9 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:border-sky-500 focus:outline-none font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-200"
-                        title={showPassword ? 'Nascondi password' : 'Mostra password'}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Indirizzo Mittente (From) *
+              {/* Server Host & Port */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Server className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Host Server SMTP</span>
                   </label>
                   <input
                     type="text"
-                    placeholder="NetSentinel Monitor <netsentinel@tuodominio.it>"
-                    value={fromAddr}
-                    onChange={(e) => setFromAddr(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:border-sky-500 focus:outline-none"
+                    value={host}
+                    onChange={(e) => setHost(e.target.value)}
+                    placeholder="smtp.gmail.com o 192.168.1.1"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
-                  <span className="text-[11px] text-slate-500 mt-1 block">
-                    Alcuni provider (come Gmail o Microsoft 365) richiedono che il mittente coincida con l'utente autenticato.
-                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Porta
+                  </label>
+                  <input
+                    type="number"
+                    value={port}
+                    onChange={(e) => setPort(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                  />
                 </div>
               </div>
 
-              {/* Section 2: Destinatari Notifiche */}
-              <div className="p-5 bg-slate-850/50 border border-slate-700/60 rounded-xl space-y-4">
-                <div className="border-b border-slate-700/60 pb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AtSign className="w-4 h-4 text-emerald-400" />
-                    <h3 className="text-sm font-bold text-slate-200">2. Destinatari delle Notifiche</h3>
+              {/* Security & Authentication */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Crittografia
+                  </label>
+                  <select
+                    value={security}
+                    onChange={(e) => setSecurity(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                  >
+                    <option value="starttls">STARTTLS (Porta 587 - Consigliato)</option>
+                    <option value="ssl">SSL / TLS (Porta 465)</option>
+                    <option value="none">Nessuna Crittografia (Porta 25)</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <AtSign className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Username / Email</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="utente@gmail.com"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Password / App Token</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-slate-400 hover:text-slate-200 text-[11px]"
+                    >
+                      {showPassword ? 'Nascondi' : 'Mostra'}
+                    </button>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                    />
                   </div>
-                  <span className="text-xs text-slate-400 font-medium">
-                    {recipients.length} destinatari configurati
-                  </span>
+                </div>
+              </div>
+
+              {/* Sender & Recipients */}
+              <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Mittente (From Address)
+                  </label>
+                  <input
+                    type="email"
+                    value={fromAddr}
+                    onChange={(e) => setFromAddr(e.target.value)}
+                    placeholder="netsentinel@tuodominio.it"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                  />
                 </div>
 
-                {/* Add recipient input */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Aggiungi Indirizzo Email Destinatario
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Destinatari Email
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="email"
-                      placeholder="es. admin@tuodominio.it (premi Invio per aggiungere)"
                       value={newRecipientInput}
                       onChange={(e) => setNewRecipientInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -670,164 +731,330 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                           handleAddRecipient();
                         }
                       }}
-                      className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:border-emerald-500 focus:outline-none"
+                      placeholder="amministratore@rete.it"
+                      className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleAddRecipient}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                      className="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl flex items-center gap-1.5 font-medium transition cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-4 h-4" />
                       <span>Aggiungi</span>
                     </button>
                   </div>
-                </div>
 
-                {/* Recipient tags list */}
-                {recipients.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 pt-2">
+                  {/* List of recipients */}
+                  <div className="flex flex-wrap gap-2 mt-2">
                     {recipients.map((email) => (
                       <span
                         key={email}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-700/80 text-emerald-200 text-xs font-mono font-medium shadow-sm"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium"
                       >
-                        <Mail className="w-3.5 h-3.5 text-emerald-400" />
                         <span>{email}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveRecipient(email)}
-                          className="hover:text-rose-400 transition"
-                          title="Rimuovi destinatario"
+                          className="text-slate-400 hover:text-rose-500 transition"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </span>
                     ))}
-                  </div>
-                ) : (
-                  <div className="p-3 bg-slate-900/60 border border-dashed border-slate-700 rounded-lg text-center text-xs text-slate-400">
-                    Nessun destinatario configurato. Inserisci almeno un indirizzo email sopra.
-                  </div>
-                )}
-
-                {/* Severity & Quiet Hours */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      Severità Minima per Invio Email
-                    </label>
-                    <select
-                      value={minSeverity}
-                      onChange={(e: any) => setMinSeverity(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:border-sky-500 focus:outline-none"
-                    >
-                      <option value="all">Tutti gli eventi (Inclusi avvisi informativi)</option>
-                      <option value="warn">Avvisi e Critici (Consigliato per Home Lab)</option>
-                      <option value="crit">Solo Allarmi Critici (Es. Gateway o Switch down)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 pt-1">
-                      <input
-                        type="checkbox"
-                        checked={quietHoursEnabled}
-                        onChange={(e) => setQuietHoursEnabled(e.target.checked)}
-                        className="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-sky-500"
-                      />
-                      <span className="font-semibold">Attiva Orario di Silenzio (Quiet Hours)</span>
-                    </label>
-
-                    {quietHoursEnabled && (
-                      <div className="pl-6 space-y-2">
-                        <div className="flex items-center gap-2 text-xs">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-slate-400">Dalle</span>
-                          <input
-                            type="time"
-                            value={quietStart}
-                            onChange={(e) => setQuietStart(e.target.value)}
-                            className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200"
-                          />
-                          <span className="text-slate-400">alle</span>
-                          <input
-                            type="time"
-                            value={quietEnd}
-                            onChange={(e) => setQuietEnd(e.target.value)}
-                            className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200"
-                          />
-                        </div>
-
-                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-400">
-                          <input
-                            type="checkbox"
-                            checked={allowCriticalInQuiet}
-                            onChange={(e) => setAllowCriticalInQuiet(e.target.checked)}
-                            className="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-amber-500"
-                          />
-                          <span>Consenti comunque allarmi se l'incidente è CRITICO</span>
-                        </label>
-                      </div>
+                    {recipients.length === 0 && (
+                      <p className="text-xs text-amber-500 italic">
+                        Nessun destinatario configurato. Aggiungi almeno un'email.
+                      </p>
                     )}
                   </div>
                 </div>
               </div>
+
+              {/* Severity & Quiet Hours */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 space-y-2">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                    Soglia Minima di Severità
+                  </label>
+                  <select
+                    value={minSeverity}
+                    onChange={(e) => setMinSeverity(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none text-xs"
+                  >
+                    <option value="crit">Solo Critici (Dispositivi o Gateway Down)</option>
+                    <option value="warn">Warning e Critici (Latenza, Link flap, Degrado)</option>
+                    <option value="all">Tutti gli eventi (Inclusi ripristini e reboot)</option>
+                  </select>
+                </div>
+
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Ore di Silenzio (Quiet Hours)
+                    </label>
+                    <input
+                      type="checkbox"
+                      checked={quietHoursEnabled}
+                      onChange={(e) => setQuietHoursEnabled(e.target.checked)}
+                      className="rounded border-slate-700 text-sky-600 focus:ring-sky-500"
+                    />
+                  </div>
+                  {quietHoursEnabled && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="time"
+                        value={quietStart}
+                        onChange={(e) => setQuietStart(e.target.value)}
+                        className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs"
+                      />
+                      <span className="text-slate-400 text-xs">fino a</span>
+                      <input
+                        type="time"
+                        value={quietEnd}
+                        onChange={(e) => setQuietEnd(e.target.value)}
+                        className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : (
-            /* Logs Tab */
+          )}
+
+          {/* TAB 2: PUSH NOTIFICATIONS (PWA / BROWSER) */}
+          {activeTab === 'push' && (
+            <div className="space-y-6">
+              {/* Push Status Banner */}
+              <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-sky-50/40 dark:from-slate-850 dark:to-slate-800 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-500 flex items-center justify-center shrink-0">
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                        Notifiche Push Istantanee (Web & PWA)
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Ricevi allarmi sonori e a schermo su computer, tablet o smartphone anche con l'app in background.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="shrink-0">
+                    {!pushSupported ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                        Non Supportato
+                      </span>
+                    ) : pushPermission === 'granted' ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" />
+                        Autorizzate
+                      </span>
+                    ) : pushPermission === 'denied' ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Bloccate nel Browser
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                        In Attesa di Permesso
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Explicit Permission Request Button if not granted */}
+                {pushSupported && pushPermission !== 'granted' && (
+                  <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-sky-200 dark:border-sky-900/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="text-xs text-slate-600 dark:text-slate-300">
+                      {pushPermission === 'denied' ? (
+                        <span>
+                          Le notifiche sono bloccate nelle autorizzazioni del browser. Clicca sull'icona delle impostazioni sito o del lucchetto accanto all'URL per consentirle.
+                        </span>
+                      ) : (
+                        <span>
+                          Per ricevere gli alert sul tuo dispositivo, devi consentire a NetSentinel l'invio delle notifiche di sistema.
+                        </span>
+                      )}
+                    </div>
+
+                    {pushPermission !== 'denied' && (
+                      <button
+                        type="button"
+                        onClick={handleRequestPushPermission}
+                        className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 shadow-md shadow-sky-500/20 cursor-pointer"
+                      >
+                        <Bell className="w-4 h-4" />
+                        <span>Abilita Notifiche Ora</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Push Preferences & Rules */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-sky-500" />
+                  <span>Preferenze di Ricezione Push</span>
+                </h4>
+
+                <div className="space-y-2.5">
+                  {/* Master Push Toggle */}
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 block">
+                        Attiva Notifiche Push su questo dispositivo
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Consente la visualizzazione degli avvisi locali
+                      </span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        disabled={pushPermission !== 'granted'}
+                        checked={pushSettings.enabled && pushPermission === 'granted'}
+                        onChange={() => handleTogglePushSetting('enabled')}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600 peer-disabled:opacity-40"></div>
+                    </label>
+                  </div>
+
+                  {/* Filter: Critical */}
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 block">
+                        Allarmi Critici (Dispositivi Down & Gateway Offline)
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Notifica immediata con massima priorità
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={pushSettings.notifyCritical}
+                      onChange={() => handleTogglePushSetting('notifyCritical')}
+                      className="rounded border-slate-700 text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Filter: Warning */}
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 block">
+                        Degrado e Warning (Latenza alta, Link flap)
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Avvisa in caso di instabilità senza caduta totale
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={pushSettings.notifyWarning}
+                      onChange={() => handleTogglePushSetting('notifyWarning')}
+                      className="rounded border-slate-700 text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Filter: Recovery */}
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 block">
+                        Ritorno Online e Risoluzione Incidenti
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Conferma quando la rete o un dispositivo torna pienamente operativo
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={pushSettings.notifyRecovery}
+                      onChange={() => handleTogglePushSetting('notifyRecovery')}
+                      className="rounded border-slate-700 text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* PWA Tips */}
+              <div className="p-3.5 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Suggerimento PWA:</strong> Puoi installare NetSentinel come applicazione autonoma sul tuo desktop o dispositivo mobile ("Aggiungi a schermata Home" su Chrome o Safari iOS 16.4+) per ricevere notifiche push native affidabili.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: LOGS */}
+          {activeTab === 'logs' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-medium">
-                  Ultimi 30 eventi di notifica inviati o tentati
-                </span>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                    Registro Invii Notifiche
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Ultime 30 notifiche elaborate o accodate dal server
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={loadLogs}
                   disabled={loadingLogs}
-                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loadingLogs ? 'animate-spin' : ''}`} />
                   <span>Aggiorna</span>
                 </button>
               </div>
 
-              {logs.length > 0 ? (
-                <div className="border border-slate-700/80 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-850 text-slate-400 border-b border-slate-700/80">
+              {loadingLogs ? (
+                <div className="p-8 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-sky-500" />
+                  <span>Caricamento registro notifiche...</span>
+                </div>
+              ) : logs.length > 0 ? (
+                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-700">
                       <tr>
-                        <th className="p-3">Data / Ora</th>
+                        <th className="p-3">Data e Ora</th>
                         <th className="p-3">Stato</th>
                         <th className="p-3">Oggetto / Notifica</th>
                         <th className="p-3">Dettagli / Errore</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800 bg-slate-900/60">
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900/60">
                       {logs.map((log) => {
                         const isSent = log.status === 'sent';
                         const isFailed = log.status === 'failed';
-                        const isSuppressed = log.status.startsWith('suppressed');
+                        const isSuppressed = log.status?.startsWith('suppressed');
                         const isPending = log.status === 'pending_wan';
 
-                        let badgeColor = 'bg-slate-700 text-slate-300';
+                        let badgeColor = 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
                         let label = log.status;
                         if (isSent) {
-                          badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+                          badgeColor = 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30';
                           label = 'Inviata';
                         } else if (isFailed) {
-                          badgeColor = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+                          badgeColor = 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/30';
                           label = 'Fallita';
                         } else if (isSuppressed) {
-                          badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+                          badgeColor = 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/30';
                           label = 'Silenziata';
                         } else if (isPending) {
-                          badgeColor = 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+                          badgeColor = 'bg-sky-500/20 text-sky-600 dark:text-sky-300 border-sky-500/30';
                           label = 'In Coda WAN';
                         }
 
                         return (
-                          <tr key={log.id} className="hover:bg-slate-800/40">
-                            <td className="p-3 font-mono text-[11px] text-slate-400 whitespace-nowrap">
+                          <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td className="p-3 font-mono text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
                               {formatDateTime(log.ts, 'it-IT')}
                             </td>
                             <td className="p-3">
@@ -837,10 +1064,10 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                                 {label}
                               </span>
                             </td>
-                            <td className="p-3 font-medium text-slate-200">
+                            <td className="p-3 font-medium text-slate-900 dark:text-slate-200">
                               {log.payload_summary || 'Notifica'}
                             </td>
-                            <td className="p-3 text-slate-400 font-mono text-[11px]">
+                            <td className="p-3 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
                               {log.error_message || '—'}
                             </td>
                           </tr>
@@ -850,7 +1077,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                   </table>
                 </div>
               ) : (
-                <div className="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+                <div className="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                   Nessuna notifica registrata finora.
                 </div>
               )}
@@ -859,34 +1086,73 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 bg-slate-850 border-t border-slate-700/80 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Info className="w-4 h-4 text-sky-400 shrink-0" />
-            <span>{t('notifications.footer_hint')}</span>
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <Info className="w-4 h-4 text-sky-500 shrink-0" />
+            <span className="hidden sm:inline">
+              {activeTab === 'email'
+                ? t('notifications.footer_hint')
+                : activeTab === 'push'
+                ? 'Le preferenze push vengono memorizzate localmente su questo dispositivo.'
+                : 'Registro sincronizzato con il database NetSentinel.'}
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Test button */}
-            <button
-              type="button"
-              onClick={handleTestNotification}
-              disabled={testing || saving || !host}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 hover:border-sky-500/60 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm disabled:opacity-50"
-            >
-              <Send className={`w-3.5 h-3.5 text-sky-400 ${testing ? 'animate-bounce' : ''}`} />
-              <span>{testing ? t('notifications.testing_btn') : t('notifications.test_btn')}</span>
-            </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {activeTab === 'email' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleTestNotification}
+                  disabled={testing || saving || !host}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-300 border border-sky-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  <Send className={`w-3.5 h-3.5 ${testing ? 'animate-bounce' : ''}`} />
+                  <span>{testing ? 'Invio in corso...' : 'Invia Email di Test'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || testing}
+                  className="px-4 sm:px-5 py-2 bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-sky-500/20 disabled:opacity-50 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{saving ? t('common.saving') : t('notifications.save_btn')}</span>
+                </button>
+              </>
+            )}
 
-            {/* Save button */}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || testing}
-              className="px-5 py-2 bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-sky-500/20 disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{saving ? t('common.saving') : t('notifications.save_btn')}</span>
-            </button>
+            {activeTab === 'push' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleTestPush}
+                  disabled={pushTesting || pushPermission !== 'granted'}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-300 border border-sky-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>{pushTesting ? 'Invio in corso...' : 'Invia Push di Prova'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 sm:px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-500/20 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Fatto</span>
+                </button>
+              </>
+            )}
+
+            {activeTab === 'logs' && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 sm:px-5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                {t('common.close')}
+              </button>
+            )}
           </div>
         </div>
 
@@ -894,4 +1160,3 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
     </div>
   );
 };
-

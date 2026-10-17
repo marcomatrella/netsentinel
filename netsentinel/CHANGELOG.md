@@ -2,6 +2,16 @@
 
 Tutte le modifiche rilevanti per l'add-on NetSentinel di Home Assistant sono documentate qui.
 
+## 1.1.13
+
+### Novità & Miglioramenti
+- **Riorganizzazione Menu e Sezione "Configurazioni generali"**: Riorganizzato il menu dropdown con la nuova sezione dedicata che raggruppa *Notifiche*, *Servizi DNS e DHCP* e *Interventi programmati*.
+- **Rimozione Wizard Guidato dal Menu**: Il wizard a 8 passi è stato rimosso dal menu ordinario ed è ora riservato esclusivamente al primo onboarding / setup iniziale.
+- **Rinnovamento Grafico Registro Eventi (Minimal NOC Table)**: Il log eventi è stato completamente ridisegnato: eliminati i vecchi accordion/card separati in favore di un'unica tabella minimal con intestazioni fisse (`sticky headers`), testo ad alta densità e leggibilità NOC, badge di severità e accesso rapido a Time Machine.
+- **Espansione Notifiche: Email SMTP & Notifiche Push Web (PWA)**: Il pannello notifiche è ora strutturato in tab dedicati. È stato introdotto il supporto nativo per le **Notifiche Push Web / PWA** con richiesta di autorizzazione esplicita al browser, test istantaneo e avvisi push su allarmi critici e ripristini in tempo reale via SSE.
+
+---
+
 ## 1.1.12
 
 ### Novità & Miglioramenti

@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.1.13] - 2026-10-17
+
+### Novità & Miglioramenti
+- **Riorganizzazione Menu e Sezione "Configurazioni generali"**: Riorganizzato il menu flyout dropdown introducendo la nuova sezione dedicata che raggruppa *Notifiche*, *Servizi DNS e DHCP* e *Interventi programmati*.
+- **Rimozione Wizard Guidato dal Menu**: Il wizard a 8 passi è stato rimosso dalle opzioni ordinarie del menu principale ed è ora riservato esclusivamente al primo onboarding / setup guidato.
+- **Rinnovamento Grafico Registro Eventi (Minimal NOC Table)**: Il log eventi è stato completamente riscritto: rimossi i vecchi accordion/card espandibili in favore di un'unica tabella minimal ad alta densità informativa con intestazioni fisse (`sticky headers`), contrasto ottimizzato, badge di severità e Time Machine jump button.
+- **Espansione Notifiche: Email SMTP & Notifiche Push Web (PWA)**: Il pannello Notifiche è stato strutturato in schede con supporto completo per le **Notifiche Push Web / PWA**. È ora possibile concedere l'autorizzazione al browser, testare la ricezione in tempo reale e ricevere notifiche automatiche via SSE su allarmi critici e risoluzioni.
+
 ## [1.1.12] - 2026-10-17
 
 ### Novità & Miglioramenti
