@@ -305,3 +305,9 @@ async def test_ten_devices_monitored_with_state_transitions():
         ev_list = ev_res.json()
         assert len(ev_list) >= 1
         assert ev_list[0]["severity"] == "crit"
+
+        # Step 8: Verify exclude_event_type parameter
+        ev_type = ev_list[0]["event_type"]
+        ev_excluded = await client.get(f"/api/v1/events?device_id=m1-dev-03&exclude_event_type={ev_type}")
+        assert ev_excluded.status_code == 200
+        assert all(e["event_type"] != ev_type for e in ev_excluded.json())

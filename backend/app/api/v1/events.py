@@ -16,6 +16,7 @@ router = APIRouter(prefix="/events", tags=["Events"])
 async def list_events(
     device_id: str | None = None,
     event_type: str | None = None,
+    exclude_event_type: str | None = None,
     severity: str | None = None,
     search: str | None = None,
     limit: int = 150,
@@ -32,6 +33,8 @@ async def list_events(
         stmt = stmt.where(Event.device_id == device_id)
     if event_type:
         stmt = stmt.where(Event.event_type == event_type)
+    if exclude_event_type:
+        stmt = stmt.where(Event.event_type != exclude_event_type)
     if severity:
         stmt = stmt.where(Event.severity == severity)
     if search:

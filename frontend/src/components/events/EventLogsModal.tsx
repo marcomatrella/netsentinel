@@ -282,7 +282,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [severityFilter, setSeverityFilter] = useState<'all' | 'crit' | 'critical_managed' | 'warn' | 'info'>('all');
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'crit' | 'critical_managed' | 'warn' | 'reboots' | 'info'>('all');
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedEventId, setExpandedEventId] = useState<number | string | null>(null);
@@ -301,9 +301,12 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
     setLoading(true);
     setError(null);
     try {
+      const isReboots = severityFilter === 'reboots';
       const data = await fetchEvents({
         limit: 200,
-        severity: severityFilter === 'all' ? undefined : severityFilter,
+        severity: (severityFilter === 'all' || isReboots) ? undefined : severityFilter,
+        eventType: isReboots ? 'reboot_detected' : undefined,
+        excludeEventType: (severityFilter === 'all' || severityFilter === 'warn') ? 'reboot_detected' : undefined,
         deviceId: selectedDeviceId === 'all' ? undefined : selectedDeviceId,
         search: searchQuery.trim() || undefined,
       });
@@ -621,6 +624,17 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
               <span>{t('events.filter_managed') || 'Gestiti'}</span>
             </button>
             <button
+              onClick={() => setSeverityFilter('reboots')}
+              className={`px-2.5 py-1 rounded-md font-medium text-[11px] transition flex items-center gap-1 cursor-pointer ${
+                severityFilter === 'reboots'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+              }`}
+            >
+              <RotateCw className="w-3 h-3" />
+              <span>{t('events.filter_reboots')}</span>
+            </button>
+            <button
               onClick={() => setSeverityFilter('info')}
               className={`px-2.5 py-1 rounded-md font-medium text-[11px] transition flex items-center gap-1 cursor-pointer ${
                 severityFilter === 'info'
@@ -688,7 +702,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
           ) : (
             <table className="w-full border-collapse text-left">
               <thead className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-850/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <tr>
+                <tr className="border-l-4 border-l-transparent">
                   <th className="py-2.5 px-3 sm:px-4 w-[130px] sm:w-[155px]">{t('events.col_datetime')}</th>
                   <th className="py-2.5 px-2 w-[70px] sm:w-[85px]">{t('events.col_level')}</th>
                   <th className="py-2.5 px-2.5 sm:px-3 w-[140px] sm:w-[190px]">{t('events.col_device')}</th>
@@ -718,14 +732,14 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                   return (
                     <React.Fragment key={ev.id}>
                       <tr
-                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-850/70 ${
+                        className={`transition-colors ${
                           isCrit
-                            ? 'bg-rose-500/[0.03] dark:bg-rose-500/[0.04]'
+                            ? 'bg-rose-50/90 dark:bg-rose-950/40 border-l-4 border-l-rose-500 hover:bg-rose-100/90 dark:hover:bg-rose-900/50'
                             : isManaged
-                            ? 'bg-purple-500/[0.03] dark:bg-purple-500/[0.04]'
+                            ? 'bg-purple-50/90 dark:bg-purple-950/40 border-l-4 border-l-purple-500 hover:bg-purple-100/90 dark:hover:bg-purple-900/50'
                             : isWarn
-                            ? 'bg-amber-500/[0.03] dark:bg-amber-500/[0.04]'
-                            : ''
+                            ? 'bg-amber-50/90 dark:bg-amber-950/35 border-l-4 border-l-amber-500 hover:bg-amber-100/90 dark:hover:bg-amber-900/45'
+                            : 'border-l-4 border-l-transparent hover:bg-slate-50 dark:hover:bg-slate-850/70'
                         }`}
                       >
                         {/* 1. Timestamp */}
@@ -834,7 +848,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
 
                       {/* Expandable row for payload */}
                       {isExpanded && hasDetails && (
-                        <tr className="bg-slate-50 dark:bg-slate-950/60">
+                        <tr className="bg-slate-50 dark:bg-slate-950/60 border-l-4 border-l-transparent">
                           <td colSpan={5} className="p-3 border-b border-slate-200 dark:border-slate-800">
                             <div className="space-y-1">
                               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">

@@ -162,7 +162,7 @@ export async function fetchObservations(deviceId?: string, limit: number = 50): 
 }
 
 export async function fetchEvents(
-  filterOrDeviceId?: string | { deviceId?: string; eventType?: string; severity?: string; search?: string; limit?: number },
+  filterOrDeviceId?: string | { deviceId?: string; eventType?: string; excludeEventType?: string; severity?: string; search?: string; limit?: number },
   limit: number = 100
 ): Promise<EventItem[]> {
   let url = `${API_BASE}/events`;
@@ -172,6 +172,7 @@ export async function fetchEvents(
     const params = new URLSearchParams();
     if (filterOrDeviceId.deviceId) params.append('device_id', filterOrDeviceId.deviceId);
     if (filterOrDeviceId.eventType) params.append('event_type', filterOrDeviceId.eventType);
+    if (filterOrDeviceId.excludeEventType) params.append('exclude_event_type', filterOrDeviceId.excludeEventType);
     if (filterOrDeviceId.severity) params.append('severity', filterOrDeviceId.severity);
     if (filterOrDeviceId.search) params.append('search', filterOrDeviceId.search);
     params.append('limit', String(filterOrDeviceId.limit || limit));

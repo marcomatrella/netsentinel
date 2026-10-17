@@ -4,6 +4,13 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.1.15] - 2026-10-18
+
+### Miglioramenti Registro Eventi & Risoluzioni i18n
+- **Separazione Eventi di Riavvio nel Registro Eventi**: Gli eventi di riavvio (`reboot_detected`) non affollano più la vista predefinita "Tutti" né la scheda "Avvisi". È stato introdotto un tab dedicato **"Riavvii"** (`reboots`) con icona `RotateCw`, mantenendo la cronologia dei reboot isolata e facilmente consultabile senza rumore di fondo.
+- **Evidenziazione Grafica Ottimizzata per Righe CRIT e WARN**: Incrementato il contrasto e la visibilità della tabella NOC per gli eventi critici e di avviso. Aggiunto un indicatore visivo laterale a barra colorata (`border-l-4`) associato a un'evidenziazione di sfondo nitida sia in tema chiaro che scuro.
+- **Risoluzione Completa Stringhe Non Decodificate (i18n)**: Allineate e introdotte in tutte le 5 lingue supportate (it, en, de, fr, es) le chiavi mancanti relative a `events.narratives.*` (`device_offline_headline`, `device_offline_explanation`, `device_offline_actionable`, `device_managed_*`, `device_restored_*`, `unknown_device`), risolvendo le segnalazioni visibili precedentemente come raw key string nel registro.
+
 ## [1.1.14] - 2026-10-18
 
 ### Novità & Risoluzioni (Anti-Storm & Resilienza Connettività)
