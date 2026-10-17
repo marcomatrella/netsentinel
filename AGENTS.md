@@ -33,13 +33,14 @@ Ogni volta che si conclude un ciclo di sviluppo, bugfix o nuova feature e si pre
 
 ```mermaid
 flowchart TD
-    A["1. Modifiche al Codice & Test (pytest)"] --> B["2. Aggiornamento frontend/package.json"]
-    B --> C["3. Compilazione Frontend (npm run build)"]
-    C --> D["4. Aggiornamento Backend & Python (config.py, pyproject.toml, uv sync)"]
-    D --> E["5. Aggiornamento Home Assistant Add-on (config.yaml, Dockerfile)"]
-    E --> F["6. Aggiornamento Changelog (netsentinel/CHANGELOG.md & root CHANGELOG.md)"]
-    F --> G["7. Verifica Test Completa (uv run pytest)"]
-    G --> H["8. Git Commit, Tag vX.Y.Z & Push GitHub (main + tag)"]
+    A["1. Modifiche al Codice & Test (pytest)"] --> B["2. Allineamento i18n (it, en, de, fr, es)"]
+    B --> C["3. Aggiornamento frontend/package.json"]
+    C --> D["4. Compilazione Frontend (npm run build)"]
+    D --> E["5. Aggiornamento Backend & Python (config.py, pyproject.toml, uv sync)"]
+    E --> F["6. Aggiornamento Home Assistant Add-on (config.yaml, Dockerfile)"]
+    F --> G["7. Aggiornamento Changelog (netsentinel/CHANGELOG.md & root CHANGELOG.md)"]
+    G --> H["8. Verifica Test Completa (uv run pytest)"]
+    H --> I["9. Git Commit, Tag vX.Y.Z & Push GitHub (main + tag)"]
 ```
 
 ---
@@ -98,7 +99,36 @@ flowchart TD
 
 ---
 
-## 🚀 6. Procedura di Release su GitHub
+---
+
+## 🌐 6. Regola Tassativa sull'Internazionalizzazione (i18n a 5 Lingue)
+
+NetSentinel supporta ufficialmente **5 lingue** in tutta l'interfaccia utente:
+1. 🇮🇹 **Italiano** (`frontend/src/i18n/locales/it.json`)
+2. 🇬🇧 **Inglese** (`frontend/src/i18n/locales/en.json`)
+3. 🇩🇪 **Tedesco** (`frontend/src/i18n/locales/de.json`)
+4. 🇫🇷 **Francese** (`frontend/src/i18n/locales/fr.json`)
+5. 🇪🇸 **Spagnolo** (`frontend/src/i18n/locales/es.json`)
+
+### ⚠️ Regole Tassative:
+1. **Parità al 100% delle Chiavi**:
+   - Ogni volta che si introduce o modifica una stringa, un'etichetta, un tooltip o un messaggio nell'interfaccia, la relativa chiave **DEVE essere creata e tradotta coerentemente in TUTTI e 5 i file JSON**.
+   - È **severamente vietato** lavorare solo su `it` ed `en` tralasciando `de`, `fr` o `es`.
+   - Il set di chiavi tra i 5 file di localizzazione deve sempre risultare identico (zero chiavi mancanti, parità al 100%).
+
+2. **Divieto di Stringhe Hardcodate**:
+   - Nei componenti React, utilizzare sempre l'hook `useTranslation()` (`const { t } = useTranslation();`) invocando `t('sezione.chiave')`. Non inserire testo in lingua fissa nei tag JSX.
+
+3. **Verifica Pre-Release**:
+   - Prima di completare qualsiasi rilascio, verificare programmaticamente la parità delle chiavi tra i 5 file di localizzazione con il comando:
+     ```bash
+     python3 -c "import json; locales=['it','en','de','fr','es']; d={l: json.load(open(f'frontend/src/i18n/locales/{l}.json')) for l in locales}; get_k=lambda obj, p='': set().union(*[get_k(v, f'{p}.{k}' if p else k) if isinstance(v, dict) else {f'{p}.{k}' if p else k} for k, v in obj.items()]); it_k=get_k(d['it']); [print(f'{l}: missing {len(it_k - get_k(d[l]))}') for l in locales if it_k - get_k(d[l])]"
+     ```
+     L'output deve essere vuoto (zero chiavi mancanti per ogni lingua).
+
+---
+
+## 🚀 7. Procedura di Release su GitHub
 
 Quando tutti i file della checklist sono stati aggiornati e i test sono verdi:
 
@@ -117,4 +147,5 @@ git push origin vX.Y.Z
 
 > [!IMPORTANT]
 > Il push del tag `vX.Y.Z` scatena automaticamente la GitHub Action `.github/workflows/cd.yml`, che compila le immagini multi-arch (`linux/amd64`, `linux/arm64`) e le pubblica su GitHub Container Registry (`ghcr.io/marcomatrella/netsentinel:X.Y.Z`).
+
 
