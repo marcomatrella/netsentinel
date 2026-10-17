@@ -8,7 +8,7 @@ from app.collector.plugins import registry
 from app.crypto import decrypt_secret, encrypt_secret
 from app.db.models import Check, Device
 from app.db.session import get_db
-from app.schemas.entities import CheckCreate, CheckRead, CheckUpdate
+from app.schemas.entities import CheckCreate, CheckRead, CheckTestPayload, CheckUpdate
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -109,6 +109,29 @@ async def create_check(payload: CheckCreate, db: AsyncSession = Depends(get_db))
     await db.commit()
     await db.refresh(chk)
     return _to_check_read(chk)
+
+
+@router.post("/test", summary="Test parametri controllo senza salvare")
+async def test_check_params(payload: CheckTestPayload) -> dict[str, Any]:
+    """Test check parameters and connectivity on-the-fly before saving."""
+    collector = registry.get(payload.type)
+    if not collector:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Collector '{payload.type}' non disponibile.",
+        )
+
+    res = await collector.collect(
+        target_address=payload.target_address,
+        params=payload.params,
+        timeout_seconds=payload.timeout_seconds,
+    )
+    obs = res.observations[0] if res.observations else None
+    return {
+        "status": obs.status if obs else "unknown",
+        "value": obs.value if obs else None,
+        "details": obs.details if obs else {},
+    }
 
 
 @router.post("/{check_id}/execute", summary="Esegui controllo immediatamente")

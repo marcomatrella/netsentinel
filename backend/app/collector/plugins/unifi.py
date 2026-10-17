@@ -30,14 +30,14 @@ class UniFiCollector(BaseCollector):
     ) -> CollectorResult:
         """Query UniFi controller for device status, switch port PoE, or system metrics."""
         result = CollectorResult()
-        base_url = params.get("controller_url", f"https://{target_address}" if target_address else "")
-        username = params.get("username", "")
-        password = params.get("password", "")
-        api_key = params.get("api_key", "")
-        site = params.get("site", "default")
-        target_mac = (params.get("mac") or "").lower()
+        base_url = (params.get("controller_url") or (f"https://{target_address}" if target_address else "")).strip().rstrip("/")
+        username = (params.get("username") or "").strip()
+        password = (params.get("password") or "").strip()
+        api_key = (params.get("api_key") or "").strip()
+        site = (params.get("site") or "default").strip() or "default"
+        target_mac = (params.get("mac") or "").lower().strip()
         port_idx = params.get("port_idx")
-        verify_ssl = params.get("verify_ssl", False)
+        verify_ssl = bool(params.get("verify_ssl", False))
 
         if not base_url:
             result.observations.append(
@@ -49,65 +49,128 @@ class UniFiCollector(BaseCollector):
             return result
 
         try:
-            async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout_seconds) as client:
-                headers = {}
+            async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout_seconds, follow_redirects=True) as client:
+                devices_data: list[dict[str, Any]] | None = None
+                last_status_code: int | None = None
+                last_error_detail: str | None = None
+
+                # -------------------------------------------------------------
+                # 1. Official UniFi OS Integration API v1 (API Key)
+                # -------------------------------------------------------------
                 if api_key:
-                    headers["X-API-KEY"] = api_key
-                else:
-                    # Authenticate via session cookie
+                    headers = {
+                        "X-API-KEY": api_key,
+                        "Accept": "application/json",
+                    }
+                    candidate_urls = [
+                        # Official UniFi OS Integration API v1
+                        f"{base_url}/proxy/network/integration/v1/devices",
+                        f"{base_url}/integration/v1/devices",
+                        f"{base_url}/proxy/network/integration/v1/sites/{site}/devices",
+                        f"{base_url}/integration/v1/sites/{site}/devices",
+                        # Fallback for proxies that pass headers to legacy paths
+                        f"{base_url}/proxy/network/api/s/{site}/stat/device",
+                        f"{base_url}/api/s/{site}/stat/device",
+                    ]
+
+                    for surl in candidate_urls:
+                        try:
+                            r = await client.get(surl, headers=headers)
+                            last_status_code = r.status_code
+                            if r.status_code == 200:
+                                parsed = r.json()
+                                if isinstance(parsed, list):
+                                    devices_data = parsed
+                                elif isinstance(parsed, dict):
+                                    devices_data = parsed.get("data") or parsed.get("devices") or []
+                                break
+                            elif r.status_code == 401:
+                                last_error_detail = "HTTP 401 Non Autorizzato: API Key non valida o non abilitata per UniFi Network."
+                            elif r.status_code == 403:
+                                last_error_detail = "HTTP 403 Accesso Negato: l'API Key non ha permessi di lettura dispositivi."
+                            elif r.status_code == 404:
+                                last_error_detail = f"HTTP 404 Non Trovato: l'endpoint {surl} non esiste sul server."
+                        except Exception as exc:
+                            logger.debug("Tentativo endpoint API Key %s fallito: %s", surl, exc)
+                            continue
+
+                # -------------------------------------------------------------
+                # 2. Legacy / Session Login with Username & Password
+                # (Used if no API key was provided, or if API key attempts failed and credentials exist)
+                # -------------------------------------------------------------
+                if devices_data is None and username and password:
                     login_urls = [
-                        f"{base_url.rstrip('/')}/api/auth/login",  # UniFi OS
-                        f"{base_url.rstrip('/')}/api/login",  # Legacy UniFi controller
+                        f"{base_url}/api/auth/login",  # UniFi OS
+                        f"{base_url}/api/login",       # Legacy standalone controller
                     ]
                     logged_in = False
                     for lurl in login_urls:
                         try:
                             resp = await client.post(lurl, json={"username": username, "password": password})
+                            last_status_code = resp.status_code
                             if resp.status_code == 200:
                                 logged_in = True
                                 break
-                        except Exception:
+                            elif resp.status_code == 401:
+                                last_error_detail = "HTTP 401 Autenticazione Fallita: username o password non validi."
+                        except Exception as exc:
+                            logger.debug("Tentativo login UniFi %s fallito: %s", lurl, exc)
                             continue
 
-                    if not logged_in and not api_key:
-                        result.observations.append(
-                            CollectorObservation(
-                                status="crit",
-                                details={"error": "Autenticazione al controller UniFi fallita."},
-                            )
-                        )
-                        return result
+                    if logged_in:
+                        legacy_stat_urls = [
+                            f"{base_url}/proxy/network/api/s/{site}/stat/device",
+                            f"{base_url}/api/s/{site}/stat/device",
+                            f"{base_url}/proxy/network/integration/v1/devices",
+                            f"{base_url}/integration/v1/devices",
+                        ]
+                        for surl in legacy_stat_urls:
+                            try:
+                                r = await client.get(surl)
+                                last_status_code = r.status_code
+                                if r.status_code == 200:
+                                    parsed = r.json()
+                                    if isinstance(parsed, list):
+                                        devices_data = parsed
+                                    elif isinstance(parsed, dict):
+                                        devices_data = parsed.get("data") or parsed.get("devices") or []
+                                    break
+                                elif r.status_code == 404:
+                                    last_error_detail = f"HTTP 404: Site ID '{site}' non trovato sul controller (nota: il Site ID predefinito in UniFi è 'default')."
+                            except Exception as exc:
+                                logger.debug("Tentativo recupero stat %s fallito: %s", surl, exc)
+                                continue
 
-                # Query devices endpoint
-                stat_urls = [
-                    f"{base_url.rstrip('/')}/proxy/network/api/s/{site}/stat/device",
-                    f"{base_url.rstrip('/')}/api/s/{site}/stat/device",
-                ]
-                devices_data = None
-                for surl in stat_urls:
-                    try:
-                        r = await client.get(surl, headers=headers)
-                        if r.status_code == 200:
-                            data = r.json()
-                            devices_data = data.get("data", [])
-                            break
-                    except Exception:
-                        continue
-
+                # -------------------------------------------------------------
+                # 3. Handle device list failure
+                # -------------------------------------------------------------
                 if devices_data is None:
+                    error_msg = last_error_detail
+                    if not error_msg:
+                        if last_status_code == 401:
+                            error_msg = "HTTP 401 Non Autorizzato: controlla API Key o credenziali UniFi."
+                        elif last_status_code == 404:
+                            error_msg = f"HTTP 404 Non Trovato: verifica l'URL del controller e il Site ID (usa 'default')."
+                        elif last_status_code == 403:
+                            error_msg = "HTTP 403 Accesso Negato: permessi insufficienti per leggere la lista apparati."
+                        else:
+                            error_msg = f"Impossibile recuperare la lista dispositivi UniFi (HTTP {last_status_code or 'N/D'})."
+
                     result.observations.append(
                         CollectorObservation(
                             status="warn",
-                            details={"error": "Impossibile recuperare la lista dispositivi UniFi."},
+                            details={"error": error_msg, "last_http_code": last_status_code},
                         )
                     )
                     return result
 
-                # Find target device if MAC specified, or evaluate controller health
+                # -------------------------------------------------------------
+                # 4. Find target device or report controller summary
+                # -------------------------------------------------------------
                 matched_device = None
                 for dev in devices_data:
-                    dev_mac = dev.get("mac", "").lower()
-                    dev_ip = dev.get("ip", "")
+                    dev_mac = (dev.get("macAddress") or dev.get("mac") or "").lower()
+                    dev_ip = dev.get("ipAddress") or dev.get("ip") or ""
                     if target_mac and dev_mac == target_mac:
                         matched_device = dev
                         break
@@ -116,11 +179,23 @@ class UniFiCollector(BaseCollector):
                         break
 
                 if matched_device:
-                    state = matched_device.get("state", 0)  # 1: connected, 0: disconnected, 4: upgrading
-                    is_connected = (state == 1)
-                    uptime = matched_device.get("uptime", 0)
-                    model = matched_device.get("model", "")
-                    num_sta = matched_device.get("num_sta", 0)
+                    raw_state = matched_device.get("state")
+                    if isinstance(raw_state, str):
+                        s_upper = raw_state.upper()
+                        is_connected = s_upper in ["ONLINE", "CONNECTED", "ADOPTED"]
+                        is_upgrading = s_upper in ["UPDATING", "UPGRADING"]
+                        state_code = 4 if is_upgrading else (1 if is_connected else 0)
+                    else:
+                        state_code = int(raw_state or 0)
+                        is_connected = (state_code == 1)
+                        is_upgrading = (state_code == 4)
+
+                    uptime = matched_device.get("uptime") or matched_device.get("uptimeSeconds") or 0
+                    model = matched_device.get("model") or ""
+                    num_sta = matched_device.get("num_sta") or matched_device.get("clientCount") or matched_device.get("clients") or 0
+                    dev_name = matched_device.get("name") or matched_device.get("model") or "Apparato UniFi"
+                    dev_mac = matched_device.get("macAddress") or matched_device.get("mac") or ""
+                    dev_ip = matched_device.get("ipAddress") or matched_device.get("ip") or ""
 
                     # Check switch port PoE if port_idx requested
                     port_status_info = None
@@ -137,13 +212,14 @@ class UniFiCollector(BaseCollector):
                                 break
 
                     obs_status = "ok" if is_connected else "crit"
-                    if state == 4:
-                        obs_status = "warn"  # upgrading
+                    if is_upgrading:
+                        obs_status = "warn"
 
                     details: dict[str, Any] = {
-                        "name": matched_device.get("name") or matched_device.get("model"),
-                        "mac": matched_device.get("mac"),
-                        "state_code": state,
+                        "name": dev_name,
+                        "mac": dev_mac,
+                        "ip": dev_ip,
+                        "state_code": state_code,
                         "is_connected": is_connected,
                         "uptime_seconds": uptime,
                         "client_count": num_sta,
@@ -163,43 +239,77 @@ class UniFiCollector(BaseCollector):
                         )
                     )
 
-                    if state == 4:
+                    if is_upgrading:
                         result.events.append(
                             CollectorEvent(
                                 event_type="firmware_update_detected",
                                 severity="warn",
                                 title=f"Aggiornamento firmware {model}",
-                                message=f"L'apparato {details['name']} è in fase di aggiornamento firmware.",
+                                message=f"L'apparato {dev_name} è in fase di aggiornamento firmware.",
                                 details=details,
                             )
                         )
                 else:
-                    # Controller overall observation
-                    online_count = sum(1 for d in devices_data if d.get("state") == 1)
-                    total_count = len(devices_data)
-                    result.observations.append(
-                        CollectorObservation(
-                            status="ok" if online_count == total_count else "warn",
-                            value=float(online_count),
-                            details={
-                                "controller": base_url,
-                                "total_devices": total_count,
-                                "online_devices": online_count,
-                            },
+                    # If target device was requested but not found in the controller list
+                    if target_address or target_mac:
+                        sample_names = [
+                            f"{d.get('name') or d.get('model')} ({d.get('ipAddress') or d.get('ip')})"
+                            for d in devices_data[:4]
+                        ]
+                        result.observations.append(
+                            CollectorObservation(
+                                status="ok",
+                                value=float(len(devices_data)),
+                                details={
+                                    "controller": base_url,
+                                    "warning": f"Apparato target (IP: {target_address or 'N/D'}, MAC: {target_mac or 'N/D'}) non presente nella lista apparati adottati da UniFi.",
+                                    "total_devices": len(devices_data),
+                                    "sample_devices": sample_names,
+                                },
+                            )
                         )
-                    )
+                    else:
+                        # Controller overall observation
+                        online_count = sum(
+                            1 for d in devices_data
+                            if (d.get("state") == 1 or str(d.get("state")).upper() in ["ONLINE", "CONNECTED"])
+                        )
+                        total_count = len(devices_data)
+                        result.observations.append(
+                            CollectorObservation(
+                                status="ok" if online_count == total_count else "warn",
+                                value=float(online_count),
+                                details={
+                                    "controller": base_url,
+                                    "total_devices": total_count,
+                                    "online_devices": online_count,
+                                },
+                            )
+                        )
 
+        except httpx.ConnectError as exc:
+            err_str = str(exc).lower()
+            if "certificate verify failed" in err_str or "self-signed" in err_str or "ssl" in err_str:
+                err_msg = "Errore certificato SSL: il controller usa un certificato autofirmato o non valido. Disabilita 'Verifica certificato SSL' o correggi l'hostname."
+            else:
+                err_msg = f"Connessione rifiutata verso {base_url}: controller non raggiungibile su questo indirizzo o porta."
+            result.observations.append(
+                CollectorObservation(
+                    status="warn",
+                    details={"error": err_msg},
+                )
+            )
         except httpx.TimeoutException:
             result.observations.append(
                 CollectorObservation(
-                    status="crit",
-                    details={"error": f"Timeout connessione al controller UniFi ({timeout_seconds}s)."},
+                    status="warn",
+                    details={"error": f"Timeout di connessione ({timeout_seconds}s) verso {base_url}. Verifica indirizzo o firewall."},
                 )
             )
         except Exception as exc:
             result.observations.append(
                 CollectorObservation(
-                    status="crit",
+                    status="warn",
                     details={"error": f"Errore comunicazione UniFi: {str(exc)}"},
                 )
             )
@@ -209,27 +319,45 @@ class UniFiCollector(BaseCollector):
     async def discover(self, params: dict[str, Any]) -> list[DiscoveredItem]:
         """Discover devices from UniFi network controller."""
         items: list[DiscoveredItem] = []
-        base_url = params.get("controller_url", "")
-        username = params.get("username", "")
-        password = params.get("password", "")
-        api_key = params.get("api_key", "")
-        site = params.get("site", "default")
-        verify_ssl = params.get("verify_ssl", False)
+        base_url = (params.get("controller_url") or "").strip().rstrip("/")
+        username = (params.get("username") or "").strip()
+        password = (params.get("password") or "").strip()
+        api_key = (params.get("api_key") or "").strip()
+        site = (params.get("site") or "default").strip() or "default"
+        verify_ssl = bool(params.get("verify_ssl", False))
 
         if not base_url:
             return items
 
         try:
-            async with httpx.AsyncClient(verify=verify_ssl, timeout=10.0) as client:
-                headers = {}
+            async with httpx.AsyncClient(verify=verify_ssl, timeout=10.0, follow_redirects=True) as client:
+                devices_data: list[dict[str, Any]] = []
+
                 if api_key:
-                    headers["X-API-KEY"] = api_key
-                else:
-                    login_urls = [
-                        f"{base_url.rstrip('/')}/api/auth/login",
-                        f"{base_url.rstrip('/')}/api/login",
+                    headers = {"X-API-KEY": api_key, "Accept": "application/json"}
+                    endpoints = [
+                        f"{base_url}/proxy/network/integration/v1/devices",
+                        f"{base_url}/integration/v1/devices",
+                        f"{base_url}/proxy/network/integration/v1/sites/{site}/devices",
+                        f"{base_url}/integration/v1/sites/{site}/devices",
+                        f"{base_url}/proxy/network/api/s/{site}/stat/device",
+                        f"{base_url}/api/s/{site}/stat/device",
                     ]
-                    for lurl in login_urls:
+                    for ep in endpoints:
+                        try:
+                            r = await client.get(ep, headers=headers)
+                            if r.status_code == 200:
+                                parsed = r.json()
+                                if isinstance(parsed, list):
+                                    devices_data = parsed
+                                elif isinstance(parsed, dict):
+                                    devices_data = parsed.get("data") or parsed.get("devices") or []
+                                break
+                        except Exception:
+                            continue
+
+                if not devices_data and username and password:
+                    for lurl in [f"{base_url}/api/auth/login", f"{base_url}/api/login"]:
                         try:
                             resp = await client.post(lurl, json={"username": username, "password": password})
                             if resp.status_code == 200:
@@ -237,32 +365,31 @@ class UniFiCollector(BaseCollector):
                         except Exception:
                             pass
 
-                stat_urls = [
-                    f"{base_url.rstrip('/')}/proxy/network/api/s/{site}/stat/device",
-                    f"{base_url.rstrip('/')}/api/s/{site}/stat/device",
-                ]
-                devices_data = []
-                for surl in stat_urls:
-                    try:
-                        r = await client.get(surl, headers=headers)
-                        if r.status_code == 200:
-                            devices_data = r.json().get("data", [])
-                            break
-                    except Exception:
-                        continue
+                    for ep in [
+                        f"{base_url}/proxy/network/api/s/{site}/stat/device",
+                        f"{base_url}/api/s/{site}/stat/device",
+                    ]:
+                        try:
+                            r = await client.get(ep)
+                            if r.status_code == 200:
+                                parsed = r.json()
+                                devices_data = parsed.get("data", []) if isinstance(parsed, dict) else parsed
+                                break
+                        except Exception:
+                            continue
 
                 for d in devices_data:
-                    mac = d.get("mac", "")
+                    mac = d.get("macAddress") or d.get("mac") or ""
                     name = d.get("name") or d.get("model") or mac
-                    ip = d.get("ip", "")
-                    dtype = d.get("type", "")
+                    ip = d.get("ipAddress") or d.get("ip") or ""
+                    dtype = (d.get("type") or "").lower()
 
                     kind = "custom"
-                    if dtype in ["uap", "ap"]:
+                    if dtype in ["uap", "ap"] or "ap" in str(d.get("model", "")).lower():
                         kind = "access_point"
-                    elif dtype in ["usw", "switch"]:
+                    elif dtype in ["usw", "switch"] or "switch" in str(d.get("model", "")).lower():
                         kind = "switch"
-                    elif dtype in ["ugw", "udm"]:
+                    elif dtype in ["ugw", "udm"] or "udm" in str(d.get("model", "")).lower():
                         kind = "router"
 
                     uplink_mac = d.get("uplink", {}).get("uplink_mac")

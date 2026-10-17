@@ -172,6 +172,28 @@ export async function updateCheck(
   return res.json();
 }
 
+export async function testCheckParams(payload: {
+  type: string;
+  target_address?: string;
+  params: Record<string, any>;
+  timeout_seconds?: number;
+}): Promise<{
+  status: string;
+  value?: any;
+  details: Record<string, any>;
+}> {
+  const res = await fetch(`${API_BASE}/checks/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Errore esecuzione test connettività.');
+  }
+  return res.json();
+}
+
 export async function deleteCheck(checkId: string): Promise<void> {
   const res = await fetch(`${API_BASE}/checks/${checkId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Errore eliminazione controllo.');

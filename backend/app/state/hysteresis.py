@@ -123,11 +123,23 @@ def synthesize_device_status(
             new_st = "down"
             return (new_st, current_device_status != new_st)
 
+        # Ping is OK: device is reachable on the network.
+        # Filter out external controller/tool integrations (UniFi, AdGuard, HA) that query remote
+        # management APIs so integration/credential issues don't degrade network reachability.
+        effective_checks = [
+            c for c in check_statuses
+            if c.get("type") not in {"unifi", "adguard_home", "home_assistant"}
+        ]
+        if not effective_checks:
+            effective_checks = ping_checks
+    else:
+        effective_checks = check_statuses
+
     # Check for service degradation
-    has_crit = any(c.get("status") == "crit" for c in check_statuses)
-    has_warn = any(c.get("status") == "warn" for c in check_statuses)
-    all_ok = all(c.get("status") == "ok" for c in check_statuses)
-    all_unknown = all(c.get("status") == "unknown" for c in check_statuses)
+    has_crit = any(c.get("status") == "crit" for c in effective_checks)
+    has_warn = any(c.get("status") == "warn" for c in effective_checks)
+    all_ok = all(c.get("status") == "ok" for c in effective_checks)
+    all_unknown = all(c.get("status") == "unknown" for c in effective_checks)
 
     if all_ok:
         new_st = "ok"

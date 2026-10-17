@@ -160,6 +160,12 @@ def test_device_status_synthesis():
     assert status3 == "ok"
     assert changed3
 
+    # When ping is ok, but external tool integration (unifi, adguard, ha) has warning/error -> device remains ok
+    checks_unifi_warn = [{"type": "ping", "status": "ok"}, {"type": "unifi", "status": "warn"}]
+    status4, changed4 = synthesize_device_status("ok", checks_unifi_warn)
+    assert status4 == "ok"
+    assert not changed4
+
 
 def test_flapping_detector():
     """Verify rapid transitions trigger flapping condition."""

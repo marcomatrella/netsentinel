@@ -185,6 +185,13 @@ class CheckRead(CheckBase):
     next_run_at: datetime | None = None
 
 
+class CheckTestPayload(NetSentinelBaseModel):
+    type: str
+    target_address: str | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+    timeout_seconds: float = 6.0
+
+
 # ---------------------------------------------------------------------------
 # Observation & Event Schemas
 # ---------------------------------------------------------------------------
