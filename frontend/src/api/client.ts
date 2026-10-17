@@ -149,6 +149,29 @@ export async function createCheck(payload: {
   return res.json();
 }
 
+export async function updateCheck(
+  checkId: string,
+  payload: {
+    name?: string;
+    params?: Record<string, any>;
+    interval_seconds?: number;
+    timeout_seconds?: number;
+    thresholds?: Record<string, any>;
+    enabled?: boolean;
+  }
+): Promise<Check> {
+  const res = await fetch(`${API_BASE}/checks/${checkId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Errore aggiornamento controllo.');
+  }
+  return res.json();
+}
+
 export async function deleteCheck(checkId: string): Promise<void> {
   const res = await fetch(`${API_BASE}/checks/${checkId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Errore eliminazione controllo.');

@@ -11,6 +11,7 @@ import {
   Clock,
   Shield,
   Edit3,
+  Pencil,
   Save,
   Undo2,
   Globe,
@@ -40,6 +41,7 @@ import { PRESET_COLORS, getDeviceColorId, setDeviceColorTag, getColorConfig } fr
 import { formatTimeOnly } from '../../utils/date';
 import { DeviceColorModal } from './DeviceColorModal';
 import { SpeedtestWidget } from './SpeedtestWidget';
+import { EditCheckModal } from '../modals/EditCheckModal';
 import { useTranslation } from '../../i18n/I18nContext';
 
 
@@ -267,6 +269,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const [newCheckDnsDomain, setNewCheckDnsDomain] = useState<string>('google.com');
   const [newCheckInterval, setNewCheckInterval] = useState<number>(30);
   const [isCreatingCheck, setIsCreatingCheck] = useState<boolean>(false);
+  const [editingCheck, setEditingCheck] = useState<Check | null>(null);
 
   useEffect(() => {
     if (device) {
@@ -294,6 +297,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
       setIsEditing(false);
       setShowAddCheck(false);
       setIsColorModalOpen(false);
+      setEditingCheck(null);
     }
   }, [device]);
 
@@ -546,7 +550,8 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   };
 
   const handleDeleteCheck = async (checkId: string) => {
-    if (!window.confirm(t('device_detail.delete_check_confirm', { name: checkId }))) return;
+    const chk = checks.find((c) => c.id === checkId);
+    if (!window.confirm(t('device_detail.delete_check_confirm', { name: chk?.name || checkId }))) return;
     try {
       await deleteCheck(checkId);
       const updated = await fetchDeviceChecks(device.id);
@@ -554,6 +559,17 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
     } catch (err: any) {
       alert('Delete check error: ' + (err.message || 'Check backend.'));
     }
+  };
+
+  const handleCheckUpdated = async (updated: Check) => {
+    if (!device) return;
+    const refreshedChecks = await fetchDeviceChecks(device.id);
+    setChecks(refreshedChecks);
+    if (onRefreshTopology) {
+      onRefreshTopology();
+    }
+    // Auto-run the check immediately to verify new credentials
+    handleRunCheck(updated.id);
   };
 
   const toggleCheckExpanded = (checkId: string) => {
@@ -1793,14 +1809,24 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
 
                         {/* Action Buttons */}
                         <div className="flex justify-between items-center pt-1.5 border-t border-slate-200 dark:border-slate-700/40">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCheck(chk.id)}
-                            className="text-slate-400 hover:text-rose-500 transition p-1 rounded"
-                            title={t('device_detail.btn_cancel')}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingCheck(chk)}
+                              className="text-slate-400 hover:text-sky-500 transition p-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                              title={t('device_detail.btn_edit_check')}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCheck(chk.id)}
+                              className="text-slate-400 hover:text-rose-500 transition p-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                              title={t('device_detail.delete_check_confirm', { name: chk.name })}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
 
                           <div className="flex items-center gap-2">
                             <button
@@ -2017,6 +2043,15 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
         device={device}
         onClose={() => setIsColorModalOpen(false)}
         onSave={handleSaveColor}
+      />
+
+      {/* Centered Edit Check Modal */}
+      <EditCheckModal
+        isOpen={Boolean(editingCheck)}
+        check={editingCheck}
+        device={device}
+        onClose={() => setEditingCheck(null)}
+        onCheckUpdated={handleCheckUpdated}
       />
     </div>
   );
