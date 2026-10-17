@@ -4,6 +4,25 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.2.0] - 2026-10-18
+
+### 🚀 Major Update: Integrazioni Hardware di Primo Livello & Gestione Avanzata
+- **Sezione "Integrazioni" Dedicata nel Dettaglio Apparato**: Introdotta una nuova sezione chiaramente separata dai controlli di rete standard all'interno della vista apparato, per censire e gestire integrazioni dedicate di primo livello (UniFi, AdGuard Home, Home Assistant, Synology DSM).
+- **Badge Interattivi e Bubble sul Canvas**: Gli apparati con integrazioni attive mostrano un badge con icona personalizzata (UniFi, AdGuard, HA, Synology) in una bubble fluttuante direttamente sul canvas di rete; un clic apre un menu contestuale rapido per consultare la telemetria live o modificare la configurazione.
+- **Finestra Telemetria in Tempo Reale**: Modal dedicata che mostra metriche dettagliate (client connessi, consumi PoE, query DNS bloccate, stato pool RAID, temperature, firmware) con pulsante di aggiornamento manuale istantaneo e modifica parametri.
+- **Test Preventivo di Raggiungibilità ("Test Raggiungibilità")**: Aggiunto un pulsante per verificare credenziali, token API ed endpoint prima di salvare la configurazione, eliminando errori a runtime.
+- **Supporto UniFi OS Moderno & Controller Standalone**:
+  - Selettore visivo per **UniFi OS** (UDM, Cloud Key Gen2, UDR, UniFi OS Server con porta HTTPS standard) e **Controller Legacy / Standalone** (porta :8443).
+  - Pieno supporto per **UniFi OS API Key** (Settings → System → Integrations) e autenticazione con credenziali.
+- **Riconoscimento e Gestione 2FA / MFA UniFi**: Rilevamento automatico della richiesta 2FA (`api.err.Ubic2faTokenRequired`) con interfaccia per l'inserimento dell'OTP e verifica istantanea via API.
+- **Sospensione Automatica Anti-Lockout / Anti-Spam**: In caso di errore di autenticazione o richiesta 2FA, lo scheduler di backend sospende automaticamente il polling in background (`next_run_at = None`) evitando il blocco dell'account e lo spam continuo di email OTP da parte dei vendor.
+- **Disaccoppiamento tra Raggiungibilità di Rete e Servizi Terzi**: Un'eventuale anomalia di un servizio esterno/cloud non degrada più la raggiungibilità fisica dell'apparato sulla LAN (se pingabile, rimane verde e operativo).
+- **Miglioramenti UI e Sicurezza Operativa**:
+  - Distinzione cromatica gialla per il pulsante "Simula guasto What If", per non confonderlo con le azioni distruttive.
+  - Dialog di conferma al centro dello schermo prima di eliminare qualsiasi apparato dal sistema, con indicazione esplicita del nome dispositivo.
+  - Riordinamento del menu: "Backup e ripristino plancia" collocato sotto "Visualizzazione e Controlli".
+- **Parità i18n al 100%**: Traduzione completa e sincronizzata per tutte le 5 lingue supportate (it, en, de, fr, es).
+
 ## [1.1.13] - 2026-10-17
 
 ### Novità & Miglioramenti

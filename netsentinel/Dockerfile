@@ -1,4 +1,4 @@
-ARG BUILD_FROM=ghcr.io/marcomatrella/netsentinel:1.1.13
+ARG BUILD_FROM=ghcr.io/marcomatrella/netsentinel:1.2.0
 FROM ${BUILD_FROM}
 
 USER root

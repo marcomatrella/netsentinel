@@ -212,19 +212,24 @@ NetSentinel can be installed directly as an official **Add-on in Home Assistant 
 * **Live Operational Mode**: Read-only monitoring view where nodes are locked to prevent accidental movement. Displays live RTT ping latency, operational status rings, and animated link pulses.
 * **Edit Mode**: One-click top bar button unlocks node dragging, canvas panning, connection handles, node deletion, and custom positioning.
 * **Auto-Layout (ELK.js)**: Automatically organizes complex messy networks into clean hierarchical tiers (WAN → Gateway → Core Switches → Access Points & Servers → Clients).
+* **Batch Operations & Area Selection**: Select multiple devices via rectangular selection tool to reposition, inspect, or delete in batch with central confirmation modal.
+* **What-If Failure Simulation**: Distinct yellow simulation button to trigger hypothetical outages on any node (e.g. core router failure) to visualize downstream impact without breaking production.
+* **Safety First**: Destructive actions (like device deletion) always prompt a centered confirmation modal reporting the exact device name.
+* **Plancia Backup & Restore**: Export and import full canvas topology configurations directly from the dropdown menu.
 * **12 Visual Color Accents**: Distinguish boxes at a glance (e.g. Amber for NAS, Violet for Proxmox/VMs, Rose for Firewalls, Orange for UPS, Teal for APs) without overriding health status borders.
 * **Custom Checks & Real-Time Diagnostics**: Add specific TCP port checks, HTTP healthcheck URLs, or ICMP pings per device. Executing a test triggers an informative timed toast with actual latency and response metrics.
 
 ### 🌐 Internationalization & Languages
-Full multi-language support available directly from the header dropdown menu:
+Full multi-language support (100% key parity) available directly from the header dropdown menu:
 * 🇮🇹 **Italiano**
 * 🇬🇧 **English**
 * 🇫🇷 **Français**
 * 🇩🇪 **Deutsch**
 * 🇪🇸 **Español**
 
-### 📋 Event Logs & Diagnostic Narrative
-* Human-readable, searchable log of all network events, outages, flaps, and recoveries.
+### 📋 Event Logs & Minimal NOC Table
+* High-density, searchable log with fixed headers (`sticky headers`) and high-contrast severity badges (`border-l-4`).
+* **Dedicated "Riavvii" (Reboots) Tab**: AP and device reboot events (`reboot_detected`) are cleanly separated from alarms to keep the incident log focused on actual outages.
 * **"Inspect on Canvas"**: Instantly jumps to the corresponding device on the topology map.
 * Filter by severity (Critical, Warning, Informational) or search by device name and IP.
 
@@ -234,9 +239,52 @@ Full multi-language support available directly from the header dropdown menu:
 
 ### 🔔 Alerting & Notifications
 * **Consolidated Incident Reports**: Sends one clean HTML summary per incident, not a storm of individual device down emails.
-* **Supported Channels**: SMTP Email, ntfy, Webhooks, Home Assistant notifications.
+* **Supported Channels**: SMTP Email, Web Push Notifications (PWA), ntfy, Webhooks, Home Assistant notifications.
+* **Anti-Storm Settling Window**: Buffers rapid cascading transitions (like nightly router reboots) and emits a single resolved incident log.
 * **Quiet Hours**: Mute non-critical notifications at night while allowing critical core failures to pass through.
 * **WAN Blackout Queue**: If your internet connection drops, notifications are safely queued on disk and dispatched immediately upon WAN recovery.
+
+---
+
+## 🔌 First-Class Hardware & Service Integrations
+
+While basic monitoring checks tell you whether a network port is answering, **NetSentinel's First-Class Integrations** connect directly to device management APIs to extract rich internal telemetry, hardware metrics, and service states.
+
+### 💡 How Integrations Work & Added Value
+1. **Decoupled Reachability vs Service Degradation**:
+   NetSentinel decouples physical LAN reachability from external software services. If a vendor cloud API rate-limits, an authentication token expires, or a cloud controller desyncs, the device stays green (`ok`) on the network map as long as it responds to local ping.
+2. **Dedicated "Integrazioni" Panel in Device Drawer**:
+   Configured in a dedicated section below network checks, separated by a clean divider. You can easily add, edit, or remove integrations at any time.
+3. **Interactive Canvas Badges & Bubbles**:
+   Apparata with active integrations display an icon badge inside a floating bubble directly next to the node on the canvas. Clicking the bubble reveals a quick context menu with available integrations and launches the telemetry inspection modal.
+4. **Pre-Flight Reachability Test ("Test Raggiungibilità")**:
+   Every integration form includes an interactive test button that validates endpoints, API keys, and credentials before saving.
+5. **Anti-Lockout & Anti-Spam Auto-Suspension**:
+   If an integration encounters an authentication failure or triggers a 2FA challenge, background polling is **immediately suspended** (`next_run_at = None`) to prevent vendor account lockout, IP blacklisting, or endless OTP email spam.
+
+### 🛠️ Supported Integrations
+
+#### 📡 Ubiquiti UniFi (UniFi OS & Standalone Controller)
+* **UniFi OS Modern Support**: Connects to Cloud Key Gen2, Dream Machine (UDM/UDR), and modern UniFi OS Servers on port 443 using **UniFi OS API Keys** (Settings → System → Integrations) or admin credentials.
+* **Legacy Controller Support**: Fully supports standalone/Docker UniFi Controller v1 installations on port 8443.
+* **2FA / MFA Challenge Resolution**: Automatically detects `api.err.Ubic2faTokenRequired` challenges and presents an interactive OTP verification prompt with `X-Ubic-2FA-Token` header support.
+* **Telemetry Gathered**: AP adoption status, model name, connected client count, total PoE power delivery (Watts), and controller device inventory.
+
+#### 🛡️ AdGuard Home
+* **DNS Metrics & Filter Telemetry**: Connects to AdGuard Home REST API (`/control/stats` and `/control/status`).
+* **Telemetry Gathered**: Protection state (active/paused), total DNS queries (last 24h), blocked ad & tracker queries, blocking percentage, and average query processing latency (ms).
+
+#### 💾 Synology DSM
+* **Storage & Hardware Telemetry**: Connects via DSM Web API (`/webapi/entry.cgi`).
+* **Telemetry Gathered**: RAID storage pool health (Healthy, Degraded, Crashed), individual drive/disk status, system and CPU temperatures, and DSM version.
+
+#### 🏠 Home Assistant
+* **Smart Plug & Energy Telemetry**: Connects via Long-Lived Access Token.
+* **Telemetry Gathered**: Smart plug power draw (Watts), relay operational states, environmental sensors, and entity telemetry.
+
+#### 🔋 Network UPS Tools (NUT) & SNMP
+* **NUT UPS Monitoring**: Direct TCP client (port 3493) monitoring UPS battery charge, load wattage, and AC grid power state.
+* **SNMP v1/v2c**: Pure Python UDP SNMP packet builder and parser for interface traffic and custom OIDs.
 
 ---
 
