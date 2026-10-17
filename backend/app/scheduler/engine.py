@@ -173,10 +173,13 @@ class SchedulerEngine:
             try:
                 now = utcnow()
                 async with AsyncSessionLocal() as session:
-                    # Find enabled checks due for run
+                    # Find enabled checks due for run (excluding suspended integration checks that require user auth/MFA)
                     stmt = select(Check).where(
                         Check.enabled.is_(True),
-                        (Check.next_run_at.is_(None)) | (Check.next_run_at <= now),
+                        (
+                            (Check.next_run_at.is_(None) & ~Check.type.in_(["unifi", "adguard_home", "home_assistant", "synology_dsm"]))
+                            | (Check.next_run_at.is_not(None) & (Check.next_run_at <= now))
+                        ),
                     ).limit(50)
                     res = await session.execute(stmt)
                     due_checks = res.scalars().all()
@@ -288,6 +291,35 @@ class SchedulerEngine:
 
         # Process hysteresis and state updates
         await self._process_check_state_update(chk.id, chk.device_id, obs)
+
+        # Suspend recurring runs for external integrations if authentication or MFA challenge fails
+        is_auth_or_mfa = (
+            bool(obs.details.get("mfa_required"))
+            or bool(obs.details.get("auth_failed"))
+            or obs.details.get("last_http_code") in (401, 403, 429)
+            or "Ubic2faTokenRequired" in str(obs.details.get("error", ""))
+        )
+        if is_auth_or_mfa and chk.type in {"unifi", "adguard_home", "home_assistant", "synology_dsm"}:
+            async with AsyncSessionLocal() as session:
+                c = await session.get(Check, chk.id)
+                if c:
+                    c.next_run_at = None
+                    try:
+                        pj = json.loads(c.params_json) if c.params_json else {}
+                        pj["auth_suspended"] = True
+                        if obs.details.get("mfa_required"):
+                            pj["mfa_required"] = True
+                        c.params_json = json.dumps(pj)
+                    except Exception:
+                        pass
+                    await session.commit()
+            logger.warning(
+                "⚠️ [SCHEDULER] Check integrazione '%s' (%s) fallito per autenticazione/MFA: "
+                "esecuzione periodica automatica SOSPESA per prevenire lockout o email multiple dal vendor. "
+                "Il retry avverrà solo su test o salvataggio da parte dell'utente.",
+                chk.name,
+                chk.id,
+            )
 
     async def _process_check_state_update(self, check_id: str, device_id: str, obs: Any) -> None:
         """Apply hysteresis, check for flapping/reboots, and update device status."""

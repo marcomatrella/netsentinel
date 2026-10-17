@@ -98,6 +98,10 @@ class UniFiCollector(BaseCollector):
                 # 2. Legacy / Session Login with Username & Password
                 # (Used if no API key was provided, or if API key attempts failed and credentials exist)
                 # -------------------------------------------------------------
+                mfa_required = False
+                auth_failed = False
+                mfa_token = str(params.get("mfa_token") or params.get("token") or params.get("code") or "").strip()
+
                 if devices_data is None and username and password:
                     login_urls = [
                         f"{base_url}/api/auth/login",  # UniFi OS
@@ -106,13 +110,53 @@ class UniFiCollector(BaseCollector):
                     logged_in = False
                     for lurl in login_urls:
                         try:
-                            resp = await client.post(lurl, json={"username": username, "password": password})
+                            login_body = {
+                                "username": username,
+                                "password": password,
+                                "rememberMe": True,
+                            }
+                            login_headers = {
+                                "Accept": "application/json",
+                            }
+                            if mfa_token:
+                                login_body["token"] = mfa_token
+                                login_headers["X-Ubic-2FA-Token"] = mfa_token
+                                login_headers["X-Ubic-2FA-Code"] = mfa_token
+
+                            resp = await client.post(lurl, json=login_body, headers=login_headers)
                             last_status_code = resp.status_code
                             if resp.status_code == 200:
                                 logged_in = True
                                 break
-                            elif resp.status_code == 401:
-                                last_error_detail = "HTTP 401 Autenticazione Fallita: username o password non validi."
+
+                            resp_text = resp.text
+                            # Detect UniFi 2FA / MFA challenge
+                            if (
+                                "Ubic2faTokenRequired" in resp_text
+                                or "api.err.Ubic2faTokenRequired" in resp_text
+                                or "2fa" in resp_text.lower()
+                                or "mfa" in resp_text.lower()
+                            ):
+                                mfa_required = True
+                                auth_failed = True
+                                last_error_detail = (
+                                    "È richiesta l'autenticazione a due fattori (2FA/MFA) di UniFi. "
+                                    "Inserisci il codice di sicurezza (OTP) inviato via email o generato dalla tua app Authenticator."
+                                )
+                                # Stop attempting other login URLs to avoid triggering multiple OTP emails
+                                break
+                            elif resp.status_code in (400, 401):
+                                auth_failed = True
+                                if "Invalid2faToken" in resp_text or "invalid token" in resp_text.lower():
+                                    mfa_required = True
+                                    last_error_detail = "Codice 2FA non valido o scaduto. Verifica il codice e riprova."
+                                    break
+                                else:
+                                    last_error_detail = "HTTP 401 Autenticazione Fallita: username o password non validi su UniFi."
+                            elif resp.status_code == 403:
+                                auth_failed = True
+                                last_error_detail = "HTTP 403 Accesso Negato: utente non autorizzato o account temporaneamente bloccato."
+                                break
                         except Exception as exc:
                             logger.debug("Tentativo login UniFi %s fallito: %s", lurl, exc)
                             continue
@@ -149,17 +193,24 @@ class UniFiCollector(BaseCollector):
                     if not error_msg:
                         if last_status_code == 401:
                             error_msg = "HTTP 401 Non Autorizzato: controlla API Key o credenziali UniFi."
+                            auth_failed = True
                         elif last_status_code == 404:
                             error_msg = f"HTTP 404 Non Trovato: verifica l'URL del controller e il Site ID (usa 'default')."
                         elif last_status_code == 403:
                             error_msg = "HTTP 403 Accesso Negato: permessi insufficienti per leggere la lista apparati."
+                            auth_failed = True
                         else:
                             error_msg = f"Impossibile recuperare la lista dispositivi UniFi (HTTP {last_status_code or 'N/D'})."
 
                     result.observations.append(
                         CollectorObservation(
                             status="warn",
-                            details={"error": error_msg, "last_http_code": last_status_code},
+                            details={
+                                "error": error_msg,
+                                "last_http_code": last_status_code,
+                                "mfa_required": mfa_required,
+                                "auth_failed": auth_failed,
+                            },
                         )
                     )
                     return result

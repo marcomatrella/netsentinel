@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Save,
   Sliders,
+  Shield,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 import { Device, DeviceIntegration } from '../../types';
@@ -68,6 +69,11 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
     Boolean(existingIntegration?.params?.verify_ssl || existingIntegration?.params?.https)
   );
 
+  const [mfaToken, setMfaToken] = useState<string>(
+    existingIntegration?.params?.mfa_token || ''
+  );
+  const [isMfaRequired, setIsMfaRequired] = useState<boolean>(false);
+
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testResult, setTestResult] = useState<{
     ok: boolean;
@@ -90,6 +96,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
           api_key: apiKey.trim() || undefined,
           username: username.trim() || undefined,
           password: password.trim() || undefined,
+          mfa_token: mfaToken.trim() || undefined,
           site: site.trim() || 'default',
           verify_ssl: useHttps,
         };
@@ -138,7 +145,11 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
           ? t('device_detail.test_success_controller', { count: res.details.total_devices })
           : t('device_detail.test_success');
         setTestResult({ ok: true, message: msg, details: res.details });
+        setIsMfaRequired(false);
       } else {
+        if (res.details?.mfa_required) {
+          setIsMfaRequired(true);
+        }
         const errMsg =
           res.details?.error || res.details?.warning || t('device_detail.test_failed_generic');
         setTestResult({ ok: false, message: errMsg, details: res.details });
@@ -360,23 +371,66 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                 </div>
 
                 {unifiMode === 'os' ? (
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {t('device_detail.check_unifi_api_key_label')}
-                    </label>
-                    <input
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => {
-                        setApiKey(e.target.value);
-                        setTestResult(null);
-                      }}
-                      placeholder="UniFi OS API Key"
-                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                    />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      {t('device_detail.unifi_api_key_hint')}
-                    </p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        {t('device_detail.check_unifi_api_key_label')}
+                      </label>
+                      <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => {
+                          setApiKey(e.target.value);
+                          setTestResult(null);
+                        }}
+                        placeholder="UniFi OS API Key"
+                        className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        {t('device_detail.unifi_api_key_hint')}
+                      </p>
+                    </div>
+
+                    <div className="relative flex py-1 items-center">
+                      <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+                      <span className="flex-shrink mx-2 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                        {t('device_detail.or_credentials')}
+                      </span>
+                      <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          {t('device_detail.check_username_label')}
+                        </label>
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={(e) => {
+                            setUsername(e.target.value);
+                            setTestResult(null);
+                          }}
+                          placeholder="Local Admin / Email"
+                          className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          {t('device_detail.check_password_label')}
+                        </label>
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            setTestResult(null);
+                          }}
+                          placeholder="••••••••"
+                          className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
@@ -410,6 +464,43 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                         className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
                       />
                     </div>
+                  </div>
+                )}
+
+                {(isMfaRequired || Boolean(mfaToken) || testResult?.details?.mfa_required) && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2 animate-fade-in">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold text-xs">
+                      <Shield className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>{t('device_detail.unifi_mfa_title')}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                      {t('device_detail.unifi_mfa_desc')}
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        value={mfaToken}
+                        onChange={(e) => {
+                          setMfaToken(e.target.value);
+                          setTestResult(null);
+                        }}
+                        placeholder={t('device_detail.unifi_mfa_placeholder')}
+                        maxLength={8}
+                        className="flex-1 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700/60 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono tracking-widest text-center focus:outline-none focus:border-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTestConnection}
+                        disabled={isTesting || !mfaToken.trim()}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium text-xs transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-sm"
+                      >
+                        {isTesting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                        <span>{t('device_detail.unifi_mfa_verify_btn')}</span>
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-amber-700 dark:text-amber-300/80 leading-normal bg-amber-500/10 p-2 rounded-lg">
+                      💡 {t('device_detail.unifi_mfa_tip')}
+                    </p>
                   </div>
                 )}
 

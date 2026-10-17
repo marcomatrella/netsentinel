@@ -104,6 +104,7 @@ async def create_check(payload: CheckCreate, db: AsyncSession = Depends(get_db))
         recovery_policy_json=json.dumps(payload.recovery_policy.model_dump()),
         enabled=payload.enabled,
         current_status="unknown",
+        next_run_at=datetime.utcnow(),
     )
     db.add(chk)
     await db.commit()
@@ -209,6 +210,9 @@ async def update_check(
         chk.recovery_policy_json = json.dumps(payload.recovery_policy.model_dump())
     if payload.enabled is not None:
         chk.enabled = payload.enabled
+
+    if payload.params is not None or payload.enabled is True:
+        chk.next_run_at = datetime.utcnow()
 
     await db.commit()
     await db.refresh(chk)
