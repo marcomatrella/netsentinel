@@ -70,6 +70,12 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>([]);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
 
+  // Automatically prune deselected/deleted devices from selection state
+  useEffect(() => {
+    const validIds = new Set(devices.map((d) => d.id));
+    setSelectedDeviceIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [devices]);
+
   const nodeTypes = useMemo(() => ({ customNode: CustomNode as any }), []);
   const edgeTypes = useMemo(() => ({ customEdge: CustomEdge as any }), []);
 
@@ -397,6 +403,10 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
 
   const handleTriggerBatchDelete = () => {
     if (selectedDevicesList.length === 0) return;
+    if (selectedDevicesList.length === 1 && onDeleteDevice) {
+      onDeleteDevice(selectedDevicesList[0].id);
+      return;
+    }
     setDevicesPendingBatchDelete(selectedDevicesList);
     setIsConfirmModalOpen(true);
   };
@@ -532,7 +542,6 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           const targetId = selectedDeviceIds[0];
           if (onDeleteDevice) {
             onDeleteDevice(targetId);
-            setSelectedDeviceIds([]);
           }
         }
       }

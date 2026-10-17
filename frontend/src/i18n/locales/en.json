@@ -453,6 +453,8 @@
     "role_vantage_point_transfer": "Note: the role will be transferred and removed from '{{name}}'",
     "notes_title": "Wiring / Installation Notes",
     "delete_device": "Delete device from topology",
+    "confirm_delete_title": "Confirm Device Deletion",
+    "confirm_delete_hint": "Associated checks will be stopped and connections removed.",
     "delete_confirm": "Are you sure you want to delete '{{name}}'? All connected links will also be removed.",
     "checks_title": "Integrity Checks & Active Tests",
     "speedtest_title": "Internet Speedtest",

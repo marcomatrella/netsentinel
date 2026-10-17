@@ -59,6 +59,7 @@ import { NotificationSettingsModal } from './components/notifications/Notificati
 import { EventLogsModal } from './components/events/EventLogsModal';
 import { SystemSettingsModal } from './components/modals/SystemSettingsModal';
 import { ScheduledMaintenanceModal } from './components/modals/ScheduledMaintenanceModal';
+import { ConfirmDeleteDeviceModal } from './components/modals/ConfirmDeleteDeviceModal';
 import { HeaderMenuDropdown } from './components/navigation/HeaderMenuDropdown';
 import { MobileQuickActionsDropdown } from './components/navigation/MobileQuickActionsDropdown';
 import { LanguageSwitcher } from './components/navigation/LanguageSwitcher';
@@ -89,6 +90,8 @@ export const App: React.FC = () => {
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [retentionPeriod, setRetentionPeriod] = useState<string>('24h');
+  const [devicePendingDelete, setDevicePendingDelete] = useState<Device | null>(null);
+  const [isDeletingDevice, setIsDeletingDevice] = useState<boolean>(false);
   const [isScheduledMaintenanceOpen, setIsScheduledMaintenanceOpen] = useState<boolean>(false);
   const [maintenanceTargetDeviceId, setMaintenanceTargetDeviceId] = useState<string | null>(null);
   const [isEventLogsOpen, setIsEventLogsOpen] = useState<boolean>(false);
@@ -509,34 +512,41 @@ export const App: React.FC = () => {
     }
   };
 
-  // Delete single device from topology (local in edit mode, or direct API delete in live mode)
-  const handleDeleteDevice = async (devId: string) => {
+  // Trigger single device delete confirmation modal
+  const handleDeleteDevice = (devId: string) => {
     if (!topology) return;
     const targetDev = topology.devices.find((d) => d.id === devId);
-    const devName = targetDev ? targetDev.name : devId;
+    if (!targetDev) return;
+    setDevicePendingDelete(targetDev);
+  };
 
-    if (!isEditMode) {
-      if (!window.confirm(`Sei sicuro di voler eliminare l'apparato "${devName}"?`)) {
-        return;
-      }
-      try {
+  // Perform confirmed single device deletion (API call in live mode, state update in edit mode)
+  const handleConfirmDeleteDevice = async () => {
+    if (!devicePendingDelete || !topology) return;
+    const devId = devicePendingDelete.id;
+    setIsDeletingDevice(true);
+    try {
+      if (!isEditMode) {
         await deleteDevice(devId);
         await loadData();
-        if (selectedDevice?.id === devId) setSelectedDevice(null);
-        return;
-      } catch (err: any) {
-        alert(err.message || "Errore durante l'eliminazione dell'apparato.");
-        return;
+      } else {
+        setTopology({
+          ...topology,
+          devices: topology.devices.filter((d) => d.id !== devId),
+          links: topology.links.filter(
+            (l) => l.from_device_id !== devId && l.to_device_id !== devId
+          ),
+        });
       }
+      if (selectedDevice?.id === devId) {
+        setSelectedDevice(null);
+      }
+      setDevicePendingDelete(null);
+    } catch (err: any) {
+      alert(err.message || "Errore durante l'eliminazione dell'apparato.");
+    } finally {
+      setIsDeletingDevice(false);
     }
-
-    // In Edit Mode: stage deletion locally
-    setTopology({
-      ...topology,
-      devices: topology.devices.filter((d) => d.id !== devId),
-      links: topology.links.filter((l) => l.from_device_id !== devId && l.to_device_id !== devId),
-    });
-    if (selectedDevice?.id === devId) setSelectedDevice(null);
   };
 
   // Batch delete multiple devices from topology
@@ -1340,6 +1350,15 @@ export const App: React.FC = () => {
         onClose={() => setIsDiscoveryOpen(false)}
         existingDevices={topology?.devices || []}
         onAddDiscoveredDevices={handleAddDiscoveredDevices}
+      />
+
+      {/* Centered Device Delete Confirmation Modal */}
+      <ConfirmDeleteDeviceModal
+        isOpen={!!devicePendingDelete}
+        device={devicePendingDelete}
+        onClose={() => setDevicePendingDelete(null)}
+        onConfirm={handleConfirmDeleteDevice}
+        isDeleting={isDeletingDevice}
       />
     </div>
   );

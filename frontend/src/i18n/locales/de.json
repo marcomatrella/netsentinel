@@ -441,6 +441,8 @@
     "role_vantage_point_transfer": "Hinweis: Die Rolle wird übertragen und von '{{name}}' entfernt",
     "notes_title": "Verkabelungs- / Installationshinweise",
     "delete_device": "Gerät aus Topologie löschen",
+    "confirm_delete_title": "Gerätelöschung bestätigen",
+    "confirm_delete_hint": "Zugehörige Prüfungen werden gestoppt und Verbindungen entfernt.",
     "delete_confirm": "Möchten Sie '{{name}}' wirklich löschen? Alle verbundenen Links werden ebenfalls entfernt.",
     "checks_title": "Integritätsprüfungen & aktive Tests",
     "speedtest_title": "Internet-Speedtest",

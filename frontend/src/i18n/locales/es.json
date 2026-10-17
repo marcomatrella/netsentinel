@@ -441,6 +441,8 @@
     "role_vantage_point_transfer": "Nota: el rol se transferirá y se eliminará de '{{name}}'",
     "notes_title": "Notas Cableado / Instalación",
     "delete_device": "Eliminar dispositivo de la topología",
+    "confirm_delete_title": "Confirmar eliminación del dispositivo",
+    "confirm_delete_hint": "Las comprobaciones asociadas se detendrán y se eliminarán las conexiones.",
     "delete_confirm": "¿Está seguro de que desea eliminar '{{name}}'? Todos los enlaces conectados también serán eliminados.",
     "checks_title": "Comprobaciones de Integridad & Pruebas Activas",
     "speedtest_title": "Speedtest Conexión a Internet",

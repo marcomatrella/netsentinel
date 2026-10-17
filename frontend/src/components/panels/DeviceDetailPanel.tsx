@@ -616,10 +616,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
           )}
           {onDeleteDevice && (
             <button
-              onClick={() => {
-                onDeleteDevice(device.id);
-                onClose();
-              }}
+              onClick={() => onDeleteDevice(device.id)}
               className="p-1.5 rounded-lg border bg-white hover:bg-rose-50 text-rose-600 border-rose-200 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/80 transition cursor-pointer"
               title={t('device_detail.delete_device')}
             >
@@ -1089,10 +1086,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                 {onDeleteDevice && (
                   <div className="pt-2">
                     <button
-                      onClick={() => {
-                        onDeleteDevice(device.id);
-                        onClose();
-                      }}
+                      onClick={() => onDeleteDevice(device.id)}
                       className="w-full py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl font-medium transition text-xs flex items-center justify-center gap-1.5"
                     >
                       {t('device_detail.delete_device')}
