@@ -118,3 +118,4 @@ export const ConfirmDeleteDeviceModal: React.FC<ConfirmDeleteDeviceModalProps> =
     </div>
   );
 };
+

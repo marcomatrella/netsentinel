@@ -158,24 +158,6 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
                 </div>
               </div>
             </button>
-
-            {/* Backup & Ripristino Plancia */}
-            <button
-              onClick={() => handleAction(onOpenBackupRestore)}
-              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group cursor-pointer"
-            >
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
-                <FileJson className="w-3.5 h-3.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
-                  {t('menu.backup_restore') || 'Backup & Ripristino Plancia'}
-                </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                  {t('menu.backup_restore_desc') || 'Esporta o ripristina la topologia e layout via JSON'}
-                </div>
-              </div>
-            </button>
           </div>
 
           {/* Sezione 2: Configurazioni generali */}
@@ -246,6 +228,24 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
             <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {t('menu.section_tools')}
             </div>
+
+            {/* Backup & Ripristino Plancia */}
+            <button
+              onClick={() => handleAction(onOpenBackupRestore)}
+              className="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-start gap-3 group cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                <FileJson className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
+                  {t('menu.backup_restore') || 'Backup & Ripristino Plancia'}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {t('menu.backup_restore_desc') || 'Esporta o ripristina la topologia e layout via JSON'}
+                </div>
+              </div>
+            </button>
 
             {/* Schermo Intero (Fullscreen / Kiosk) */}
             <button
