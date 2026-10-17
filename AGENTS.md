@@ -75,13 +75,15 @@ flowchart TD
 
 ---
 
-## 🧪 4. Regole sui Test Automatizzati
+## 🧪 4. Regole sui Test Automatizzati e Verifica Pre-Push
 
-1. **Eseguire sempre la suite di test prima di rilasciare**:
-   ```bash
-   uv run pytest
-   ```
-   Tutti i test devono risultare `PASSED` (zero fallimenti o errori).
+1. **Eseguire sempre la suite di test prima di qualsiasi push o rilascio**:
+   - Prima di effettuare qualsiasi push su GitHub (su qualsiasi branch, previa indicazione dell'utente per `main`), è **obbligatorio** verificare che l'intera suite di test sia verde:
+     ```bash
+     uv run pytest
+     ```
+     Tutti i test devono risultare `PASSED` (zero fallimenti o errori).
+   - **Eccezione (sole modifiche grafiche / UI)**: Se le modifiche apportate riguardano **esclusivamente aspetti grafici o di stile** (es. colori Tailwind/CSS, icone Lucide, aggiustamenti estetici dei componenti o traduzioni i18n senza modifiche alla logica di business, ai collector o alle API), **non è necessario** eseguire la suite `pytest` per evitare inutili rallentamenti. In tal caso è sufficiente accertarsi della corretta compilazione del bundle frontend con `npm run build`.
 
 2. **Se introduci una nuova funzionalità o risolvi un bug**:
    - Aggiungere o aggiornare il relativo test in `tests/backend/` (es. in `test_m3_topology_and_deduction.py`, `test_m2_correlation_scenarios.py`, ecc.).
@@ -146,7 +148,7 @@ NetSentinel supporta ufficialmente **5 lingue** in tutta l'interfaccia utente:
 > [!WARNING]
 > Questa procedura NON deve MAI essere eseguita automaticamente o di propria iniziativa dall'assistente IA. Eseguirla **SOLO** se l'utente ha scritto esplicitamente di procedere al merge su `main` e al rilascio della versione.
 
-Quando tutti i file della checklist sono stati aggiornati, i test sono verdi e l'utente ha confermato il rilascio:
+Quando tutti i file della checklist sono stati aggiornati, la suite di test è verificata (`uv run pytest`, salvo modifiche esclusivamente grafiche) e l'utente ha confermato il rilascio:
 
 ```bash
 # 1. Commit delle modifiche sul branch di lavoro
