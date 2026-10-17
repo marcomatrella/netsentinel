@@ -78,8 +78,8 @@
     "email_notifications": "Email Notifications (SMTP)",
     "email_notifications_desc": "Configure mail server, recipients and verify with HTML test",
     "section_tools": "View & Controls",
-    "system_settings": "System Settings & Retention",
-    "system_settings_desc": "Configure data retention policy and historical preferences",
+    "system_settings": "Log Retention Settings",
+    "system_settings_desc": "Configure data and historical log retention",
     "toggle_edit_mode": "Switch to Edit Mode",
     "toggle_live_view": "Return to LIVE View",
     "fullscreen": "Fullscreen / Kiosk Mode",
@@ -221,8 +221,8 @@
     "btn_cancel": "Cancel"
   },
   "settings": {
-    "modal_title": "System Settings",
-    "modal_desc": "Data retention policy and configuration preferences",
+    "modal_title": "Log Retention Settings",
+    "modal_desc": "Configure data and historical log retention settings",
     "retention_label": "Data Retention Policy",
     "retention_desc": "Defines how long historical data is preserved and the time range scrubbable in the Time Machine.",
     "retention_24h": "24 Hours (Default)",

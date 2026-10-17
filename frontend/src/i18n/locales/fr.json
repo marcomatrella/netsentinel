@@ -76,8 +76,8 @@
     "toggle_live_view": "Revenir à la vue LIVE",
     "fullscreen": "Mode Kiosk / Plein écran",
     "force_refresh": "Forcer l'actualisation",
-    "system_settings": "Paramètres Système & Rétention",
-    "system_settings_desc": "Configurer la rétention des données et l'historique",
+    "system_settings": "Paramètres de Rétention des Logs",
+    "system_settings_desc": "Configurer la rétention des logs et des données d'historique",
     "scheduled_maintenance": "Interventions programmées",
     "scheduled_maintenance_desc": "Planifier des fenêtres de maintenance et arrêts sans fausses alertes",
     "section_topology": "Topologie & Carte",
@@ -623,8 +623,8 @@
     "custom": "Personnalisé"
   },
   "settings": {
-    "modal_title": "Paramètres Système",
-    "modal_desc": "Configuration de la conservation des données et préférences",
+    "modal_title": "Paramètres de Rétention des Logs",
+    "modal_desc": "Configuration de la rétention des logs et des données d'historique",
     "retention_label": "Politique de Conservation des Données (Rétention)",
     "retention_desc": "Définit la durée de conservation de l'historique et la plage explorable avec la Machine Temporelle.",
     "retention_24h": "24 Heures (Par défaut)",

@@ -78,8 +78,8 @@
     "email_notifications": "Notifiche Email (SMTP)",
     "email_notifications_desc": "Imposta server di posta, destinatari e verifica con test HTML",
     "section_tools": "Visualizzazione & Controlli",
-    "system_settings": "Impostazioni Sistema & Retention",
-    "system_settings_desc": "Configura la retention dei dati e le preferenze storiche",
+    "system_settings": "Impostazione Log Retention",
+    "system_settings_desc": "Configura la retention dei dati e dei log storici",
     "toggle_edit_mode": "Passa a Modalità Modifica",
     "toggle_live_view": "Torna a Vista Operativa LIVE",
     "fullscreen": "Modalità Kiosk / Schermo Intero",
@@ -221,8 +221,8 @@
     "btn_cancel": "Annulla"
   },
   "settings": {
-    "modal_title": "Impostazioni di Sistema",
-    "modal_desc": "Configurazione della conservazione dei dati e preferenze",
+    "modal_title": "Impostazione Log Retention",
+    "modal_desc": "Configurazione della conservazione dei log e dei dati storici",
     "retention_label": "Politica di Conservazione Dati (Retention)",
     "retention_desc": "Definisce per quanto tempo conservare lo storico dei dati e l'intervallo temporale esplorabile con la Macchina del Tempo.",
     "retention_24h": "24 Ore (Predefinito)",

@@ -76,8 +76,8 @@
     "toggle_live_view": "Volver a Vista Operativa LIVE",
     "fullscreen": "Modo Kiosco / Pantalla Completa",
     "force_refresh": "Forzar Actualización",
-    "system_settings": "Ajustes del Sistema y Retención",
-    "system_settings_desc": "Configura la retención de datos y preferencias históricas",
+    "system_settings": "Ajustes de Retención de Logs",
+    "system_settings_desc": "Configura la retención de registros y datos históricos",
     "scheduled_maintenance": "Mantenimientos programados",
     "scheduled_maintenance_desc": "Planificar ventanas de mantenimiento y paradas sin falsas alarmas",
     "section_topology": "Topología y Mapa",
@@ -623,8 +623,8 @@
     "custom": "Personalizado"
   },
   "settings": {
-    "modal_title": "Ajustes del Sistema",
-    "modal_desc": "Configuración de la retención de datos y preferencias",
+    "modal_title": "Ajustes de Retención de Logs",
+    "modal_desc": "Configuración de la retención de registros y datos históricos",
     "retention_label": "Política de Retención de Datos (Retention)",
     "retention_desc": "Define cuánto tiempo conservar el historial y el intervalo explorable con la Máquina del Tiempo.",
     "retention_24h": "24 Horas (Predeterminado)",

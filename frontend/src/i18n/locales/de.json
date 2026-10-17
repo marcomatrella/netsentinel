@@ -76,8 +76,8 @@
     "toggle_live_view": "Zur LIVE-Ansicht zurückkehren",
     "fullscreen": "Kiosk-Modus / Vollbild",
     "force_refresh": "Aktualisierung erzwingen",
-    "system_settings": "Systemeinstellungen & Aufbewahrung",
-    "system_settings_desc": "Datenaufbewahrung und historische Einstellungen konfigurieren",
+    "system_settings": "Protokoll-Aufbewahrungseinstellungen",
+    "system_settings_desc": "Aufbewahrung für Protokolle und Verlaufsdaten konfigurieren",
     "scheduled_maintenance": "Geplante Wartungsarbeiten",
     "scheduled_maintenance_desc": "Wartungsfenster und Stillstandszeiten ohne Fehlalarme planen",
     "section_topology": "Topologie & Karte",
@@ -623,8 +623,8 @@
     "custom": "Benutzerdefiniert"
   },
   "settings": {
-    "modal_title": "Systemeinstellungen",
-    "modal_desc": "Konfiguration der Datenaufbewahrung und Einstellungen",
+    "modal_title": "Protokoll-Aufbewahrungseinstellungen",
+    "modal_desc": "Konfiguration der Aufbewahrung für Protokolle und Verlaufsdaten",
     "retention_label": "Datenaufbewahrungsrichtlinie (Retention)",
     "retention_desc": "Definiert die Aufbewahrungsdauer von Daten und den mit der Zeitmaschine navigierbaren Bereich.",
     "retention_24h": "24 Stunden (Standard)",
