@@ -1016,10 +1016,10 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                   <button
                     type="button"
                     onClick={() => onSimulateDevice(device.id)}
-                    className="w-full py-2.5 px-3 bg-rose-500/10 hover:bg-rose-500/20 active:bg-rose-500/30 text-rose-300 border border-rose-500/30 hover:border-rose-500/50 rounded-xl font-medium transition text-xs flex items-center justify-center gap-2 shadow cursor-pointer"
+                    className="w-full py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:border-amber-500/50 rounded-xl font-medium transition text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                     title={t('simulation.btn_simulate_device_hint') || 'Simula istantaneamente il guasto di questo apparato sulla plancia per testare l\'impatto e le notifiche'}
                   >
-                    <FlaskConical className="w-4 h-4 text-rose-400 shrink-0" />
+                    <FlaskConical className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
                     <span>{t('simulation.btn_simulate_device') || 'Simula Guasto (What-If)'}</span>
                   </button>
                 )}
