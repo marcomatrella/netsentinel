@@ -553,7 +553,28 @@
     "toast_integration_ok": "{{type}}-Integration erfolgreich überprüft. APIs erreichbar und betriebsbereit.",
     "toast_integration_fail": "Kommunikationsfehler mit der {{type}}-API.",
     "toast_generic_ok": "Prüfung erfolgreich abgeschlossen.",
-    "toast_generic_fail": "Prüfung mit Fehler oder Schwellenwertüberschreitung beendet."
+    "toast_generic_fail": "Prüfung mit Fehler oder Schwellenwertüberschreitung beendet.",
+    "integrations_title": "Integrationen",
+    "btn_add_integration": "Integration verbinden",
+    "btn_add_integration_first": "Erste Integration verbinden",
+    "no_integrations_desc": "Keine Integrationen mit diesem Gerät verbunden. Sie können UniFi, AdGuard Home, Home Assistant oder Synology DSM verbinden, um erweiterte Telemetriedaten anzuzeigen.",
+    "view_integration_data": "Integrationsdaten und Telemetrie anzeigen",
+    "delete_integration": "Integration löschen",
+    "add_integration_title": "Geräteintegration verbinden",
+    "edit_integration_title": "Integrationskonfiguration bearbeiten",
+    "integration_type_label": "Integrationstyp",
+    "btn_close": "Schließen",
+    "btn_edit_config": "Parameter bearbeiten",
+    "btn_refresh_now": "Telemetrie aktualisieren",
+    "btn_refreshing": "Wird aktualisiert...",
+    "unifi_stat_clients": "Verbundene Clients",
+    "unifi_stat_poe": "Gesamter PoE-Verbrauch",
+    "unifi_stat_model": "Gerätemodell",
+    "unifi_stat_total_devices": "Geräte im Controller",
+    "adguard_stat_protection": "Schutzstatus",
+    "adguard_stat_queries": "DNS-Abfragen (24h)",
+    "adguard_stat_blocked": "Blockierte Abfragen",
+    "adguard_stat_avg_time": "Durchschn. Auflösungszeit"
   },
   "device_color": {
     "title": "Gerätefarbe anpassen",
@@ -625,7 +646,9 @@
     "root_cause": "Grundursache",
     "avg_ping_rtt": "Durchschnittliche Ping-RTT-Latenz",
     "checking_progress": "Prüfung läuft",
-    "no_ping_response": "Keine Ping-Antwort"
+    "no_ping_response": "Keine Ping-Antwort",
+    "integrations_bubble_tooltip": "Konfigurierte Integrationen ({{count}})",
+    "integrations_menu_header": "Geräteintegrationen"
   },
   "device_kinds": {
     "router": "Router / Gateway",

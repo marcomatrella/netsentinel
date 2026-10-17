@@ -28,7 +28,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { Device, Link, FullTopology, Incident, CanvasLayout, SimulationResponse } from './types';
+import { Device, Link, FullTopology, Incident, CanvasLayout, SimulationResponse, DeviceIntegration } from './types';
 import {
   fetchTopology,
   fetchIncidents,
@@ -60,6 +60,7 @@ import { EventLogsModal } from './components/events/EventLogsModal';
 import { SystemSettingsModal } from './components/modals/SystemSettingsModal';
 import { ScheduledMaintenanceModal } from './components/modals/ScheduledMaintenanceModal';
 import { ConfirmDeleteDeviceModal } from './components/modals/ConfirmDeleteDeviceModal';
+import { IntegrationDetailModal } from './components/modals/IntegrationDetailModal';
 import { HeaderMenuDropdown } from './components/navigation/HeaderMenuDropdown';
 import { MobileQuickActionsDropdown } from './components/navigation/MobileQuickActionsDropdown';
 import { LanguageSwitcher } from './components/navigation/LanguageSwitcher';
@@ -102,6 +103,21 @@ export const App: React.FC = () => {
   const [historicalErrorSummary, setHistoricalErrorSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [viewingIntegration, setViewingIntegration] = useState<{ device: Device; integration: DeviceIntegration } | null>(null);
+
+  useEffect(() => {
+    const handleOpenIntegrationEvent = (e: any) => {
+      const { deviceId, integration } = e.detail || {};
+      if (!topology || !integration) return;
+      const targetDev = topology.devices.find((d) => d.id === deviceId);
+      if (targetDev) {
+        setViewingIntegration({ device: targetDev, integration });
+      }
+    };
+    window.addEventListener('netsentinel:open-integration', handleOpenIntegrationEvent);
+    return () => window.removeEventListener('netsentinel:open-integration', handleOpenIntegrationEvent);
+  }, [topology]);
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
@@ -1071,6 +1087,7 @@ export const App: React.FC = () => {
               onLayoutChange={handleLayoutChange}
               onDeleteDevice={handleDeleteDevice}
               onDeleteDevicesBatch={handleDeleteDevicesBatch}
+              onOpenIntegration={(dev, integ) => setViewingIntegration({ device: dev, integration: integ })}
             />
           ) : null}
 
@@ -1229,6 +1246,7 @@ export const App: React.FC = () => {
               setIsScheduledMaintenanceOpen(true);
             }}
             onSimulateDevice={handleSimulateDevice}
+            onOpenIntegration={(integration) => setViewingIntegration({ device: selectedDevice, integration })}
           />
         )}
 
@@ -1360,6 +1378,17 @@ export const App: React.FC = () => {
         onConfirm={handleConfirmDeleteDevice}
         isDeleting={isDeletingDevice}
       />
+
+      {/* Integration Detail & Telemetry Modal */}
+      {viewingIntegration && (
+        <IntegrationDetailModal
+          isOpen={Boolean(viewingIntegration)}
+          device={viewingIntegration.device}
+          integration={viewingIntegration.integration}
+          onClose={() => setViewingIntegration(null)}
+          onIntegrationUpdated={() => loadData()}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import {
   Globe,
@@ -24,9 +24,10 @@ import {
   Siren,
   Clock,
 } from 'lucide-react';
-import { DeviceKind, DeviceStatus } from '../../types';
+import { DeviceKind, DeviceStatus, DeviceIntegration } from '../../types';
 import { getColorConfig } from '../../constants/colors';
 import { useTranslation } from '../../i18n/I18nContext';
+import { IntegrationIcon } from '../common/IntegrationIcon';
 
 interface CustomNodeData {
   id: string;
@@ -50,6 +51,8 @@ interface CustomNodeData {
   rtt_ms?: number;
   isEditMode?: boolean;
   color?: string;
+  integrations?: DeviceIntegration[];
+  onOpenIntegration?: (integration: DeviceIntegration) => void;
 }
 
 const kindIcons: Record<DeviceKind, React.ComponentType<{ className?: string }>> = {
@@ -117,6 +120,23 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
     nodeData.roles?.includes('passive_tracking') ||
     nodeData.kind === 'client'
   );
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const hasIntegrations = Boolean(nodeData.integrations && nodeData.integrations.length > 0);
+  const primaryIntegration = nodeData.integrations?.[0];
+  const integrationsCount = nodeData.integrations?.length || 0;
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isMenuOpen]);
 
   return (
     <div
@@ -138,6 +158,86 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
           className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-xl ${nodeColor.bgClass}`}
           title={t('custom_node.category_title', { name: nodeColor.name })}
         />
+      )}
+
+      {/* Integrations Floating Bubble & Context Menu */}
+      {hasIntegrations && primaryIntegration && (
+        <div className="absolute -right-3 top-2.5 z-40">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen((prev) => !prev);
+            }}
+            className={`w-6 h-6 rounded-full bg-white dark:bg-slate-800 border shadow-md flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 ${
+              isMenuOpen
+                ? 'ring-2 ring-sky-400 border-sky-400 dark:border-sky-400 shadow-sky-500/20'
+                : 'border-slate-300 dark:border-slate-700 hover:border-sky-400'
+            }`}
+            title="Integrazioni configurate"
+          >
+            <IntegrationIcon type={primaryIntegration.type} size={14} />
+            {integrationsCount > 1 && (
+              <span className="absolute -top-1 -right-1 bg-sky-500 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center ring-1 ring-white dark:ring-slate-900">
+                {integrationsCount}
+              </span>
+            )}
+          </button>
+
+          {/* Context Menu Dropdown */}
+          {isMenuOpen && (
+            <div
+              ref={menuRef}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute left-full ml-2 top-0 min-w-[200px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-1.5 z-50 animate-fade-in"
+            >
+              <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1 flex items-center justify-between">
+                <span>Integrazioni</span>
+                <span className="text-[9px] font-normal text-slate-400">
+                  {integrationsCount} attiva{integrationsCount > 1 ? 'e' : ''}
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                {nodeData.integrations?.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      if (nodeData.onOpenIntegration) {
+                        nodeData.onOpenIntegration(item);
+                      }
+                      window.dispatchEvent(
+                        new CustomEvent('netsentinel:open-integration', {
+                          detail: { deviceId: nodeData.id, integration: item },
+                        })
+                      );
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition flex items-center justify-between gap-2 group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <IntegrationIcon type={item.type} size={16} withBackground />
+                      <span className="text-xs font-medium text-slate-800 dark:text-slate-200 group-hover:text-sky-500 dark:group-hover:text-sky-400 truncate">
+                        {item.name || item.type}
+                      </span>
+                    </div>
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        item.status === 'ok'
+                          ? 'bg-emerald-500 ring-2 ring-emerald-500/20'
+                          : item.status === 'warning'
+                          ? 'bg-amber-500 ring-2 ring-amber-500/20'
+                          : item.status === 'error'
+                          ? 'bg-rose-500 ring-2 ring-rose-500/20'
+                          : 'bg-slate-400'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Handles: visibili e collegabili solo in modalità modifica */}

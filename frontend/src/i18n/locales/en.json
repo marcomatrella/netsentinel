@@ -565,7 +565,28 @@
     "toast_integration_ok": "{{type}} integration verified successfully. APIs reachable and operational.",
     "toast_integration_fail": "Communication error with {{type}} API.",
     "toast_generic_ok": "Check completed successfully.",
-    "toast_generic_fail": "Check completed with errors or out-of-range thresholds."
+    "toast_generic_fail": "Check completed with errors or out-of-range thresholds.",
+    "integrations_title": "Integrations",
+    "btn_add_integration": "Connect Integration",
+    "btn_add_integration_first": "Connect first integration",
+    "no_integrations_desc": "No integrations connected to this device. You can connect UniFi, AdGuard Home, Home Assistant, or Synology DSM to view advanced telemetry and metrics.",
+    "view_integration_data": "View integration data and telemetry",
+    "delete_integration": "Delete integration",
+    "add_integration_title": "Connect Device Integration",
+    "edit_integration_title": "Edit Integration Configuration",
+    "integration_type_label": "Integration Type",
+    "btn_close": "Close",
+    "btn_edit_config": "Edit Parameters",
+    "btn_refresh_now": "Refresh Telemetry",
+    "btn_refreshing": "Refreshing...",
+    "unifi_stat_clients": "Connected Clients",
+    "unifi_stat_poe": "Total PoE Power",
+    "unifi_stat_model": "Device Model",
+    "unifi_stat_total_devices": "Devices in Controller",
+    "adguard_stat_protection": "Protection Status",
+    "adguard_stat_queries": "DNS Queries (24h)",
+    "adguard_stat_blocked": "Blocked Queries",
+    "adguard_stat_avg_time": "Average Processing Time"
   },
   "device_color": {
     "title": "Customize Device Color",
@@ -645,7 +666,9 @@
     "root_cause": "Root Cause",
     "avg_ping_rtt": "Average ping RTT latency",
     "checking_progress": "Check in progress",
-    "no_ping_response": "No ping response"
+    "no_ping_response": "No ping response",
+    "integrations_bubble_tooltip": "Configured integrations ({{count}})",
+    "integrations_menu_header": "Device Integrations"
   },
   "device_kinds": {
     "router": "Router / Gateway",

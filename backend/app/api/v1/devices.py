@@ -17,6 +17,7 @@ from app.db.session import get_db
 from app.schemas.entities import (
     DeviceBatchDeleteRequest,
     DeviceCreate,
+    DeviceIntegrationRead,
     DeviceRead,
     DeviceUpdate,
     InterfaceBase,
@@ -95,6 +96,9 @@ async def ensure_device_checks(
         dns_chk.enabled = False
 
 
+INTEGRATION_CHECK_TYPES = {"unifi", "adguard_home", "home_assistant", "synology_dsm"}
+
+
 def _to_device_read(device: Device, rtt_ms: float | None = None) -> DeviceRead:
     """Helper converting Device DB model to Pydantic DeviceRead."""
     addresses = json.loads(device.addresses_json) if device.addresses_json else {}
@@ -113,6 +117,24 @@ def _to_device_read(device: Device, rtt_ms: float | None = None) -> DeviceRead:
         for i in (device.interfaces or [])
     ]
 
+    integrations = [
+        DeviceIntegrationRead(
+            id=c.id,
+            type=c.type,
+            name=c.name,
+            status=c.current_status,
+            enabled=c.enabled,
+            last_run_at=c.last_run_at,
+            params={
+                k: v
+                for k, v in (json.loads(c.params_json) if c.params_json else {}).items()
+                if k not in ["password", "token", "api_key", "secret", "access_token"]
+            },
+        )
+        for c in (getattr(device, "checks", None) or [])
+        if c.type in INTEGRATION_CHECK_TYPES
+    ]
+
     return DeviceRead(
         id=device.id,
         name=device.name,
@@ -128,6 +150,7 @@ def _to_device_read(device: Device, rtt_ms: float | None = None) -> DeviceRead:
         last_seen=device.last_seen,
         rtt_ms=rtt_ms,
         interfaces=interfaces,
+        integrations=integrations,
     )
 
 
@@ -138,7 +161,7 @@ async def list_devices(
     db: AsyncSession = Depends(get_db),
 ) -> list[DeviceRead]:
     """Retrieve all monitored devices with optional filters and latest RTT."""
-    stmt = select(Device).options(selectinload(Device.interfaces))
+    stmt = select(Device).options(selectinload(Device.interfaces), selectinload(Device.checks))
     if kind:
         stmt = stmt.where(Device.kind == kind)
     if status_filter:

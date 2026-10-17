@@ -57,6 +57,16 @@ export interface DeviceInterface {
   notes?: string;
 }
 
+export interface DeviceIntegration {
+  id: string;
+  type: 'unifi' | 'adguard_home' | 'home_assistant' | 'synology_dsm' | string;
+  name: string;
+  status: string;
+  enabled: boolean;
+  last_run_at?: string;
+  params?: Record<string, any>;
+}
+
 export interface Device {
   id: string;
   name: string;
@@ -76,6 +86,7 @@ export interface Device {
   last_seen?: string;
   rtt_ms?: number;
   interfaces: DeviceInterface[];
+  integrations?: DeviceIntegration[];
 }
 
 export interface Link {

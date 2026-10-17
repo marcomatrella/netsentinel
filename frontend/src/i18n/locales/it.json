@@ -565,7 +565,28 @@
     "toast_integration_ok": "Integrazione {{type}} verificata con successo. API raggiungibili e funzionanti.",
     "toast_integration_fail": "Errore comunicazione con l'API {{type}}.",
     "toast_generic_ok": "Controllo completato regolarmente con esito positivo.",
-    "toast_generic_fail": "Controllo terminato con errore o valori fuori soglia."
+    "toast_generic_fail": "Controllo terminato con errore o valori fuori soglia.",
+    "integrations_title": "Integrazioni",
+    "btn_add_integration": "Collega Integrazione",
+    "btn_add_integration_first": "Collega la prima integrazione",
+    "no_integrations_desc": "Nessuna integrazione collegata a questo apparato. Puoi collegare UniFi, AdGuard Home, Home Assistant o Synology DSM per visualizzare metriche e telemetria avanzata.",
+    "view_integration_data": "Visualizza dati e telemetria integrazione",
+    "delete_integration": "Elimina integrazione",
+    "add_integration_title": "Collega Integrazione Apparato",
+    "edit_integration_title": "Modifica Configurazione Integrazione",
+    "integration_type_label": "Tipologia Integrazione",
+    "btn_close": "Chiudi",
+    "btn_edit_config": "Modifica Parametri",
+    "btn_refresh_now": "Aggiorna Telemetria",
+    "btn_refreshing": "Aggiornamento in corso...",
+    "unifi_stat_clients": "Client Connessi",
+    "unifi_stat_poe": "Consumo PoE Totale",
+    "unifi_stat_model": "Modello Apparato",
+    "unifi_stat_total_devices": "Apparati nel Controller",
+    "adguard_stat_protection": "Stato Protezione",
+    "adguard_stat_queries": "Query DNS (24h)",
+    "adguard_stat_blocked": "Query Bloccate",
+    "adguard_stat_avg_time": "Tempo Medio Risoluzione"
   },
   "device_color": {
     "title": "Personalizza Colore Apparato",
@@ -645,7 +666,9 @@
     "root_cause": "Causa Radice",
     "avg_ping_rtt": "Latenza ping RTT media",
     "checking_progress": "Controllo in corso",
-    "no_ping_response": "Nessuna risposta al ping"
+    "no_ping_response": "Nessuna risposta al ping",
+    "integrations_bubble_tooltip": "Integrazioni configurate ({{count}})",
+    "integrations_menu_header": "Integrazioni Apparato"
   },
   "device_kinds": {
     "router": "Router / Gateway",

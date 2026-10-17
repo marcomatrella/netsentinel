@@ -553,7 +553,28 @@
     "toast_integration_ok": "Intégration {{type}} vérifiée avec succès. API opérationnelles.",
     "toast_integration_fail": "Erreur de communication avec l'API {{type}}.",
     "toast_generic_ok": "Contrôle terminé avec succès.",
-    "toast_generic_fail": "Contrôle terminé avec erreur ou seuils dépassés."
+    "toast_generic_fail": "Contrôle terminé avec erreur ou seuils dépassés.",
+    "integrations_title": "Intégrations",
+    "btn_add_integration": "Connecter une intégration",
+    "btn_add_integration_first": "Connecter la première intégration",
+    "no_integrations_desc": "Aucune intégration connectée à cet appareil. Vous pouvez connecter UniFi, AdGuard Home, Home Assistant ou Synology DSM pour afficher les métriques avancées.",
+    "view_integration_data": "Afficher les données et la télémétrie de l'intégration",
+    "delete_integration": "Supprimer l'intégration",
+    "add_integration_title": "Connecter l'intégration de l'appareil",
+    "edit_integration_title": "Modifier la configuration de l'intégration",
+    "integration_type_label": "Type d'intégration",
+    "btn_close": "Fermer",
+    "btn_edit_config": "Modifier les paramètres",
+    "btn_refresh_now": "Actualiser la télémétrie",
+    "btn_refreshing": "Actualisation en cours...",
+    "unifi_stat_clients": "Clients connectés",
+    "unifi_stat_poe": "Consommation PoE totale",
+    "unifi_stat_model": "Modèle de l'appareil",
+    "unifi_stat_total_devices": "Appareils dans le contrôleur",
+    "adguard_stat_protection": "État de la protection",
+    "adguard_stat_queries": "Requêtes DNS (24h)",
+    "adguard_stat_blocked": "Requêtes bloquées",
+    "adguard_stat_avg_time": "Temps de résolution moyen"
   },
   "device_color": {
     "title": "Personnaliser la couleur de l'appareil",
@@ -625,7 +646,9 @@
     "root_cause": "Cause Racine",
     "avg_ping_rtt": "Latence RTT moyenne",
     "checking_progress": "Vérification en cours",
-    "no_ping_response": "Aucune réponse au ping"
+    "no_ping_response": "Aucune réponse au ping",
+    "integrations_bubble_tooltip": "Intégrations configurées ({{count}})",
+    "integrations_menu_header": "Intégrations de l'appareil"
   },
   "device_kinds": {
     "router": "Routeur / Passerelle",

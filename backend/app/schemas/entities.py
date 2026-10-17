@@ -76,12 +76,23 @@ class DeviceUpdate(NetSentinelBaseModel):
     notes: str | None = None
 
 
+class DeviceIntegrationRead(NetSentinelBaseModel):
+    id: str
+    type: str
+    name: str
+    status: str = "unknown"
+    enabled: bool = True
+    last_run_at: datetime | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
 class DeviceRead(DeviceBase):
     status: str
     status_since: datetime
     last_seen: datetime | None = None
     rtt_ms: float | None = None
     interfaces: list[InterfaceBase] = Field(default_factory=list)
+    integrations: list[DeviceIntegrationRead] = Field(default_factory=list)
 
 
 class DeviceBatchDeleteRequest(NetSentinelBaseModel):

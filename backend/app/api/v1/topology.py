@@ -64,7 +64,7 @@ class AssignNetworkRolesRequest(BaseModel):
 )
 async def get_full_topology(db: AsyncSession = Depends(get_db)) -> TopologyFullResponse:
     """Retrieve all devices with latest RTT, dynamically deduced links, and dependencies."""
-    dev_res = await db.execute(select(Device).options(selectinload(Device.interfaces)))
+    dev_res = await db.execute(select(Device).options(selectinload(Device.interfaces), selectinload(Device.checks)))
     db_devices = dev_res.scalars().all()
 
     # Fast O(1) in-memory cache lookup for live RTT to avoid heavy N+1 DB queries

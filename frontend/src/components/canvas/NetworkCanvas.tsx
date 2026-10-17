@@ -20,7 +20,7 @@ import { Hand, BoxSelect, Trash2 } from 'lucide-react';
 
 import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
-import { Device, Link, Incident, CanvasLayout, SimulationResponse, LinkMedium } from '../../types';
+import { Device, Link, Incident, CanvasLayout, SimulationResponse, LinkMedium, DeviceIntegration } from '../../types';
 import { getLayoutedElements } from '../../utils/elkLayout';
 import { useTheme } from '../../theme/ThemeContext';
 import { getDeviceColorId, getDefaultColorForKind } from '../../constants/colors';
@@ -42,6 +42,7 @@ interface NetworkCanvasProps {
   onAddDeviceDrop?: (device: Device, position?: { x: number; y: number }) => void;
   onDeleteDevice?: (deviceId: string) => void;
   onDeleteDevicesBatch?: (devices: Device[]) => void;
+  onOpenIntegration?: (device: Device, integration: DeviceIntegration) => void;
 }
 
 export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
@@ -60,6 +61,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   onAddDeviceDrop,
   onDeleteDevice,
   onDeleteDevicesBatch,
+  onOpenIntegration,
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
@@ -141,9 +143,11 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         } : undefined),
         isEditMode: isEditMode,
         color: getDeviceColorId(d.tags),
+        integrations: d.integrations,
+        onOpenIntegration: (integration: DeviceIntegration) => onOpenIntegration?.(d, integration),
       };
     },
-    [activeIncident, simulatedIncident, isEditMode, deviceMaintMap]
+    [activeIncident, simulatedIncident, isEditMode, deviceMaintMap, onOpenIntegration]
   );
 
   // Lookup map of saved node positions from backend layout

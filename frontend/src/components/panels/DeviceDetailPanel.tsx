@@ -34,14 +34,18 @@ import {
   Server,
   Terminal,
   Activity,
+  Sliders,
 } from 'lucide-react';
-import { Check, Device, Dependency, DeviceKind } from '../../types';
+import { Check, Device, Dependency, DeviceKind, DeviceIntegration } from '../../types';
 import { executeCheckNow, fetchDeviceChecks, fetchEvents, updateDevice, createCheck, deleteCheck, fetchObservations, testCheckParams } from '../../api/client';
 import { PRESET_COLORS, getDeviceColorId, setDeviceColorTag, getColorConfig } from '../../constants/colors';
 import { formatTimeOnly } from '../../utils/date';
 import { DeviceColorModal } from './DeviceColorModal';
 import { SpeedtestWidget } from './SpeedtestWidget';
 import { EditCheckModal } from '../modals/EditCheckModal';
+import { ConfigureIntegrationModal } from '../modals/ConfigureIntegrationModal';
+import { IntegrationDetailModal } from '../modals/IntegrationDetailModal';
+import { IntegrationIcon } from '../common/IntegrationIcon';
 import { useTranslation } from '../../i18n/I18nContext';
 
 
@@ -56,6 +60,7 @@ interface DeviceDetailPanelProps {
   onRefreshTopology?: () => void;
   onOpenMaintenance?: (deviceId?: string) => void;
   onSimulateDevice?: (deviceId: string) => void;
+  onOpenIntegration?: (integration: DeviceIntegration) => void;
 }
 
 const DEVICE_KIND_KEYS: DeviceKind[] = [
@@ -197,6 +202,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   onRefreshTopology,
   onOpenMaintenance,
   onSimulateDevice,
+  onOpenIntegration,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'checks' | 'deps' | 'events'>('overview');
@@ -274,6 +280,11 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
   const [isTestingNewCheck, setIsTestingNewCheck] = useState<boolean>(false);
   const [newCheckTestResult, setNewCheckTestResult] = useState<{ ok: boolean; message: string; details?: any } | null>(null);
 
+  // Integration modals state
+  const [isConfiguringIntegration, setIsConfiguringIntegration] = useState<boolean>(false);
+  const [editingIntegration, setEditingIntegration] = useState<DeviceIntegration | null>(null);
+  const [viewingIntegrationModal, setViewingIntegrationModal] = useState<DeviceIntegration | null>(null);
+
   useEffect(() => {
     if (device) {
       fetchDeviceChecks(device.id).then(setChecks).catch(() => setChecks([]));
@@ -303,10 +314,38 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
       setEditingCheck(null);
       setNewCheckUnifiMode('os');
       setNewCheckTestResult(null);
+      setIsConfiguringIntegration(false);
+      setEditingIntegration(null);
+      setViewingIntegrationModal(null);
     }
   }, [device]);
 
   if (!device) return null;
+
+  const INTEGRATION_TYPES = new Set(['unifi', 'adguard_home', 'home_assistant', 'synology_dsm']);
+  const networkChecks = checks.filter((c) => !INTEGRATION_TYPES.has(c.type));
+  const integrationChecks = checks.filter((c) => INTEGRATION_TYPES.has(c.type));
+
+  const currentIntegrations: DeviceIntegration[] = integrationChecks.map((c) => {
+    const fromDev = device.integrations?.find((i) => i.id === c.id);
+    return {
+      id: c.id,
+      type: c.type,
+      name: c.name,
+      status: fromDev?.status || (c as any).status || 'ok',
+      enabled: c.enabled,
+      last_run_at: fromDev?.last_run_at || (c as any).last_run_at,
+      params: c.params,
+    };
+  });
+
+  const handleOpenIntegration = (integ: DeviceIntegration) => {
+    if (onOpenIntegration) {
+      onOpenIntegration(integ);
+    } else {
+      setViewingIntegrationModal(integ);
+    }
+  };
 
   const upstreamDeps = dependencies.filter((d) => d.dependent_id === device.id);
   const downstreamDeps = dependencies.filter((d) => d.provider_id === device.id);
@@ -1188,6 +1227,118 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                   </div>
                 )}
 
+                {/* Divider */}
+                <div className="border-t border-slate-200 dark:border-slate-800 my-3" />
+
+                {/* Integrazioni Section */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-sky-500" />
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        {t('device_detail.integrations_title')}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold">
+                        {currentIntegrations.length}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingIntegration(null);
+                        setIsConfiguringIntegration(true);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/30 rounded-lg text-xs font-semibold transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{t('device_detail.btn_add_integration')}</span>
+                    </button>
+                  </div>
+
+                  {currentIntegrations.length === 0 ? (
+                    <div className="p-3 bg-slate-100/60 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {t('device_detail.no_integrations_desc')}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {currentIntegrations.map((integ) => (
+                        <div
+                          key={integ.id}
+                          className="p-2.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700/60 flex items-center justify-between gap-2 transition group shadow-sm"
+                        >
+                          <div
+                            onClick={() => handleOpenIntegration(integ)}
+                            className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
+                          >
+                            <IntegrationIcon type={integ.type} size="md" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 truncate group-hover:text-sky-500 transition">
+                                  {integ.name}
+                                </span>
+                                <span
+                                  className={`w-2 h-2 rounded-full ${
+                                    integ.status === 'ok'
+                                      ? 'bg-emerald-500'
+                                      : integ.status === 'down'
+                                      ? 'bg-rose-500'
+                                      : 'bg-amber-500'
+                                  }`}
+                                  title={integ.status}
+                                />
+                              </div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                                {integ.type === 'unifi'
+                                  ? 'UniFi Site Manager'
+                                  : integ.type === 'adguard_home'
+                                  ? 'AdGuard Home'
+                                  : integ.type === 'home_assistant'
+                                  ? 'Home Assistant'
+                                  : integ.type === 'synology_dsm'
+                                  ? 'Synology DSM'
+                                  : integ.type}
+                                {integ.last_run_at && ` • ${formatTimeOnly(integ.last_run_at)}`}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenIntegration(integ)}
+                              className="p-1 rounded-md text-slate-400 hover:text-sky-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                              title={t('device_detail.view_integration_data')}
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingIntegration(integ);
+                                setIsConfiguringIntegration(true);
+                              }}
+                              className="p-1 rounded-md text-slate-400 hover:text-sky-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                              title={t('device_detail.btn_edit_config')}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCheck(integ.id)}
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                              title={t('device_detail.delete_integration')}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {onDeleteDevice && (
                   <div className="pt-2">
                     <button
@@ -1213,7 +1364,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
 
                 <div className="flex items-center justify-between pb-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    {t('device_detail.checks_title')} ({checks.length})
+                    {t('device_detail.checks_title')} ({networkChecks.length})
                   </span>
                   <button
                     onClick={() => setShowAddCheck(!showAddCheck)}
@@ -1246,11 +1397,7 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                             else if (val === 'tcp_port') setNewCheckName(`TCP Port ${newCheckPort || 80}`);
                             else if (val === 'http') setNewCheckName('HTTP Healthcheck');
                             else if (val === 'dns') setNewCheckName('DNS (google.com)');
-                            else if (val === 'synology_dsm') setNewCheckName('Synology DSM');
                             else if (val === 'nut') setNewCheckName('UPS NUT');
-                            else if (val === 'unifi') setNewCheckName('UniFi Controller');
-                            else if (val === 'adguard_home') setNewCheckName('AdGuard Home');
-                            else if (val === 'home_assistant') setNewCheckName('Home Assistant');
                             else if (val === 'snmp') setNewCheckName('SNMP v1/v2c');
                           }}
                           className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500 font-medium"
@@ -1260,10 +1407,6 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                           <option value="http">{t('device_detail.check_type_http')}</option>
                           <option value="dns">{t('device_detail.check_type_dns')}</option>
                           <option value="nut">{t('device_detail.check_type_nut')}</option>
-                          <option value="synology_dsm">{t('device_detail.check_type_dsm')}</option>
-                          <option value="unifi">{t('device_detail.check_type_unifi')}</option>
-                          <option value="adguard_home">{t('device_detail.check_type_adguard')}</option>
-                          <option value="home_assistant">{t('device_detail.check_type_ha')}</option>
                           <option value="snmp">{t('device_detail.check_type_snmp')}</option>
                         </select>
                       </div>
@@ -1392,345 +1535,6 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                       </div>
                     )}
 
-                    {/* Synology DSM */}
-                    {newCheckType === 'synology_dsm' && (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                              {t('device_detail.check_username_label')}
-                            </label>
-                            <input
-                              type="text"
-                              value={newCheckUsername}
-                              onChange={(e) => setNewCheckUsername(e.target.value)}
-                              placeholder="Admin DSM"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                              {t('device_detail.check_password_label')}
-                            </label>
-                            <input
-                              type="password"
-                              value={newCheckPassword}
-                              onChange={(e) => setNewCheckPassword(e.target.value)}
-                              placeholder="••••••••"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                            />
-                          </div>
-                        </div>
-                        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
-                          <input
-                            type="checkbox"
-                            checked={newCheckUseHttps}
-                            onChange={(e) => {
-                              setNewCheckUseHttps(e.target.checked);
-                              if (newCheckPort === '5000' && e.target.checked) setNewCheckPort('5001');
-                              else if (newCheckPort === '5001' && !e.target.checked) setNewCheckPort('5000');
-                            }}
-                            className="rounded text-sky-500 focus:ring-0"
-                          />
-                          <span>{t('device_detail.check_use_https_label')}</span>
-                        </label>
-                      </div>
-                    )}
-
-                    {/* UniFi Controller */}
-                    {newCheckType === 'unifi' && (
-                      <div className="space-y-2">
-                        {/* Mode Selector */}
-                        <div>
-                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">
-                            {t('device_detail.unifi_server_type_label')}
-                          </label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setNewCheckUnifiMode('os');
-                                setNewCheckTestResult(null);
-                              }}
-                              className={`p-2 text-left rounded-lg border text-xs transition cursor-pointer ${
-                                newCheckUnifiMode === 'os'
-                                  ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-500 text-sky-800 dark:text-sky-200 ring-1 ring-sky-500'
-                                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                              }`}
-                            >
-                              <div className="font-bold flex items-center justify-between text-[11px]">
-                                <span>{t('device_detail.unifi_mode_os_title')}</span>
-                                {newCheckUnifiMode === 'os' && <span className="text-[9px] bg-sky-500 text-white px-1.5 py-0.2 rounded font-mono uppercase">Attivo</span>}
-                              </div>
-                              <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
-                                {t('device_detail.unifi_mode_os_desc')}
-                              </p>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setNewCheckUnifiMode('legacy');
-                                setNewCheckTestResult(null);
-                              }}
-                              className={`p-2 text-left rounded-lg border text-xs transition cursor-pointer ${
-                                newCheckUnifiMode === 'legacy'
-                                  ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-500 text-sky-800 dark:text-sky-200 ring-1 ring-sky-500'
-                                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                              }`}
-                            >
-                              <div className="font-bold flex items-center justify-between text-[11px]">
-                                <span>{t('device_detail.unifi_mode_legacy_title')}</span>
-                                {newCheckUnifiMode === 'legacy' && <span className="text-[9px] bg-sky-500 text-white px-1.5 py-0.2 rounded font-mono uppercase">Attivo</span>}
-                              </div>
-                              <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
-                                {t('device_detail.unifi_mode_legacy_desc')}
-                              </p>
-                            </button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                            {t('device_detail.check_url_label')}
-                          </label>
-                          <input
-                            type="text"
-                            value={newCheckUrl}
-                            onChange={(e) => {
-                              setNewCheckUrl(e.target.value);
-                              setNewCheckTestResult(null);
-                            }}
-                            placeholder={newCheckUnifiMode === 'os' ? "https://192.168.1.1 o https://unifi.tuodominio.org" : `https://${device.addresses?.ip || '192.168.1.1'}:8443`}
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                          />
-                          <p className="text-[9px] text-slate-400 mt-0.5">
-                            {t('device_detail.check_unifi_url_hint')}
-                          </p>
-                        </div>
-
-                        {newCheckUnifiMode === 'os' ? (
-                          <div>
-                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                              {t('device_detail.check_unifi_api_key_label')}
-                            </label>
-                            <input
-                              type="password"
-                              value={newCheckApiKey}
-                              onChange={(e) => {
-                                setNewCheckApiKey(e.target.value);
-                                setNewCheckTestResult(null);
-                              }}
-                              placeholder="UniFi OS API Key"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                            />
-                            <p className="text-[9px] text-slate-400 mt-0.5">
-                              {t('device_detail.unifi_api_key_hint')}
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                                {t('device_detail.check_username_label')}
-                              </label>
-                              <input
-                                type="text"
-                                value={newCheckUsername}
-                                onChange={(e) => {
-                                  setNewCheckUsername(e.target.value);
-                                  setNewCheckTestResult(null);
-                                }}
-                                placeholder="Local Admin"
-                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                                {t('device_detail.check_password_label')}
-                              </label>
-                              <input
-                                type="password"
-                                value={newCheckPassword}
-                                onChange={(e) => {
-                                  setNewCheckPassword(e.target.value);
-                                  setNewCheckTestResult(null);
-                                }}
-                                placeholder="••••••••"
-                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                            {t('device_detail.check_unifi_site_label')}
-                          </label>
-                          <input
-                            type="text"
-                            value={newCheckSite}
-                            onChange={(e) => {
-                              setNewCheckSite(e.target.value);
-                              setNewCheckTestResult(null);
-                            }}
-                            placeholder="default"
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                          />
-                          <p className="text-[9px] text-slate-400 mt-0.5">
-                            {t('device_detail.unifi_site_hint')}
-                          </p>
-                        </div>
-
-                        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
-                          <input
-                            type="checkbox"
-                            checked={newCheckUseHttps}
-                            onChange={(e) => setNewCheckUseHttps(e.target.checked)}
-                            className="rounded text-sky-500 focus:ring-0"
-                          />
-                          <span>{t('device_detail.check_ssl_verify_label')}</span>
-                        </label>
-
-                        {/* Test Connection Button & Result Box */}
-                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex flex-col gap-2">
-                          <div>
-                            <button
-                              type="button"
-                              onClick={handleTestNewCheck}
-                              disabled={isTestingNewCheck}
-                              className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                            >
-                              {isTestingNewCheck ? (
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin text-sky-500" />
-                              ) : (
-                                <Radio className="w-3.5 h-3.5 text-sky-500" />
-                              )}
-                              <span>{isTestingNewCheck ? t('device_detail.btn_testing_conn') : t('device_detail.btn_test_conn')}</span>
-                            </button>
-                          </div>
-
-                          {newCheckTestResult && (
-                            <div className={`p-2 rounded-lg text-xs flex items-start gap-1.5 border ${
-                              newCheckTestResult.ok
-                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
-                                : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20'
-                            }`}>
-                              {newCheckTestResult.ok ? (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                              ) : (
-                                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                              )}
-                              <div className="flex-1">
-                                <div className="font-semibold text-[11px] leading-tight">
-                                  {newCheckTestResult.message}
-                                </div>
-                                {newCheckTestResult.details && (
-                                  <div className="text-[10px] opacity-80 mt-1 font-mono">
-                                    {newCheckTestResult.details.endpoint && (
-                                      <div>Endpoint: {newCheckTestResult.details.endpoint}</div>
-                                    )}
-                                    {newCheckTestResult.details.devices_found !== undefined && (
-                                      <div>Dispositivi trovati nel controller: {newCheckTestResult.details.devices_found}</div>
-                                    )}
-                                    {newCheckTestResult.details.model && (
-                                      <div>Modello: {newCheckTestResult.details.model} ({newCheckTestResult.details.status || 'OK'})</div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* AdGuard Home */}
-                    {newCheckType === 'adguard_home' && (
-                      <div className="space-y-2">
-                        <div>
-                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                            {t('device_detail.check_url_label')}
-                          </label>
-                          <input
-                            type="text"
-                            value={newCheckUrl}
-                            onChange={(e) => setNewCheckUrl(e.target.value)}
-                            placeholder={`http://${device.addresses?.ip || '192.168.1.1'}:3000`}
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                              {t('device_detail.check_username_label')}
-                            </label>
-                            <input
-                              type="text"
-                              value={newCheckUsername}
-                              onChange={(e) => setNewCheckUsername(e.target.value)}
-                              placeholder="Admin (opzionale)"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                              {t('device_detail.check_password_label')}
-                            </label>
-                            <input
-                              type="password"
-                              value={newCheckPassword}
-                              onChange={(e) => setNewCheckPassword(e.target.value)}
-                              placeholder="••••••••"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Home Assistant */}
-                    {newCheckType === 'home_assistant' && (
-                      <div className="space-y-2">
-                        <div>
-                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                            {t('device_detail.check_url_label')}
-                          </label>
-                          <input
-                            type="text"
-                            value={newCheckUrl}
-                            onChange={(e) => setNewCheckUrl(e.target.value)}
-                            placeholder={`http://${device.addresses?.ip || '192.168.1.1'}:8123`}
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                            {t('device_detail.check_ha_token_label')}
-                          </label>
-                          <input
-                            type="password"
-                            value={newCheckApiKey}
-                            onChange={(e) => setNewCheckApiKey(e.target.value)}
-                            placeholder="eyJhbGciOi..."
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                            {t('device_detail.check_ha_entity_label')}
-                          </label>
-                          <input
-                            type="text"
-                            value={newCheckEntityId}
-                            onChange={(e) => setNewCheckEntityId(e.target.value)}
-                            placeholder="sensor.presa_pc_power"
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                          />
-                        </div>
-                      </div>
-                    )}
-
                     {/* SNMP */}
                     {newCheckType === 'snmp' && (
                       <div className="grid grid-cols-2 gap-2">
@@ -1782,12 +1586,12 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                 )}
 
                 {/* Checks List */}
-                {checks.length === 0 ? (
+                {networkChecks.length === 0 ? (
                   <div className="text-center text-slate-500 py-6">
                     {t('device_detail.no_checks')}
                   </div>
                 ) : (
-                  checks.map((chk) => {
+                  networkChecks.map((chk) => {
                     const obs = checkObservations[chk.id];
                     const details = obs?.details || {};
                     const isExpanded = expandedCheckIds.has(chk.id);
@@ -2273,6 +2077,46 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
         onClose={() => setEditingCheck(null)}
         onCheckUpdated={handleCheckUpdated}
       />
+
+      {/* Configure Integration Modal */}
+      {isConfiguringIntegration && (
+        <ConfigureIntegrationModal
+          isOpen={isConfiguringIntegration}
+          device={device}
+          existingIntegration={editingIntegration}
+          onClose={() => {
+            setIsConfiguringIntegration(false);
+            setEditingIntegration(null);
+          }}
+          onSaved={async () => {
+            setIsConfiguringIntegration(false);
+            setEditingIntegration(null);
+            const updated = await fetchDeviceChecks(device.id);
+            setChecks(updated);
+            if (onRefreshTopology) onRefreshTopology();
+          }}
+        />
+      )}
+
+      {/* Integration Detail Modal (fallback if onOpenIntegration not provided) */}
+      {viewingIntegrationModal && (
+        <IntegrationDetailModal
+          isOpen={Boolean(viewingIntegrationModal)}
+          device={device}
+          integration={viewingIntegrationModal}
+          onClose={() => setViewingIntegrationModal(null)}
+          onEditConfig={() => {
+            setEditingIntegration(viewingIntegrationModal);
+            setViewingIntegrationModal(null);
+            setIsConfiguringIntegration(true);
+          }}
+          onIntegrationUpdated={async () => {
+            const updated = await fetchDeviceChecks(device.id);
+            setChecks(updated);
+            if (onRefreshTopology) onRefreshTopology();
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -553,7 +553,28 @@
     "toast_integration_ok": "Integración {{type}} verificada con éxito. APIs accesibles y operativas.",
     "toast_integration_fail": "Error de comunicación con la API {{type}}.",
     "toast_generic_ok": "Comprobación completada con éxito.",
-    "toast_generic_fail": "Comprobación finalizada con error o umbrales superados."
+    "toast_generic_fail": "Comprobación finalizada con error o umbrales superados.",
+    "integrations_title": "Integraciones",
+    "btn_add_integration": "Conectar Integración",
+    "btn_add_integration_first": "Conectar primera integración",
+    "no_integrations_desc": "No hay integraciones conectadas a este dispositivo. Puede conectar UniFi, AdGuard Home, Home Assistant o Synology DSM para ver métricas y telemetría avanzada.",
+    "view_integration_data": "Ver datos y telemetría de la integración",
+    "delete_integration": "Eliminar integración",
+    "add_integration_title": "Conectar Integración del Dispositivo",
+    "edit_integration_title": "Modificar Configuración de Integración",
+    "integration_type_label": "Tipo de Integración",
+    "btn_close": "Cerrar",
+    "btn_edit_config": "Modificar Parámetros",
+    "btn_refresh_now": "Actualizar Telemetría",
+    "btn_refreshing": "Actualizando...",
+    "unifi_stat_clients": "Clientes Conectados",
+    "unifi_stat_poe": "Consumo PoE Total",
+    "unifi_stat_model": "Modelo del Dispositivo",
+    "unifi_stat_total_devices": "Dispositivos en el Controlador",
+    "adguard_stat_protection": "Estado de Protección",
+    "adguard_stat_queries": "Consultas DNS (24h)",
+    "adguard_stat_blocked": "Consultas Bloqueadas",
+    "adguard_stat_avg_time": "Tiempo Medio de Resolución"
   },
   "device_color": {
     "title": "Personalizar Color del Dispositivo",
@@ -625,7 +646,9 @@
     "status_down": "FALLO",
     "status_unreachable": "INACCESIBLE",
     "status_isolated": "AISLADO DE LAN",
-    "isolated_badge_tooltip": "El Vantage Point ha perdido la conexión con el conmutador/red local y está aislado"
+    "isolated_badge_tooltip": "El Vantage Point ha perdido la conexión con el conmutador/red local y está aislado",
+    "integrations_bubble_tooltip": "Integraciones configuradas ({{count}})",
+    "integrations_menu_header": "Integraciones del dispositivo"
   },
   "device_kinds": {
     "router": "Router / Puerta de enlace",
