@@ -88,6 +88,7 @@
   "edit_bar": {
     "title": "Mode Édition Actif :",
     "instructions": "Glissez les appareils depuis la palette ou créez-en de nouveaux. Reliez les nœuds en faisant glisser les poignées.",
+    "scan_network": "Scanner le réseau",
     "add_device": "+ Ajouter un appareil",
     "save_changes": "Enregistrer les modifications",
     "saving": "Enregistrement en cours...",
@@ -718,7 +719,9 @@
     "selected_count": "{{count}} appareils sélectionnés",
     "add_selected": "Ajouter à la topologie ({{count}})",
     "silent_mode_toggle": "Ajouter en mode silencieux (aucun e-mail d'alerte avant validation)",
-    "auto_link_toggle": "Relier automatiquement aux équipements existants (Cœur/Switch/AP)"
+    "auto_link_toggle": "Relier automatiquement aux équipements existants (Cœur/Switch/AP)",
+    "table_header_devices": "Appareils détectés",
+    "table_header_status": "Statut"
   },
   "simulation": {
     "btn_simulate_device": "Simuler une Panne (What-If)",

@@ -88,6 +88,7 @@
   "edit_bar": {
     "title": "Edit Mode Active:",
     "instructions": "Drag devices from the palette or create new ones. Connect nodes by dragging handles.",
+    "scan_network": "Scan Network",
     "add_device": "+ Add Device",
     "save_changes": "Save Changes",
     "saving": "Saving changes...",
@@ -718,7 +719,9 @@
     "selected_count": "{{count}} devices selected",
     "add_selected": "Add to canvas ({{count}})",
     "silent_mode_toggle": "Add in silent mode (no email alerts until validated)",
-    "auto_link_toggle": "Auto-connect to existing Core/Switch/AP devices"
+    "auto_link_toggle": "Auto-connect to existing Core/Switch/AP devices",
+    "table_header_devices": "Discovered Devices",
+    "table_header_status": "Status"
   },
   "simulation": {
     "btn_simulate_device": "Simulate Failure (What-If)",

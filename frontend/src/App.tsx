@@ -898,10 +898,10 @@ export const App: React.FC = () => {
             <button
               onClick={() => setIsDiscoveryOpen(true)}
               className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded-lg font-medium transition flex items-center gap-1 shadow-sm"
-              title="Scansiona la subnet e rileva apparati in un clic"
+              title={t('discovery.modal_desc') || "Scansiona la subnet e rileva apparati in un clic"}
             >
               <Search className="w-3.5 h-3.5 text-amber-500" />
-              <span>{t('discovery.start_scan') || 'Rileva Rete'}</span>
+              <span>{t('edit_bar.scan_network') || 'Scansione Rete'}</span>
             </button>
             <button
               onClick={() => setIsAddDeviceOpen(true)}

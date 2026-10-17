@@ -61,20 +61,22 @@ export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
         setSubnet(res.subnet);
       }
       setScanResult(res.devices);
-      // Pre-select new reachable devices not already in topology
-      const newIds = new Set<string>();
-      for (const d of res.devices) {
-        if (!existingIps.has(d.ip) && !existingDevIds.has(d.id)) {
-          newIds.add(d.id);
-        }
-      }
-      setSelectedIds(newIds);
+      // Default to all deselected per user requirement
+      setSelectedIds(new Set());
     } catch (err: any) {
       setErrorMsg(err.message || 'Errore durante la scansione della rete.');
     } finally {
       setIsScanning(false);
     }
   };
+
+  const eligibleDevices = (scanResult || []).filter(
+    (d) => !existingIps.has(d.ip) && !existingDevIds.has(d.id)
+  );
+  const isAllEligibleSelected =
+    eligibleDevices.length > 0 && selectedIds.size === eligibleDevices.length;
+  const isPartiallySelected =
+    selectedIds.size > 0 && selectedIds.size < eligibleDevices.length;
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -88,13 +90,10 @@ export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
 
   const toggleSelectAll = () => {
     if (!scanResult) return;
-    const eligible = scanResult.filter(
-      (d) => !existingIps.has(d.ip) && !existingDevIds.has(d.id)
-    );
-    if (selectedIds.size >= eligible.length) {
+    if (selectedIds.size >= eligibleDevices.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(eligible.map((d) => d.id)));
+      setSelectedIds(new Set(eligibleDevices.map((d) => d.id)));
     }
   };
 
@@ -264,16 +263,49 @@ export const NetworkDiscoveryModal: React.FC<NetworkDiscoveryModalProps> = ({
                   {t('discovery.found_count', { count: scanResult.length }) || `Rilevati ${scanResult.length} dispositivi`}
                 </span>
                 <button
+                  type="button"
                   onClick={toggleSelectAll}
-                  className="text-sky-600 dark:text-sky-400 hover:underline font-medium cursor-pointer"
+                  disabled={eligibleDevices.length === 0}
+                  className="text-sky-600 dark:text-sky-400 hover:underline font-medium cursor-pointer disabled:opacity-50 disabled:no-underline"
                 >
-                  {selectedIds.size === 0
-                    ? (t('discovery.select_all') || 'Seleziona tutti i nuovi')
-                    : (t('discovery.deselect_all') || 'Deseleziona tutti')}
+                  {isAllEligibleSelected
+                    ? (t('discovery.deselect_all') || 'Deseleziona tutti')
+                    : (t('discovery.select_all') || 'Seleziona tutti i nuovi')}
                 </button>
               </div>
 
               <div className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
+                {/* Master select/deselect all table header */}
+                <div className="bg-slate-50 dark:bg-slate-800/70 p-3 flex items-center gap-3 text-xs font-semibold text-slate-700 dark:text-slate-300 select-none">
+                  <input
+                    type="checkbox"
+                    ref={(el) => {
+                      if (el) el.indeterminate = isPartiallySelected;
+                    }}
+                    checked={isAllEligibleSelected}
+                    disabled={eligibleDevices.length === 0}
+                    onChange={toggleSelectAll}
+                    className="rounded border-slate-300 dark:border-slate-700 text-sky-600 focus:ring-0 cursor-pointer disabled:cursor-not-allowed"
+                    title={isAllEligibleSelected ? (t('discovery.deselect_all') || 'Deseleziona tutti') : (t('discovery.select_all') || 'Seleziona tutti')}
+                  />
+                  <div
+                    className="flex-1 flex items-center justify-between cursor-pointer"
+                    onClick={() => eligibleDevices.length > 0 && toggleSelectAll()}
+                  >
+                    <span className="flex items-center gap-2">
+                      {t('discovery.table_header_devices') || 'Dispositivi rilevati'}
+                      {eligibleDevices.length > 0 && (
+                        <span className="font-normal text-[11px] text-slate-400">
+                          ({selectedIds.size}/{eligibleDevices.length})
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {t('discovery.table_header_status') || 'Stato'}
+                    </span>
+                  </div>
+                </div>
+
                 {scanResult.map((d) => {
                   const alreadyExists = existingIps.has(d.ip) || existingDevIds.has(d.id);
                   const isSelected = selectedIds.has(d.id);

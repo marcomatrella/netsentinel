@@ -88,6 +88,7 @@
   "edit_bar": {
     "title": "Modalità Modifica Attiva:",
     "instructions": "Trascina gli apparati dalla tavolozza o creane di nuovi. Collega i nodi trascinando le maniglie.",
+    "scan_network": "Scansione Rete",
     "add_device": "+ Aggiungi Apparato",
     "save_changes": "Salva Modifiche",
     "saving": "Salvataggio in corso...",
@@ -718,7 +719,9 @@
     "selected_count": "{{count}} apparati selezionati",
     "add_selected": "Aggiungi alla plancia ({{count}})",
     "silent_mode_toggle": "Aggiungi in modalità silenziosa (nessuna notifica email finché non validati)",
-    "auto_link_toggle": "Collega automaticamente agli apparati core/switch/AP esistenti"
+    "auto_link_toggle": "Collega automaticamente agli apparati core/switch/AP esistenti",
+    "table_header_devices": "Dispositivi rilevati",
+    "table_header_status": "Stato"
   },
   "simulation": {
     "btn_simulate_device": "Simula Guasto (What-If)",

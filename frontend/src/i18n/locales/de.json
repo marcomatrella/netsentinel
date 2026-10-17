@@ -88,6 +88,7 @@
   "edit_bar": {
     "title": "Bearbeitungsmodus aktiv:",
     "instructions": "Ziehen Sie Geräte aus der Palette oder erstellen Sie neue. Verbinden Sie Knoten durch Ziehen der Griffe.",
+    "scan_network": "Netzwerk scannen",
     "add_device": "+ Gerät hinzufügen",
     "save_changes": "Änderungen speichern",
     "saving": "Wird gespeichert...",
@@ -718,7 +719,9 @@
     "selected_count": "{{count}} Geräte ausgewählt",
     "add_selected": "Zur Topologie hinzufügen ({{count}})",
     "silent_mode_toggle": "Im lautlosen Modus hinzufügen (keine E-Mail-Alarme bis zur Bestätigung)",
-    "auto_link_toggle": "Automatisch mit vorhandenem Core/Switch/AP verbinden"
+    "auto_link_toggle": "Automatisch mit vorhandenem Core/Switch/AP verbinden",
+    "table_header_devices": "Erkannte Geräte",
+    "table_header_status": "Status"
   },
   "simulation": {
     "btn_simulate_device": "Ausfall simulieren (What-If)",
