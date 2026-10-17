@@ -21,13 +21,20 @@ HTML_INCIDENT_TEMPLATE = """<!DOCTYPE html>
           <!-- Header Banner -->
           <div style="padding: 22px 24px; background-color: {% if is_resolved %}#059669{% elif is_shift %}#d97706{% else %}#dc2626{% endif %}; color: #ffffff;">
             <span style="display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; background-color: rgba(255,255,255,0.22); letter-spacing: 0.05em; color: #ffffff;">
-              {% if is_resolved %}✓ Risolto{% elif is_shift %}⚡ Aggiornamento Incidente{% else %}🚨 Allarme NetSentinel{% endif %}
+              {% if is_wan_digest %}📡 Disservizio Rientrato (Report WAN){% elif is_resolved %}✓ Risolto{% elif is_shift %}⚡ Aggiornamento Incidente{% else %}🚨 Allarme NetSentinel{% endif %}
             </span>
             <h1 style="margin: 8px 0 0 0; font-size: 20px; font-weight: 700; color: #ffffff; line-height: 1.3;">{{ title }}</h1>
           </div>
 
           <!-- Content Body -->
           <div style="padding: 24px; font-size: 14px; line-height: 1.6; color: #334155; background-color: #ffffff;">
+
+            {% if is_wan_digest %}
+            <!-- WAN Recovery Informational Banner -->
+            <div style="background-color: #ecfdf5; border-left: 4px solid #059669; padding: 12px 16px; margin: 0 0 20px 0; border-radius: 6px; color: #065f46; font-size: 13px; line-height: 1.5;">
+              <strong>🌐 Connessione WAN ripristinata:</strong> Questo report riepiloga l'evento verificatosi durante l'interruzione di connettività Internet o il riavvio del router. NetSentinel ha atteso il ripristino per inviare questa notifica di sintesi consolidata. Tutti i servizi sono ora pienamente operativi.
+            </div>
+            {% endif %}
 
             <!-- Highlight Box: Causa Radice -->
             <div style="background-color: #f8fafc; border-radius: 8px; padding: 16px; margin: 0 0 20px 0; border: 1px solid #e2e8f0;">
@@ -114,8 +121,16 @@ HTML_INCIDENT_TEMPLATE = """<!DOCTYPE html>
 </html>
 """
 
-TEXT_INCIDENT_TEMPLATE = """[NetSentinel {% if is_resolved %}RISOLTO{% elif is_shift %}AGGIORNAMENTO{% else %}ALLARME{% endif %}] {{ title }}
+TEXT_INCIDENT_TEMPLATE = """[NetSentinel {% if is_wan_digest and is_resolved %}RISOLTO (REPORT WAN){% elif is_resolved %}RISOLTO{% elif is_shift %}AGGIORNAMENTO{% else %}ALLARME{% endif %}] {{ title }}
 ========================================================================
+
+{% if is_wan_digest %}
+🌐 CONNESSIONE WAN RIPRISTINATA:
+Questo report riepiloga l'evento verificatosi durante l'assenza di connessione Internet
+o il riavvio del router. NetSentinel ha atteso il ripristino per inviare questa
+notifica consolidata. Tutti i servizi e apparati sono ora pienamente operativi.
+========================================================================
+{% endif %}
 
 🚨 Causa Radice: {{ root_cause_device_name }} ({{ root_cause_category }})
 📊 Livello di Confidenza: {{ confidence_pct }}%
@@ -151,14 +166,18 @@ def render_incident_notification(
     vantage_point_name: str = "Synology NAS",
     is_resolved: bool = False,
     is_shift: bool = False,
+    is_wan_digest: bool = False,
 ) -> tuple[str, str, str]:
     """Render subject, HTML body, and plain-text body for an incident notification."""
     dev_name = root_cause_device.get("name", "Rete locale") if root_cause_device else (incident.get("root_cause_device_id") or "Infrastruttura")
     conf_pct = int(float(incident.get("confidence", 0.9)) * 100)
 
     # Subject line
-    prefix = "[NetSentinel RISOLTO]" if is_resolved else ("[NetSentinel AGGIORNAMENTO]" if is_shift else "[NetSentinel ALLARME]")
-    subject = f"{prefix} {incident.get('summary', 'Anomalia rilevata')[:60]} ({dev_name})"
+    if is_wan_digest and is_resolved:
+        subject = f"[NetSentinel RISOLTO] Disservizio rientrato: Report incidente connettività ({dev_name})"
+    else:
+        prefix = "[NetSentinel RISOLTO]" if is_resolved else ("[NetSentinel AGGIORNAMENTO]" if is_shift else "[NetSentinel ALLARME]")
+        subject = f"{prefix} {incident.get('summary', 'Anomalia rilevata')[:60]} ({dev_name})"
 
     # Calculate duration
     started_at = incident.get("started_at", "")
@@ -174,8 +193,10 @@ def render_incident_notification(
         except Exception:
             duration_str = "N/D"
 
+    title = "Disservizio Rientrato (Report Connettività)" if (is_wan_digest and is_resolved) else ("Incidente Risolto" if is_resolved else ("Spostamento Causa Radice" if is_shift else "Nuovo Incidente Rilevato"))
+
     ctx = {
-        "title": "Incidente Risolto" if is_resolved else ("Spostamento Causa Radice" if is_shift else "Nuovo Incidente Rilevato"),
+        "title": title,
         "root_cause_device_name": dev_name,
         "root_cause_category": incident.get("root_cause_category", "infrastruttura"),
         "confidence_pct": conf_pct,
@@ -189,6 +210,7 @@ def render_incident_notification(
         "vantage_point_name": vantage_point_name,
         "is_resolved": is_resolved,
         "is_shift": is_shift,
+        "is_wan_digest": is_wan_digest,
     }
 
     html_content = Template(HTML_INCIDENT_TEMPLATE).render(ctx)

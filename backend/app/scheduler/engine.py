@@ -47,9 +47,14 @@ class SchedulerEngine:
         self._event_subscribers: list[Callable[[dict[str, Any]], None]] = []
 
         # Debounce caches to prevent event storming / duplicates in SQLite
+        # Debounce caches and settling buffer to prevent event storms during cascading transitions (e.g. router reboot)
         self._last_check_event_ts: dict[tuple[str, str], float] = {}
         self._last_dev_event_ts: dict[tuple[str, str], float] = {}
         self._correlation_task: asyncio.Task[None] | None = None
+        self._pending_anomaly_events: list[dict[str, Any]] = []
+        self._settling_first_ts: float | None = None
+        self._settling_delay: float = 5.0
+        self._max_settling_window: float = 10.0
 
     def get_latest_rtts(self) -> dict[str, float]:
         """Return in-memory map of device_id -> latest RTT in ms."""
@@ -72,22 +77,63 @@ class SchedulerEngine:
             except Exception as e:
                 logger.debug("Errore notifica subscriber: %s", e)
 
-    def schedule_correlation(self) -> None:
+    def schedule_correlation(self, delay: float = 5.0) -> None:
         """Debounce correlation execution to allow cascading check transitions to settle (e.g. router reboot)."""
+        now = time.time()
+        if self._settling_first_ts is None:
+            self._settling_first_ts = now
+
+        # If already waiting, extend/re-arm timer unless max settling window has been reached
         if self._correlation_task and not self._correlation_task.done():
-            return
+            if (now - self._settling_first_ts) < self._max_settling_window:
+                self._correlation_task.cancel()
+            else:
+                return
+
         self._correlation_task = asyncio.create_task(
-            self._debounced_correlation_runner(),
+            self._debounced_correlation_runner(delay=delay),
             name="netsentinel-corr-debounce",
         )
 
-    async def _debounced_correlation_runner(self) -> None:
-        """Wait 1.5s for multi-device check results to settle, then run correlation pass."""
+    async def _debounced_correlation_runner(self, delay: float = 5.0) -> None:
+        """Wait for cascading checks across devices to settle, then run correlation pass and filter symptom logs."""
         try:
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(delay)
+            self._settling_first_ts = None
+
             async with AsyncSessionLocal() as session:
                 from app.correlation.engine import correlation_engine
-                await correlation_engine.run_correlation_cycle(session)
+                incidents = await correlation_engine.run_correlation_cycle(session)
+
+                # Identify all symptom devices across active incidents
+                symptom_device_ids: set[str] = set()
+                root_cause_device_ids: set[str] = set()
+                for inc in incidents:
+                    if inc.root_cause_device_id:
+                        root_cause_device_ids.add(inc.root_cause_device_id)
+                    imp = json.loads(inc.impacted_json) if inc.impacted_json else []
+                    symptom_device_ids.update(imp)
+
+                # Remove root causes from symptoms if present
+                symptom_device_ids.difference_update(root_cause_device_ids)
+
+                # Drain held anomaly events, discarding events for downstream symptoms
+                pending_events = list(self._pending_anomaly_events)
+                self._pending_anomaly_events.clear()
+
+                for ev_data in pending_events:
+                    dev_id = ev_data.get("device_id")
+                    if dev_id and dev_id in symptom_device_ids:
+                        logger.debug("Soppresso log anomalia per sintomo subordinato: %s (%s)", dev_id, ev_data.get("event_type"))
+                        continue
+
+                    # If this is device_state_change for root cause, incident_opened already covers it
+                    if ev_data.get("event_type") == "device_state_change" and dev_id in root_cause_device_ids:
+                        continue
+
+                    session.add(Event(**ev_data))
+
+                await session.commit()
         except asyncio.CancelledError:
             pass
         except Exception as e:
@@ -313,17 +359,20 @@ class SchedulerEngine:
                         self._last_check_event_ts[chk_cache_key] = now_ts
 
                 if should_log_check_event:
-                    ev = Event(
-                        ts=utcnow(),
-                        device_id=device_id,
-                        check_id=check_id,
-                        event_type="check_state_change",
-                        severity=h_res.event_severity or "info",
-                        title=f"Check {chk.name}: {old_chk_status.upper()} -> {h_res.new_status.upper()}",
-                        message=f"Il controllo '{chk.name}' su '{device.name}' è passato allo stato {h_res.new_status.upper()}.",
-                        details_json=json.dumps(obs.details),
-                    )
-                    session.add(ev)
+                    ev_dict = {
+                        "ts": utcnow(),
+                        "device_id": device_id,
+                        "check_id": check_id,
+                        "event_type": "check_state_change",
+                        "severity": h_res.event_severity or "info",
+                        "title": f"Check {chk.name}: {old_chk_status.upper()} -> {h_res.new_status.upper()}",
+                        "message": f"Il controllo '{chk.name}' su '{device.name}' è passato allo stato {h_res.new_status.upper()}.",
+                        "details_json": json.dumps(obs.details),
+                    }
+                    if h_res.new_status in ["crit", "warn"]:
+                        self._pending_anomaly_events.append(ev_dict)
+                    else:
+                        session.add(Event(**ev_dict))
 
                 self._broadcast_event({
                     "type": "check_state_change",
@@ -332,6 +381,16 @@ class SchedulerEngine:
                     "old_status": old_chk_status,
                     "new_status": h_res.new_status,
                 })
+
+            # Check if successful ping indicates WAN recovery
+            if obs.status == "ok" and chk.type == "ping":
+                from app.notification.manager import notification_manager
+                if not notification_manager.is_wan_online:
+                    dev_roles = json.loads(device.roles_json) if device.roles_json else []
+                    if device.kind in ["router", "modem"] or any(r in ["router", "gateway", "wan"] for r in dev_roles) or "8.8.8.8" in (chk.params_json or "") or "1.1.1.1" in (chk.params_json or ""):
+                        logger.info("🟢 [PING RECUPERO] Connessione WAN ripristinata rilevata tramite ping '%s' su '%s'.", chk.name, device.name)
+                        notification_manager.set_wan_status(True)
+                        asyncio.create_task(notification_manager.drain_pending_wan_queue())
 
             # Check for reboot
             uptime_val = obs.details.get("uptime_seconds")
@@ -449,22 +508,25 @@ class SchedulerEngine:
 
                 if should_log_dev_event:
                     maint_suffix = f" [Manutenzione Programmata: {maint_win.title}]" if (in_maint and maint_win) else (" [Manutenzione Attiva]" if in_maint else "")
-                    ev_dev = Event(
-                        ts=utcnow(),
-                        device_id=device_id,
-                        event_type="device_state_change",
-                        severity=severity,
-                        title=f"Apparato {device.name}: {old_dev_status.upper()} -> {new_dev_status.upper()}{maint_suffix}",
-                        message=f"Lo stato di '{device.name}' (tracciamento passivo) è {new_dev_status.upper()}." if is_passive else f"Lo stato complessivo di '{device.name}' è ora {new_dev_status.upper()}{maint_suffix}.",
-                        details_json=json.dumps({
+                    ev_dev_dict = {
+                        "ts": utcnow(),
+                        "device_id": device_id,
+                        "event_type": "device_state_change",
+                        "severity": severity,
+                        "title": f"Apparato {device.name}: {old_dev_status.upper()} -> {new_dev_status.upper()}{maint_suffix}",
+                        "message": f"Lo stato di '{device.name}' (tracciamento passivo) è {new_dev_status.upper()}." if is_passive else f"Lo stato complessivo di '{device.name}' è ora {new_dev_status.upper()}{maint_suffix}.",
+                        "details_json": json.dumps({
                             "old_status": old_dev_status,
                             "new_status": new_dev_status,
                             "passive": is_passive,
                             "maintenance": in_maint,
                             "maintenance_title": maint_win.title if maint_win else None,
                         }),
-                    )
-                    session.add(ev_dev)
+                    }
+                    if new_dev_status in ["down", "unreachable", "flapping", "degraded"]:
+                        self._pending_anomaly_events.append(ev_dev_dict)
+                    else:
+                        session.add(Event(**ev_dev_dict))
 
                 self._broadcast_event({
                     "type": "device_state_change",

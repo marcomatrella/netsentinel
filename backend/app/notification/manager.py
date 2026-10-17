@@ -334,7 +334,12 @@ class NotificationManager:
             logger.warning("Tipo canale sconosciuto: %s", channel.type)
 
     async def drain_pending_wan_queue(self) -> int:
-        """Drain queued notifications once WAN connection is restored."""
+        """Drain queued notifications once WAN connection is restored.
+        
+        If an incident occurred and resolved during the blackout (e.g. router reboot),
+        NetSentinel consolidates it into a single final resolution report rather than
+        spamming stale opening alerts.
+        """
         if not self.is_wan_online:
             return 0
 
@@ -347,22 +352,94 @@ class NotificationManager:
             if not pending_logs:
                 return 0
 
-            # Group resolved incidents into a single digest if multiple
-            resolved_incidents = set()
+            # Group pending logs by incident_id
+            logs_by_incident: dict[str, list[NotificationLog]] = {}
             for pl in pending_logs:
                 if pl.incident_id:
-                    inc_res = await session.execute(select(Incident).where(Incident.id == pl.incident_id))
-                    inc = inc_res.scalar_one_or_none()
-                    if inc and inc.status == "resolved":
-                        resolved_incidents.add(inc.id)
+                    logs_by_incident.setdefault(pl.incident_id, []).append(pl)
+                else:
+                    pl.status = "sent"
+                    drained_count += 1
 
-            for pl in pending_logs:
-                pl.status = "sent"
-                pl.error_message = None
-                drained_count += 1
+            # Fetch active channels
+            ch_res = await session.execute(
+                select(NotificationChannel).where(NotificationChannel.enabled.is_(True))
+            )
+            channels = ch_res.scalars().all()
+
+            for inc_id, inc_logs in logs_by_incident.items():
+                inc = await session.get(Incident, inc_id)
+                if not inc:
+                    for pl in inc_logs:
+                        pl.status = "sent"
+                        drained_count += 1
+                    continue
+
+                # Retrieve root cause and impacted devices
+                root_cause_dev = None
+                if inc.root_cause_device_id:
+                    dev_res = await session.execute(
+                        select(Device).where(Device.id == inc.root_cause_device_id)
+                    )
+                    root_cause_dev = dev_res.scalar_one_or_none()
+
+                impacted_devs: list[dict[str, Any]] = []
+                try:
+                    imp_ids = json.loads(inc.impacted_json) if inc.impacted_json else []
+                    if imp_ids:
+                        imp_res = await session.execute(select(Device).where(Device.id.in_(imp_ids)))
+                        for d in imp_res.scalars().all():
+                            impacted_devs.append({"id": d.id, "name": d.name, "kind": d.kind})
+                except Exception:
+                    pass
+
+                is_resolved = (inc.status == "resolved")
+                inc_dict = {
+                    "id": inc.id,
+                    "summary": inc.summary,
+                    "confidence": inc.confidence,
+                    "started_at": to_utc_iso(inc.started_at) or "",
+                    "resolved_at": to_utc_iso(inc.resolved_at) or "",
+                    "root_cause_device_id": inc.root_cause_device_id,
+                    "root_cause_category": inc.root_cause_category,
+                    "recommendations": json.loads(inc.recommendations_json) if inc.recommendations_json else [],
+                }
+                root_dev_dict = (
+                    {"id": root_cause_dev.id, "name": root_cause_dev.name, "kind": root_cause_dev.kind}
+                    if root_cause_dev
+                    else None
+                )
+
+                # Render consolidated post-blackout resolution notification
+                subject, html_body, text_body = render_incident_notification(
+                    incident=inc_dict,
+                    root_cause_device=root_dev_dict,
+                    impacted_devices=impacted_devs,
+                    dashboard_url=f"http://{settings.host}:{settings.port}",
+                    vantage_point_name=settings.vantage_point_id or "Monitor Host",
+                    is_resolved=is_resolved,
+                    is_shift=False,
+                    is_wan_digest=True,
+                )
+
+                # Dispatch ONE consolidated email/report across active channels
+                for channel in channels:
+                    try:
+                        await self._dispatch_channel(channel, subject, html_body, text_body, inc_dict)
+                        logger.info("✅ [REPORT CONSOLIDATO INVIATO] Canale '%s' -> %s", channel.name, subject)
+                    except Exception as exc:
+                        logger.warning("Invio report consolidato canale '%s': %s", channel.name, exc)
+
+                # Mark last incident email timestamp to avoid immediate duplicate
+                self.last_incident_email_ts[inc.id] = time.time()
+
+                for pl in inc_logs:
+                    pl.status = "sent"
+                    pl.payload_summary = f"Risolto e consolidato via report WAN: {subject}"
+                    drained_count += 1
 
             await session.commit()
-            logger.info("Coda notifiche WAN svuotata: %d notifiche inviate o consolidate.", drained_count)
+            logger.info("Coda notifiche WAN svuotata: %d notifiche consolidate.", drained_count)
 
         return drained_count
 

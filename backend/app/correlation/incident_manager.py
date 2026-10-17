@@ -111,7 +111,7 @@ class IncidentManager:
         else:
             # Update existing incident
             timeline = json.loads(incident.timeline_json) if incident.timeline_json else []
-            # If root cause changed, log shift
+            # If root cause changed, log shift in timeline
             if incident.root_cause_device_id != root_cause_device_id:
                 timeline.append({
                     "ts": to_utc_iso(now),
@@ -119,20 +119,28 @@ class IncidentManager:
                     "message": f"Causa radice aggiornata da '{incident.root_cause_device_id}' a '{root_cause_device_id}'.",
                     "device_id": root_cause_device_id,
                 })
-                ev_shift = Event(
-                    ts=now,
-                    device_id=root_cause_device_id,
-                    event_type="root_cause_shift",
-                    severity="warn",
-                    title="Causa Radice Aggiornata",
-                    message=f"La causa radice dell'incidente è passata a '{root_cause_device_id}'.",
-                    details_json=json.dumps({
-                        "incident_id": incident.id,
-                        "old_root_cause": incident.root_cause_device_id,
-                        "new_root_cause": root_cause_device_id,
-                    }),
-                )
-                session.add(ev_shift)
+                # Suppress noisy WARN shift event in Event table if within initial 30s settling window
+                elapsed_since_start = (now - incident.started_at).total_seconds()
+                if elapsed_since_start > 30.0:
+                    ev_shift = Event(
+                        ts=now,
+                        device_id=root_cause_device_id,
+                        event_type="root_cause_shift",
+                        severity="warn",
+                        title="Causa Radice Aggiornata",
+                        message=f"La causa radice dell'incidente è passata a '{root_cause_device_id}'.",
+                        details_json=json.dumps({
+                            "incident_id": incident.id,
+                            "old_root_cause": incident.root_cause_device_id,
+                            "new_root_cause": root_cause_device_id,
+                        }),
+                    )
+                    session.add(ev_shift)
+                else:
+                    logger.info(
+                        "Silenzio evento WARN root_cause_shift durante finestra iniziale di assestamento (%ds dall'apertura).",
+                        int(elapsed_since_start),
+                    )
                 incident.root_cause_device_id = root_cause_device_id
                 incident.root_cause_category = root_cause_category
 
@@ -168,19 +176,17 @@ class IncidentManager:
         await session.commit()
         await session.refresh(incident)
 
-        # Dispatch notification
+        # Dispatch notification ONLY on newly opened incident (strictly one alert per incident)
         try:
             from app.notification.manager import notification_manager
             is_new = (not incident or incident.timeline_json and "incident_opened" in incident.timeline_json and len(json.loads(incident.timeline_json)) == 1)
-            is_shift = (incident.timeline_json and "root_cause_shift" in incident.timeline_json and json.loads(incident.timeline_json)[-1]["event_type"] == "root_cause_shift")
-            if is_new or is_shift:
+            if is_new:
                 logger.info(
-                    "📢 [ALLARME INCIDENTE] Attivazione canale notifiche per incidente '%s' (Causa radice: %s, Shift: %s)",
+                    "📢 [ALLARME INCIDENTE] Invio notifica per nuovo incidente '%s' (Causa radice: %s)",
                     incident.id,
                     incident.root_cause_device_id,
-                    is_shift,
                 )
-                await notification_manager.notify_incident(incident, is_resolved=False, is_shift=is_shift)
+                await notification_manager.notify_incident(incident, is_resolved=False, is_shift=False)
         except Exception as exc:
             logger.warning("Errore trigger notifiche incidente: %s", exc)
 

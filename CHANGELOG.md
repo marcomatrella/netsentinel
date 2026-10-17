@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.1.14] - 2026-10-18
+
+### Novità & Risoluzioni (Anti-Storm & Resilienza Connettività)
+- **Finestra di Assestamento (Settling Window) Anti-Tempesta Log**: Quando si verifica una transizione anomala o una serie di fallimenti a cascata (come il riavvio notturno del router), il sistema raccoglie le transizioni in background in un buffer temporaneo prima di scrivere nel database degli eventi. Solo dopo l'isolamento della causa radice viene generato un unico log pulito di apertura incidente, sopprimendo le decine di log `WARN` ed eventi intermedi sui nodi a valle impattati.
+- **Accorpamento Email (Unica Email per Incidente)**: Modificata la logica dei canali di allarme: il sistema invia rigorosamente una sola email di notifica per incidente all'apertura, evitando l'invio di raffiche di email per ogni singolo dispositivo secondario e prevenendo il blocco da rate-limiting SMTP.
+- **Riconoscimento Automatico Offline WAN / Router**: Se il router o la linea WAN cadono, il sistema interrompe immediatamente qualsiasi tentativo di connessione ai server SMTP esterni, evitando timeout di rete e blocchi; le comunicazioni vengono poste in coda protetta `pending_wan`.
+- **Report Consolidato Post-Disservizio**: Al ripristino della connettività Internet (o completamento del reboot del router), se l'incidente è rientrato, NetSentinel non invia vecchi allarmi stantii di apertura ma recapita un **unico report riassuntivo consolidato** con durata totale, causa radice, nodi coinvolti e conferma del ripristino completo della rete.
+
 ## [1.1.13] - 2026-10-17
 
 ### Novità & Miglioramenti

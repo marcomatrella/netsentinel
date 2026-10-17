@@ -60,6 +60,13 @@ class CorrelationEngine:
             open_incs = active_res.scalars().all()
             for inc in open_incs:
                 await incident_manager.resolve_incident(session, inc.id)
+
+            from app.notification.manager import notification_manager
+            if not notification_manager.is_wan_online:
+                logger.info("🌐 [WAN STATUS] Tutti gli apparati rientrati [OK]. Ripristino stato WAN e svuotamento coda.")
+                notification_manager.set_wan_status(True)
+                await notification_manager.drain_pending_wan_queue()
+
             return []
 
         # 3. Check for Vantage Point Isolation (Rule 11)
@@ -125,7 +132,35 @@ class CorrelationEngine:
                     key=lambda d: self.topology.get_distance_from_vantage_point(d.id),
                 )[:1]
 
-        # 5. Build/Update Incidents for each candidate (skip candidates under planned maintenance)
+        # 5. Check WAN reachability / Router outage
+        from app.notification.manager import notification_manager
+        is_wan_offline = False
+        if is_vp_isolated:
+            is_wan_offline = True
+        else:
+            for cand in candidates:
+                cand_roles = json.loads(cand.roles_json) if cand.roles_json else []
+                if cand.kind in ["router", "modem"] or any(r in ["router", "gateway", "wan", "modem"] for r in cand_roles):
+                    is_wan_offline = True
+                    break
+                c_name = cand.name.lower()
+                if "router" in c_name or "gateway" in c_name or "modem" in c_name or "wan" in c_name:
+                    is_wan_offline = True
+                    break
+
+        if is_wan_offline:
+            if notification_manager.is_wan_online:
+                logger.warning("🌐 [WAN STATUS] Rilevata caduta della connessione WAN / Router offline. Sospensione invio notifiche esterne.")
+                notification_manager.set_wan_status(False)
+        else:
+            if not notification_manager.is_wan_online:
+                router_devs = [d for d in devices if d.kind in ["router", "modem"] or "router" in (d.roles_json or "")]
+                if not router_devs or all(r.status == "ok" for r in router_devs):
+                    logger.info("🌐 [WAN STATUS] Connessione WAN ripristinata (Router/Gateway operativi).")
+                    notification_manager.set_wan_status(True)
+                    await notification_manager.drain_pending_wan_queue()
+
+        # 6. Build/Update Incidents for each candidate (skip candidates under planned maintenance)
         from app.state.maintenance import maintenance_tracker
 
         resulting_incidents: list[Incident] = []
