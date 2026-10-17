@@ -148,7 +148,17 @@
     "footer_hint": "NetSentinel invia solo report consolidati in HTML per evitare spam di notifiche.",
     "test_success_title": "Invio Email Riuscito!",
     "test_failed_title": "Invio Email Fallito",
-    "test_check_inbox": "Controlla la tua casella di posta elettronica (anche nella cartella spam se è il primo invio) per visualizzare il report HTML completo."
+    "test_check_inbox": "Controlla la tua casella di posta elettronica (anche nella cartella spam se è il primo invio) per visualizzare il report HTML completo.",
+    "tab_email": "Email (SMTP)",
+    "tab_push": "Notifiche Push (PWA)",
+    "push_title": "Notifiche Push Istantanee (Web & PWA)",
+    "push_desc": "Ricevi allarmi sonori e a schermo su computer, tablet o smartphone anche con l'app in background.",
+    "push_status_unsupported": "Non Supportato",
+    "push_status_granted": "Autorizzate",
+    "push_status_denied": "Bloccate nel Browser",
+    "push_status_default": "In Attesa di Permesso",
+    "push_enable_btn": "Abilita Notifiche Ora",
+    "push_test_btn": "Invia Push di Prova"
   },
   "incident": {
     "active_title": "Incidente Attivo Rilevato",
@@ -327,7 +337,14 @@
       "system_event": "Evento di sistema"
     },
     "filter_managed": "Critici Gestiti",
-    "severity_managed": "CRITICO GESTITO"
+    "severity_managed": "CRITICO GESTITO",
+    "col_datetime": "Data / Ora",
+    "col_level": "Livello",
+    "col_device": "Dispositivo",
+    "col_description": "Descrizione Evento & Analisi",
+    "col_actions": "Azioni",
+    "export_json": "Esporta JSON",
+    "network_system": "Rete / Sistema"
   },
   "wizard": {
     "title": "Benvenuto in NetSentinel! 🛡️",

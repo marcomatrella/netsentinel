@@ -148,7 +148,17 @@
     "footer_hint": "NetSentinel sends only consolidated HTML incident reports to avoid notification floods.",
     "test_success_title": "Test Email Sent Successfully!",
     "test_failed_title": "Email Delivery Failed",
-    "test_check_inbox": "Check your email inbox (including your spam/junk folder if this is the first message) to review the full HTML report."
+    "test_check_inbox": "Check your email inbox (including your spam/junk folder if this is the first message) to review the full HTML report.",
+    "tab_email": "Email (SMTP)",
+    "tab_push": "Push Notifications (PWA)",
+    "push_title": "Instant Push Notifications (Web & PWA)",
+    "push_desc": "Receive sound and screen alerts on computer, tablet or smartphone even when the app is in the background.",
+    "push_status_unsupported": "Unsupported",
+    "push_status_granted": "Authorized",
+    "push_status_denied": "Blocked in Browser",
+    "push_status_default": "Awaiting Permission",
+    "push_enable_btn": "Enable Notifications Now",
+    "push_test_btn": "Send Test Push"
   },
   "incident": {
     "active_title": "Active Network Incident Detected",
@@ -327,7 +337,14 @@
       "system_event": "System Event"
     },
     "filter_managed": "Critical Managed",
-    "severity_managed": "CRITICAL MANAGED"
+    "severity_managed": "CRITICAL MANAGED",
+    "col_datetime": "Date / Time",
+    "col_level": "Level",
+    "col_device": "Device",
+    "col_description": "Event Description & Analysis",
+    "col_actions": "Actions",
+    "export_json": "Export JSON",
+    "network_system": "Network / System"
   },
   "wizard": {
     "title": "Welcome to NetSentinel! 🛡️",

@@ -78,8 +78,12 @@
     "force_refresh": "Forzar Actualización",
     "system_settings": "Ajustes del Sistema y Retención",
     "system_settings_desc": "Configura la retención de datos y preferencias históricas",
-    "scheduled_maintenance": "Mantenimientos Programados",
-    "scheduled_maintenance_desc": "Planifica reinicios sin alertas"
+    "scheduled_maintenance": "Mantenimientos programados",
+    "scheduled_maintenance_desc": "Planificar ventanas de mantenimiento y paradas sin falsas alarmas",
+    "section_topology": "Topología y Mapa",
+    "section_general_config": "Configuraciones generales",
+    "notifications": "Notificaciones",
+    "notifications_desc": "Configurar notificaciones por correo (SMTP) y push web (PWA)"
   },
   "edit_bar": {
     "title": "Modo Edición Activo:",
@@ -144,7 +148,17 @@
     "footer_hint": "NetSentinel solo envía informes HTML consolidados para evitar saturación de notificaciones.",
     "test_success_title": "¡Correo de prueba enviado con éxito!",
     "test_failed_title": "Error al enviar el correo",
-    "test_check_inbox": "Revisa tu bandeja de entrada (incluido el correo no deseado/spam) para ver el informe HTML completo."
+    "test_check_inbox": "Revisa tu bandeja de entrada (incluido el correo no deseado/spam) para ver el informe HTML completo.",
+    "tab_email": "Correo (SMTP)",
+    "tab_push": "Notificaciones Push (PWA)",
+    "push_title": "Notificaciones Push Instantáneas (Web y PWA)",
+    "push_desc": "Reciba alertas sonoras y en pantalla en ordenador, tableta o smartphone incluso con la app en segundo plano.",
+    "push_status_unsupported": "No compatible",
+    "push_status_granted": "Autorizadas",
+    "push_status_denied": "Bloqueadas en el navegador",
+    "push_status_default": "Esperando permiso",
+    "push_enable_btn": "Habilitar notificaciones ahora",
+    "push_test_btn": "Enviar push de prueba"
   },
   "incident": {
     "active_title": "Incidente de Red Activo Detectado",
@@ -311,7 +325,14 @@
       "system_event": "Evento del sistema"
     },
     "filter_managed": "Críticos Gestionados",
-    "severity_managed": "CRÍTICO GESTIONADO"
+    "severity_managed": "CRÍTICO GESTIONADO",
+    "col_datetime": "Fecha / Hora",
+    "col_level": "Nivel",
+    "col_device": "Dispositivo",
+    "col_description": "Descripción del evento y análisis",
+    "col_actions": "Acciones",
+    "export_json": "Exportar JSON",
+    "network_system": "Red / Sistema"
   },
   "wizard": {
     "title": "¡Bienvenido a NetSentinel! 🛡️",
@@ -564,7 +585,11 @@
     "root_cause": "Causa Raíz",
     "avg_ping_rtt": "Latencia RTT media",
     "checking_progress": "Comprobación en curso",
-    "no_ping_response": "Sin respuesta al ping"
+    "no_ping_response": "Sin respuesta al ping",
+    "status_down": "FALLO",
+    "status_unreachable": "INACCESIBLE",
+    "status_isolated": "AISLADO DE LAN",
+    "isolated_badge_tooltip": "El Vantage Point ha perdido la conexión con el conmutador/red local y está aislado"
   },
   "device_kinds": {
     "router": "Router / Puerta de enlace",

@@ -78,8 +78,12 @@
     "force_refresh": "Forcer l'actualisation",
     "system_settings": "Paramètres Système & Rétention",
     "system_settings_desc": "Configurer la rétention des données et l'historique",
-    "scheduled_maintenance": "Maintenances Programmées",
-    "scheduled_maintenance_desc": "Planifier les redémarrages sans alertes"
+    "scheduled_maintenance": "Interventions programmées",
+    "scheduled_maintenance_desc": "Planifier des fenêtres de maintenance et arrêts sans fausses alertes",
+    "section_topology": "Topologie & Carte",
+    "section_general_config": "Configurations générales",
+    "notifications": "Notifications",
+    "notifications_desc": "Configurer les notifications par e-mail (SMTP) et push web (PWA)"
   },
   "edit_bar": {
     "title": "Mode Édition Actif :",
@@ -144,7 +148,17 @@
     "footer_hint": "NetSentinel n'envoie que des rapports HTML consolidés pour éviter les rafales d'alertes.",
     "test_success_title": "E-mail de test envoyé avec succès !",
     "test_failed_title": "Échec de l'envoi de l'e-mail",
-    "test_check_inbox": "Vérifiez votre boîte de réception (y compris vos courriers indésirables s'il s'agit du premier envoi) pour consulter le rapport HTML complet."
+    "test_check_inbox": "Vérifiez votre boîte de réception (y compris vos courriers indésirables s'il s'agit du premier envoi) pour consulter le rapport HTML complet.",
+    "tab_email": "E-mail (SMTP)",
+    "tab_push": "Notifications Push (PWA)",
+    "push_title": "Notifications Push Instantanées (Web & PWA)",
+    "push_desc": "Recevez des alertes sonores et visuelles sur ordinateur, tablette ou smartphone même lorsque l'application est en arrière-plan.",
+    "push_status_unsupported": "Non pris en charge",
+    "push_status_granted": "Autorisées",
+    "push_status_denied": "Bloquées dans le navigateur",
+    "push_status_default": "En attente d'autorisation",
+    "push_enable_btn": "Activer les notifications",
+    "push_test_btn": "Envoyer un push de test"
   },
   "incident": {
     "active_title": "Incident Réseau Actif Détecté",
@@ -311,7 +325,14 @@
       "system_event": "Événement système"
     },
     "filter_managed": "Critiques Gérés",
-    "severity_managed": "CRITIQUE GÉRÉ"
+    "severity_managed": "CRITIQUE GÉRÉ",
+    "col_datetime": "Date / Heure",
+    "col_level": "Niveau",
+    "col_device": "Appareil",
+    "col_description": "Description de l'événement & Analyse",
+    "col_actions": "Actions",
+    "export_json": "Exporter JSON",
+    "network_system": "Réseau / Système"
   },
   "wizard": {
     "title": "Bienvenue sur NetSentinel ! 🛡️",

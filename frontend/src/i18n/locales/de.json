@@ -78,8 +78,12 @@
     "force_refresh": "Aktualisierung erzwingen",
     "system_settings": "Systemeinstellungen & Aufbewahrung",
     "system_settings_desc": "Datenaufbewahrung und historische Einstellungen konfigurieren",
-    "scheduled_maintenance": "Geplante Wartungen",
-    "scheduled_maintenance_desc": "Neustarts ohne Alarmierung planen"
+    "scheduled_maintenance": "Geplante Wartungsarbeiten",
+    "scheduled_maintenance_desc": "Wartungsfenster und Stillstandszeiten ohne Fehlalarme planen",
+    "section_topology": "Topologie & Karte",
+    "section_general_config": "Allgemeine Einstellungen",
+    "notifications": "Benachrichtigungen",
+    "notifications_desc": "E-Mail (SMTP) und Web-Push (PWA) Benachrichtigungen konfigurieren"
   },
   "edit_bar": {
     "title": "Bearbeitungsmodus aktiv:",
@@ -144,7 +148,17 @@
     "footer_hint": "NetSentinel versendet nur konsolidierte HTML-Berichte, um Nachrichtenfluten zu vermeiden.",
     "test_success_title": "Test-E-Mail erfolgreich gesendet!",
     "test_failed_title": "Fehler beim E-Mail-Versand",
-    "test_check_inbox": "Überprüfen Sie Ihren Posteingang (einschließlich Spam-Ordner bei Erstversand), um den vollständigen HTML-Bericht zu sehen."
+    "test_check_inbox": "Überprüfen Sie Ihren Posteingang (einschließlich Spam-Ordner bei Erstversand), um den vollständigen HTML-Bericht zu sehen.",
+    "tab_email": "E-Mail (SMTP)",
+    "tab_push": "Push-Benachrichtigungen (PWA)",
+    "push_title": "Sofortige Push-Benachrichtigungen (Web & PWA)",
+    "push_desc": "Erhalten Sie Ton- und Bildschirminformationen auf Computer, Tablet oder Smartphone, auch wenn die App im Hintergrund läuft.",
+    "push_status_unsupported": "Nicht unterstützt",
+    "push_status_granted": "Autorisiert",
+    "push_status_denied": "Im Browser blockiert",
+    "push_status_default": "Warten auf Erlaubnis",
+    "push_enable_btn": "Benachrichtigungen jetzt aktivieren",
+    "push_test_btn": "Test-Push senden"
   },
   "incident": {
     "active_title": "Aktiver Netzwerkvorfall erkannt",
@@ -311,7 +325,14 @@
       "system_event": "Systemereignis"
     },
     "filter_managed": "Gemanagt Kritisch",
-    "severity_managed": "KRITISCH GEMANAGT"
+    "severity_managed": "KRITISCH GEMANAGT",
+    "col_datetime": "Datum / Uhrzeit",
+    "col_level": "Stufe",
+    "col_device": "Gerät",
+    "col_description": "Ereignisbeschreibung & Analyse",
+    "col_actions": "Aktionen",
+    "export_json": "JSON exportieren",
+    "network_system": "Netzwerk / System"
   },
   "wizard": {
     "title": "Willkommen bei NetSentinel! 🛡️",

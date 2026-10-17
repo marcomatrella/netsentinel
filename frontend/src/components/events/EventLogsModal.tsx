@@ -532,7 +532,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 truncate">
                   <span>{t('events.modal_title')}</span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-normal">
-                    {events.length} eventi
+                    {t('events.events_count', { count: events.length }) || `${events.length} eventi`}
                   </span>
                 </h2>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden xs:block truncate">
@@ -549,7 +549,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                 title={t('events.export_tooltip')}
               >
                 <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline text-[11px]">Esporta JSON</span>
+                <span className="hidden sm:inline text-[11px]">{t('events.export_json')}</span>
               </button>
 
               <button
@@ -689,11 +689,11 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
             <table className="w-full border-collapse text-left">
               <thead className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-850/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <tr>
-                  <th className="py-2.5 px-3 sm:px-4 w-[130px] sm:w-[155px]">Data / Ora</th>
-                  <th className="py-2.5 px-2 w-[70px] sm:w-[85px]">Livello</th>
-                  <th className="py-2.5 px-2.5 sm:px-3 w-[140px] sm:w-[190px]">Dispositivo</th>
-                  <th className="py-2.5 px-3">Descrizione Evento & Analisi</th>
-                  <th className="py-2.5 px-3 sm:px-4 w-[60px] sm:w-[85px] text-right">Azioni</th>
+                  <th className="py-2.5 px-3 sm:px-4 w-[130px] sm:w-[155px]">{t('events.col_datetime')}</th>
+                  <th className="py-2.5 px-2 w-[70px] sm:w-[85px]">{t('events.col_level')}</th>
+                  <th className="py-2.5 px-2.5 sm:px-3 w-[140px] sm:w-[190px]">{t('events.col_device')}</th>
+                  <th className="py-2.5 px-3">{t('events.col_description')}</th>
+                  <th className="py-2.5 px-3 sm:px-4 w-[60px] sm:w-[85px] text-right">{t('events.col_actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-150 dark:divide-slate-800/80 font-sans">
@@ -779,7 +779,7 @@ export const EventLogsModal: React.FC<EventLogsModalProps> = ({
                               )}
                             </div>
                           ) : (
-                            <span className="text-[11px] text-slate-400 italic">Rete / Sistema</span>
+                            <span className="text-[11px] text-slate-400 italic">{t('events.network_system')}</span>
                           )}
                         </td>
 
