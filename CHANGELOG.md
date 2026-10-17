@@ -4,28 +4,18 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
-## [1.1.15] - 2026-10-18
-
-### Miglioramenti Registro Eventi & Risoluzioni i18n
-- **Separazione Eventi di Riavvio nel Registro Eventi**: Gli eventi di riavvio (`reboot_detected`) non affollano più la vista predefinita "Tutti" né la scheda "Avvisi". È stato introdotto un tab dedicato **"Riavvii"** (`reboots`) con icona `RotateCw`, mantenendo la cronologia dei reboot isolata e facilmente consultabile senza rumore di fondo.
-- **Evidenziazione Grafica Ottimizzata per Righe CRIT e WARN**: Incrementato il contrasto e la visibilità della tabella NOC per gli eventi critici e di avviso. Aggiunto un indicatore visivo laterale a barra colorata (`border-l-4`) associato a un'evidenziazione di sfondo nitida sia in tema chiaro che scuro.
-- **Risoluzione Completa Stringhe Non Decodificate (i18n)**: Allineate e introdotte in tutte le 5 lingue supportate (it, en, de, fr, es) le chiavi mancanti relative a `events.narratives.*` (`device_offline_headline`, `device_offline_explanation`, `device_offline_actionable`, `device_managed_*`, `device_restored_*`, `unknown_device`), risolvendo le segnalazioni visibili precedentemente come raw key string nel registro.
-
-## [1.1.14] - 2026-10-18
-
-### Novità & Risoluzioni (Anti-Storm & Resilienza Connettività)
-- **Finestra di Assestamento (Settling Window) Anti-Tempesta Log**: Quando si verifica una transizione anomala o una serie di fallimenti a cascata (come il riavvio notturno del router), il sistema raccoglie le transizioni in background in un buffer temporaneo prima di scrivere nel database degli eventi. Solo dopo l'isolamento della causa radice viene generato un unico log pulito di apertura incidente, sopprimendo le decine di log `WARN` ed eventi intermedi sui nodi a valle impattati.
-- **Accorpamento Email (Unica Email per Incidente)**: Modificata la logica dei canali di allarme: il sistema invia rigorosamente una sola email di notifica per incidente all'apertura, evitando l'invio di raffiche di email per ogni singolo dispositivo secondario e prevenendo il blocco da rate-limiting SMTP.
-- **Riconoscimento Automatico Offline WAN / Router**: Se il router o la linea WAN cadono, il sistema interrompe immediatamente qualsiasi tentativo di connessione ai server SMTP esterni, evitando timeout di rete e blocchi; le comunicazioni vengono poste in coda protetta `pending_wan`.
-- **Report Consolidato Post-Disservizio**: Al ripristino della connettività Internet (o completamento del reboot del router), se l'incidente è rientrato, NetSentinel non invia vecchi allarmi stantii di apertura ma recapita un **unico report riassuntivo consolidato** con durata totale, causa radice, nodi coinvolti e conferma del ripristino completo della rete.
-
 ## [1.1.13] - 2026-10-17
 
 ### Novità & Miglioramenti
 - **Riorganizzazione Menu e Sezione "Configurazioni generali"**: Riorganizzato il menu flyout dropdown introducendo la nuova sezione dedicata che raggruppa *Notifiche*, *Servizi DNS e DHCP* e *Interventi programmati*.
 - **Rimozione Wizard Guidato dal Menu**: Il wizard a 8 passi è stato rimosso dalle opzioni ordinarie del menu principale ed è ora riservato esclusivamente al primo onboarding / setup guidato.
-- **Rinnovamento Grafico Registro Eventi (Minimal NOC Table)**: Il log eventi è stato completamente riscritto: rimossi i vecchi accordion/card espandibili in favore di un'unica tabella minimal ad alta densità informativa con intestazioni fisse (`sticky headers`), contrasto ottimizzato, badge di severità e Time Machine jump button.
+- **Rinnovamento Grafico Registro Eventi (Minimal NOC Table)**: Il log eventi è stato completamente riscritto: rimossi i vecchi accordion/card espandibili in favore di un'unica tabella minimal ad alta densità informativa con intestazioni fisse (`sticky headers`), contrasto ottimizzato, badge di severità ed evidenziazione ad alto contrasto con bordo colorato laterale (`border-l-4`) per allarmi `CRIT` e `WARN`.
+- **Separazione Eventi di Riavvio nel Registro Eventi**: Gli eventi di riavvio (`reboot_detected`) non affollano più la vista predefinita "Tutti" né la scheda "Avvisi", ma sono isolati in un tab dedicato **"Riavvii"** (`reboots`) con icona `RotateCw`.
 - **Espansione Notifiche: Email SMTP & Notifiche Push Web (PWA)**: Il pannello Notifiche è stato strutturato in schede con supporto completo per le **Notifiche Push Web / PWA**. È ora possibile concedere l'autorizzazione al browser, testare la ricezione in tempo reale e ricevere notifiche automatiche via SSE su allarmi critici e risoluzioni.
+- **Finestra di Assestamento (Settling Window) Anti-Tempesta Log**: Quando si verifica una transizione anomala o una serie di fallimenti a cascata (come il riavvio notturno del router), il sistema raccoglie le transizioni in background in un buffer temporaneo prima di scrivere nel database degli eventi. Solo dopo l'isolamento della causa radice viene generato un unico log pulito di apertura incidente, sopprimendo le decine di log `WARN` ed eventi intermedi sui nodi a valle impattati.
+- **Accorpamento Email (Unica Email per Incidente)**: Modificata la logica dei canali di allarme: il sistema invia rigorosamente una sola email di notifica per incidente all'apertura, evitando l'invio di raffiche di email per ogni singolo dispositivo secondario e prevenendo il blocco da rate-limiting SMTP.
+- **Riconoscimento Automatico Offline WAN / Router & Report Consolidato**: Se il router o la linea WAN cadono, il sistema interrompe immediatamente qualsiasi tentativo di connessione ai server SMTP esterni, evitando timeout di rete e blocchi; le comunicazioni vengono poste in coda protetta `pending_wan`. Al ripristino della connettività Internet recapita un unico report riassuntivo consolidato con durata totale, causa radice, nodi coinvolti e conferma del ripristino completo della rete.
+- **Risoluzione Completa Stringhe Non Decodificate (i18n)**: Allineate e introdotte in tutte le 5 lingue supportate (it, en, de, fr, es) le chiavi relative a `events.narratives.*` (`device_offline_headline`, `device_offline_explanation`, `device_offline_actionable`, `device_managed_*`, `device_restored_*`, `unknown_device`).
 
 ## [1.1.12] - 2026-10-17
 

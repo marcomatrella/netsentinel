@@ -25,22 +25,35 @@ NetSentinel è composto da tre componenti integrati:
 
 ---
 
-## 📋 2. Checklist Obbligatoria per Nuove Versioni / Pacchetti di Modifiche
+## 📋 2. Regole Tassative di Versioning, Branching e Release
 
-Ogni volta che si conclude un ciclo di sviluppo, bugfix o nuova feature e si prepara una nuova versione `X.Y.Z`, **la versione DEVE essere aggiornata in modo sincronizzato e consistente in TUTTI i file indicati di seguito, SENZA ECCEZIONI**.
+> [!CAUTION]
+> ### 🛑 GUARDRAIL FONDAMENTALE SUL VERSIONING E GIT:
+> 1. **MAI pushare su `main` di propria iniziativa**:
+>    - È **severamente vietato** eseguire `git push origin main` senza una **richiesta esplicita dell'utente** (es. *"fai il merge su main e rilascia la versione X.Y.Z"*).
+> 2. **MAI creare o pushare Git Tag durante lo sviluppo**:
+>    - I tag Git annotati (`vX.Y.Z`) vengono creati **SOLO ed ESCLUSIVAMENTE** quando si sta mergiando sul branch `main` per formalizzare una nuova release su ordine esplicito dell'utente.
+> 3. **Il versioning è gestito a livello di intera feature/sprint, MAI per micro-modifiche**:
+>    - È **totalmente vietato** incrementare la versione del software per ogni singola modifica, correzione o iterazione intermedia.
+>    - Durante lo sviluppo di una nuova funzionalità o ciclo di fix, si lavora stabilmente sul branch di lavoro (es. branch feature o di lavoro indicato dall'utente) mantenendo inalterata la versione.
+>    - L'aggiornamento della versione e la checklist dei 10 file si applicano **unicamente quando l'utente comunica che la feature è conclusa e richiede di fare il merge e la release**.
+
+---
+
+## 📋 3. Checklist per Nuove Versioni / Release Ufficiali (Solo su Indicazione Esplicita)
+
+Quando l'utente richiede espressamente di finalizzare e rilasciare una nuova versione `X.Y.Z`, **la versione DEVE essere aggiornata in modo sincronizzato e consistente in TUTTI i file indicati di seguito, SENZA ECCEZIONI**.
 
 ### 🔹 Ordine di Esecuzione dei Passaggi:
 
 ```mermaid
 flowchart TD
     A["1. Modifiche al Codice & Test (pytest)"] --> B["2. Allineamento i18n (it, en, de, fr, es)"]
-    B --> C["3. Aggiornamento frontend/package.json"]
-    C --> D["4. Compilazione Frontend (npm run build)"]
-    D --> E["5. Aggiornamento Backend & Python (config.py, pyproject.toml, uv sync)"]
-    E --> F["6. Aggiornamento Home Assistant Add-on (config.yaml, Dockerfile)"]
-    F --> G["7. Aggiornamento Changelog (netsentinel/CHANGELOG.md & root CHANGELOG.md)"]
-    G --> H["8. Verifica Test Completa (uv run pytest)"]
-    H --> I["9. Git Commit, Tag vX.Y.Z & Push GitHub (main + tag)"]
+    B --> C["3. Richiesta Esplicita Utente per Release"]
+    C --> D["4. Aggiornamento Versioni (package.json, config.py, pyproject.toml, uv sync, config.yaml, build.yaml, Dockerfile, CHANGELOG)"]
+    D --> E["5. Compilazione Frontend (npm run build)"]
+    E --> F["6. Verifica Test Completa (uv run pytest)"]
+    F --> G["7. Merge su main, Creazione Tag vX.Y.Z & Push GitHub (SOLO su ordine utente)"]
 ```
 
 ---
@@ -128,19 +141,22 @@ NetSentinel supporta ufficialmente **5 lingue** in tutta l'interfaccia utente:
 
 ---
 
-## 🚀 7. Procedura di Release su GitHub
+## 🚀 7. Procedura di Release su GitHub (SOLO SU INDICAZIONE ESPLICITA DELL'UTENTE)
 
-Quando tutti i file della checklist sono stati aggiornati e i test sono verdi:
+> [!WARNING]
+> Questa procedura NON deve MAI essere eseguita automaticamente o di propria iniziativa dall'assistente IA. Eseguirla **SOLO** se l'utente ha scritto esplicitamente di procedere al merge su `main` e al rilascio della versione.
+
+Quando tutti i file della checklist sono stati aggiornati, i test sono verdi e l'utente ha confermato il rilascio:
 
 ```bash
-# 1. Commit delle modifiche
+# 1. Commit delle modifiche sul branch di lavoro
 git add .
 git commit -m "fix/feat: descrizione sintetica delle modifiche e rilascio vX.Y.Z"
 
-# 2. Creazione del tag Git annotato
+# 2. Creazione del tag Git annotato (SOLO per release approvata)
 git tag -a vX.Y.Z -m "Release vX.Y.Z: descrizione sintetica"
 
-# 3. Push su GitHub (sia il branch che il tag)
+# 3. Push su GitHub (sia main che il tag - SOLO su richiesta dell'utente)
 git push origin main
 git push origin vX.Y.Z
 ```

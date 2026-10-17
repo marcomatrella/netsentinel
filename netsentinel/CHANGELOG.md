@@ -2,32 +2,18 @@
 
 Tutte le modifiche rilevanti per l'add-on NetSentinel di Home Assistant sono documentate qui.
 
-## 1.1.15
-
-### Miglioramenti Registro Eventi & Risoluzioni i18n
-- **Separazione Eventi di Riavvio nel Registro Eventi**: Gli eventi di riavvio (`reboot_detected`) non affollano più la vista predefinita "Tutti" né la scheda "Avvisi". È stato introdotto un tab dedicato **"Riavvii"** (`reboots`) con icona `RotateCw`, mantenendo la cronologia dei reboot isolata e facilmente consultabile senza rumore di fondo.
-- **Evidenziazione Grafica Ottimizzata per Righe CRIT e WARN**: Incrementato il contrasto e la visibilità della tabella NOC per gli eventi critici e di avviso. Aggiunto un indicatore visivo laterale a barra colorata (`border-l-4`) associato a un'evidenziazione di sfondo nitida sia in tema chiaro che scuro.
-- **Risoluzione Completa Stringhe Non Decodificate (i18n)**: Allineate e introdotte in tutte le 5 lingue supportate (it, en, de, fr, es) le chiavi mancanti relative a `events.narratives.*` (`device_offline_headline`, `device_offline_explanation`, `device_offline_actionable`, `device_managed_*`, `device_restored_*`, `unknown_device`), risolvendo le segnalazioni visibili precedentemente come raw key string nel registro.
-
----
-
-## 1.1.14
-
-### Novità & Risoluzioni (Anti-Storm & Resilienza Connettività)
-- **Finestra di Assestamento (Settling Window) Anti-Tempesta Log**: Quando si verifica una transizione anomala o una serie di fallimenti a cascata (come il riavvio notturno del router), il sistema raccoglie le transizioni in background in un buffer temporaneo prima di scrivere nel database degli eventi. Solo dopo l'isolamento della causa radice viene generato un unico log pulito di apertura incidente, sopprimendo le decine di log `WARN` ed eventi intermedi sui nodi a valle impattati.
-- **Accorpamento Email (Unica Email per Incidente)**: Modificata la logica dei canali di allarme: il sistema invia rigorosamente una sola email di notifica per incidente all'apertura, evitando l'invio di raffiche di email per ogni singolo dispositivo secondario e prevenendo il blocco da rate-limiting SMTP.
-- **Riconoscimento Automatico Offline WAN / Router**: Se il router o la linea WAN cadono, il sistema interrompe immediatamente qualsiasi tentativo di connessione ai server SMTP esterni, evitando timeout di rete e blocchi; le comunicazioni vengono poste in coda protetta `pending_wan`.
-- **Report Consolidato Post-Disservizio**: Al ripristino della connettività Internet (o completamento del reboot del router), se l'incidente è rientrato, NetSentinel non invia vecchi allarmi stantii di apertura ma recapita un **unico report riassuntivo consolidato** con durata totale, causa radice, nodi coinvolti e conferma del ripristino completo della rete.
-
----
-
 ## 1.1.13
 
 ### Novità & Miglioramenti
 - **Riorganizzazione Menu e Sezione "Configurazioni generali"**: Riorganizzato il menu dropdown con la nuova sezione dedicata che raggruppa *Notifiche*, *Servizi DNS e DHCP* e *Interventi programmati*.
 - **Rimozione Wizard Guidato dal Menu**: Il wizard a 8 passi è stato rimosso dal menu ordinario ed è ora riservato esclusivamente al primo onboarding / setup iniziale.
-- **Rinnovamento Grafico Registro Eventi (Minimal NOC Table)**: Il log eventi è stato completamente ridisegnato: eliminati i vecchi accordion/card separati in favore di un'unica tabella minimal con intestazioni fisse (`sticky headers`), testo ad alta densità e leggibilità NOC, badge di severità e accesso rapido a Time Machine.
+- **Rinnovamento Grafico Registro Eventi (Minimal NOC Table)**: Il log eventi è stato completamente ridisegnato: eliminati i vecchi accordion/card separati in favore di un'unica tabella minimal con intestazioni fisse (`sticky headers`), testo ad alta densità, badge di severità ed evidenziazione ad alto contrasto con bordo colorato laterale (`border-l-4`) per allarmi `CRIT` e `WARN`.
+- **Separazione Eventi di Riavvio nel Registro Eventi**: Gli eventi di riavvio (`reboot_detected`) non affollano più la vista predefinita "Tutti" né la scheda "Avvisi", ma sono isolati in un tab dedicato **"Riavvii"** (`reboots`) con icona `RotateCw`.
 - **Espansione Notifiche: Email SMTP & Notifiche Push Web (PWA)**: Il pannello notifiche è ora strutturato in tab dedicati. È stato introdotto il supporto nativo per le **Notifiche Push Web / PWA** con richiesta di autorizzazione esplicita al browser, test istantaneo e avvisi push su allarmi critici e ripristini in tempo reale via SSE.
+- **Finestra di Assestamento (Settling Window) Anti-Tempesta Log**: Quando si verifica una transizione anomala o una serie di fallimenti a cascata (come il riavvio notturno del router), il sistema raccoglie le transizioni in background prima di scrivere nel DB. Solo dopo l'isolamento della causa radice viene generato un unico log pulito di apertura incidente, sopprimendo log `WARN` ed eventi intermedi ridondanti.
+- **Accorpamento Email (Unica Email per Incidente)**: Modificata la logica di notifica: il sistema invia rigorosamente una sola email per incidente all'apertura, evitando raffiche di email per ogni singolo dispositivo secondario e prevenendo il rate-limiting SMTP.
+- **Riconoscimento Automatico Offline WAN / Router & Report Consolidato**: Se il router o la linea WAN cadono, il sistema blocca i tentativi di invio SMTP esterni e accoda le comunicazioni. Al ripristino della connettività Internet recapita un unico report riassuntivo consolidato con durata totale, causa radice e conferma del ripristino.
+- **Risoluzione Completa Stringhe Non Decodificate (i18n)**: Allineate e introdotte in tutte le 5 lingue supportate (it, en, de, fr, es) le chiavi relative a `events.narratives.*` (`device_offline_headline`, `device_offline_explanation`, `device_offline_actionable`, `device_managed_*`, `device_restored_*`, `unknown_device`).
 
 ---
 
