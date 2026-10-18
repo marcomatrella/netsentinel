@@ -318,7 +318,9 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
       {nodeData.isMaintenance && (
         <div
           className={`absolute -top-3.5 ${
-            isOffline ? '-left-8' : nodeData.isVantagePoint ? '-left-3' : '-right-3'
+            nodeData.isVantagePoint
+              ? isOffline || hasIntegrations ? '-left-9' : '-right-3'
+              : isOffline ? '-left-3' : '-right-3'
           } bg-purple-600 text-white p-1.5 rounded-full z-30 ring-2 ring-purple-300 dark:ring-purple-400 maintenance-point-glow flex items-center justify-center cursor-help`}
           title={
             nodeData.maintenanceWindow
@@ -330,12 +332,10 @@ export const CustomNode = memo(({ data, selected }: NodeProps<any>) => {
         </div>
       )}
 
-      {/* Vantage Point Icon */}
+      {/* Vantage Point Icon - anchored at top-left corner to avoid overlapping right-side integration bubble and status badges */}
       {nodeData.isVantagePoint && (
         <div
-          className={`absolute -top-3.5 ${
-            isOffline ? '-left-3' : '-right-3'
-          } ${
+          className={`absolute -top-3.5 -left-3 ${
             isIsolated
               ? 'bg-indigo-600 ring-2 ring-indigo-300 animate-pulse'
               : 'bg-sky-500 ring-2 ring-sky-300 dark:ring-sky-400 vantage-point-glow'

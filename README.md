@@ -212,6 +212,7 @@ NetSentinel can be installed directly as an official **Add-on in Home Assistant 
 * **Live Operational Mode**: Read-only monitoring view where nodes are locked to prevent accidental movement. Displays live RTT ping latency, operational status rings, and animated link pulses.
 * **Edit Mode**: One-click top bar button unlocks node dragging, canvas panning, connection handles, node deletion, and custom positioning.
 * **Auto-Layout (ELK.js)**: Automatically organizes complex messy networks into clean hierarchical tiers (WAN → Gateway → Core Switches → Access Points & Servers → Clients).
+* **Smart Deduction via Integrations**: Client devices detected by network integrations (UniFi, Omada, FRITZ!Box, Netgear, MikroTik, pfSense, OPNsense) are automatically bound to their exact parent Access Point or Switch port with clear derivation badges.
 * **Batch Operations & Area Selection**: Select multiple devices via rectangular selection tool to reposition, inspect, or delete in batch with central confirmation modal.
 * **What-If Failure Simulation**: Distinct yellow simulation button to trigger hypothetical outages on any node (e.g. core router failure) to visualize downstream impact without breaking production.
 * **Safety First**: Destructive actions (like device deletion) always prompt a centered confirmation modal reporting the exact device name.
@@ -227,11 +228,12 @@ Full multi-language support (100% key parity) available directly from the header
 * 🇩🇪 **Deutsch**
 * 🇪🇸 **Español**
 
-### 📋 Event Logs & Minimal NOC Table
-* High-density, searchable log with fixed headers (`sticky headers`) and high-contrast severity badges (`border-l-4`).
+### 📋 Event Logs & Adaptive Layout (Desktop NOC Table & Mobile Card Feed)
+* **Desktop NOC Table**: High-density, searchable log with fixed headers (`sticky headers`) and high-contrast severity badges (`border-l-4`).
+* **Adaptive Mobile Card Feed**: On mobile screens, the log automatically transforms into a spacious, structured card view. Event descriptions and actionable suggestions span the full screen width without horizontal compression or vertical truncation.
 * **Dedicated "Riavvii" (Reboots) Tab**: AP and device reboot events (`reboot_detected`) are cleanly separated from alarms to keep the incident log focused on actual outages.
-* **"Inspect on Canvas"**: Instantly jumps to the corresponding device on the topology map.
-* Filter by severity (Critical, Warning, Informational) or search by device name and IP.
+* **"Inspect on Canvas" & One-Click Time Travel**: Instantly jumps to the corresponding device on the topology map or rewinds time to that exact moment.
+* **Payload Inspection**: Technical telemetry details can be expanded directly on demand.
 
 ### ⏰ Time Machine
 * Travel back in time using an interactive slider.
@@ -268,7 +270,30 @@ While basic monitoring checks tell you whether a network port is answering, **Ne
 * **UniFi OS Modern Support**: Connects to Cloud Key Gen2, Dream Machine (UDM/UDR), and modern UniFi OS Servers on port 443 using **UniFi OS API Keys** (Settings → System → Integrations) or admin credentials.
 * **Legacy Controller Support**: Fully supports standalone/Docker UniFi Controller v1 installations on port 8443.
 * **2FA / MFA Challenge Resolution**: Automatically detects `api.err.Ubic2faTokenRequired` challenges and presents an interactive OTP verification prompt with `X-Ubic-2FA-Token` header support.
-* **Telemetry Gathered**: AP adoption status, model name, connected client count, total PoE power delivery (Watts), and controller device inventory.
+* **Telemetry & Deduction**: AP adoption status, model name, connected client count, total PoE power delivery (Watts), and controller device inventory. Client devices are automatically deduced and linked to their parent AP/switch.
+
+#### 🌐 TP-Link Omada SDN Controller
+* **Hardware, Software & Cloud Support**: Connects to hardware controllers (OC200, OC300), software controllers, and Omada cloud setups (default port HTTPS 8043).
+* **Telemetry & Deduction**: Queries sites, managed EAP access points, JetStream switches, and active wired/wireless client stations. Auto-associates connected clients with specific APs or switch ports.
+
+#### 🇩🇪 AVM FRITZ!Box
+* **TR-064 & AHA Smart Home Protocol**: Direct integration with FRITZ!Box routers and FRITZ!Repeaters.
+* **Telemetry & Deduction**: DSL/Fiber uplink sync status and transmission rates, active LAN and Wi-Fi host lists, and mesh topology clients.
+
+#### 📶 MikroTik RouterOS
+* **RouterOS v7+ REST API**: Communicates via standard RouterOS HTTPS REST API (`/rest/`).
+* **Telemetry & Deduction**: System resources (CPU, uptime, memory, RouterOS version), DHCP server active leases, ARP tables, and active wireless registration tables (`/interface/wireless/registration-table`).
+
+#### 🔀 Netgear Plus & Smart Managed Pro Switches & Routers
+* **Switches (Plus / Smart Pro)**: Direct REST API integration for Netgear Plus series (e.g. MS308E, GS308EP, GS110TP) querying per-port link states, speed, PoE delivery, and switch telemetry.
+* **Routers (Nighthawk / Orbi)**: SOAP/Genie API integration extracting active connected device tables and wireless stations.
+
+#### 🛡️ OPNsense & pfSense Firewalls
+* **OPNsense**: REST API integration (`/api/diagnostics/interface/get_arp`, `/api/dhcpv4/leases/search`) extracting active DHCP leases, ARP table, and hardware gateway telemetry.
+* **pfSense**: FauxAPI / PHP REST integration querying active DHCP leases (`/api/v1/status/dhcp_leases`), ARP cache, and interface states.
+
+#### 🔌 SNMP Bridge (L2 MAC Forwarding Database)
+* **Standard RFC 1493 / RFC 4188 Bridge MIB & IF-MIB**: Pure Python SNMP walker querying `dot1dBasePortIfIndex` and `dot1dTpFdbTable` on managed switches to map connected client MAC addresses to exact physical switch ports.
 
 #### 🛡️ AdGuard Home
 * **DNS Metrics & Filter Telemetry**: Connects to AdGuard Home REST API (`/control/stats` and `/control/status`).
@@ -319,8 +344,14 @@ NetSentinel includes built-in collectors with zero external dependencies:
 * **TCP Port**: Connection verification on custom ports (e.g. Proxmox 8006, DSM 5000, RTSP 554, NUT 3493, IPP 631).
 * **HTTP / JSONPath**: REST API and web healthcheck verification with response-time tracking.
 * **Direct DNS**: Low-level UDP DNS query builder and parser to verify resolver latency and record resolution.
+* **Ubiquiti UniFi**: UniFi Controller v1/v2 API integration for Access Points, PoE port power, and client tracking.
+* **TP-Link Omada**: Omada SDN Controller API for EAP access points, switches, and client stations.
+* **AVM FRITZ!Box**: TR-064 & AHA API for DSL/fiber status, LAN hosts, and Wi-Fi clients.
+* **MikroTik RouterOS**: RouterOS REST API for wireless registration, ARP, and DHCP leases.
+* **Netgear Switches & Routers**: REST API for Plus switches and SOAP for Orbi/Nighthawk routers.
+* **OPNsense & pfSense**: Firewall REST API clients for ARP tables, gateway states, and DHCP leases.
+* **SNMP Bridge MIB**: RFC 1493 / 4188 Bridge MIB port-to-MAC mapper for managed switches.
 * **Synology DSM**: Native REST API client for storage pool health, disk drive status, temperature, and DSM version.
-* **UniFi Controller**: UniFi API integration for Access Point status, PoE port delivery, and client counts.
 * **NUT (Network UPS Tools)**: Direct TCP client (port 3493) monitoring UPS battery charge, load, and grid status.
 * **SNMP v1/v2c**: Pure Python UDP SNMP packet builder and parser for network interface statistics.
 * **AdGuard Home & Home Assistant**: Native API integrations for DNS block rates and smart plug power metrics.
@@ -353,7 +384,7 @@ cd netsentinel
 # Set up Python virtual environment and install dev dependencies
 uv sync --all-extras --dev
 
-# Run unit tests, scenario correlations, and benchmarks (50 tests)
+# Run unit tests, scenario correlations, and benchmarks (77 tests)
 uv run pytest
 
 # Run code style and linter checks

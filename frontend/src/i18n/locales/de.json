@@ -386,7 +386,11 @@
     "ping_checking": "Erreichbarkeit wird geprüft...",
     "ping_ok": "Erreichbar ({{rtt}} ms)",
     "subnet_label": "Subnetz",
-    "subnet_placeholder": "z.B. 192.168.1.0/24"
+    "subnet_placeholder": "z.B. 192.168.1.0/24",
+    "clients_excluded_notice_title": "Clients von der anfänglichen Auswahl ausgeschlossen",
+    "clients_excluded_notice_desc": "Es wird empfohlen, zuerst die Kern-Netzwerkinfrastruktur (Router, Switches, Access Points) und deren Integrationen (z. B. UniFi) zu konfigurieren. So können später hinzugefügte Clients automatisch und präzise mit ihren übergeordneten Knoten verknüpft werden.",
+    "include_clients_anyway": "Trotzdem einschließen ({{count}})",
+    "include_clients_anyway_tooltip": "Fügt erkannte Client-Geräte zur Topologieauswahl hinzu"
   },
   "device_detail": {
     "tab_overview": "Übersicht",
@@ -581,7 +585,15 @@
     "adguard_stat_protection": "Schutzstatus",
     "adguard_stat_queries": "DNS-Abfragen (24h)",
     "adguard_stat_blocked": "Blockierte Abfragen",
-    "adguard_stat_avg_time": "Durchschn. Auflösungszeit"
+    "adguard_stat_avg_time": "Durchschn. Auflösungszeit",
+    "unifi_connected_clients_title": "Verbundene Clients ({{count}})",
+    "unifi_connected_clients_subtitle": "In Echtzeit über UniFi erkannt",
+    "unifi_no_clients_connected": "Zurzeit sind diesem Gerät keine aktiven Clients zugeordnet",
+    "network_connected_clients_subtitle": "In Echtzeit über Netzwerk-Integration erkannt",
+    "snmp_bridge_help": "Liest die FDB-Tabelle (Forwarding Database RFC 4188/1493) des Switches aus, um Clients und physische Ports automatisch zuzuordnen.",
+    "netgear_help": "Kommuniziert über SOAP (Port 80 oder 5000), um die Liste der verbundenen Geräte von Nighthawk-Routern oder Orbi-Mesh-Systemen auszulesen.",
+    "omada_site_label": "Omada-Site-Name (z.B. Default):",
+    "unifi_site_label": "Site-ID (UniFi / Omada):"
   },
   "device_color": {
     "title": "Gerätefarbe anpassen",
@@ -611,7 +623,34 @@
     "source_label": "Statusquelle:",
     "source_deduced": "Aus Endpunkt-Erreichbarkeit abgeleitet",
     "cable_notes": "Verkabelungshinweise",
-    "btn_delete_link": "Diese Verbindung löschen"
+    "btn_delete_link": "Diese Verbindung löschen",
+    "source_unifi": "UniFi-Integration",
+    "unifi_derived_title": "UniFi-Topologie erkannt",
+    "unifi_derived_desc": "Diese Verbindung wurde automatisch aus den aktiven Clients abgeleitet, die von der UniFi-Controller-Integration gemeldet wurden.",
+    "source_fritzbox": "FRITZ!Box-Integration",
+    "source_omada": "TP-Link Omada-Integration",
+    "source_mikrotik": "MikroTik RouterOS-Integration",
+    "source_snmp_bridge": "SNMP Switch Bridge-Integration",
+    "source_opnsense": "OPNsense Firewall-Integration",
+    "source_pfsense": "pfSense Firewall-Integration",
+    "source_asuswrt": "ASUS Router-Integration",
+    "source_netgear": "Netgear Router-Integration",
+    "fritzbox_derived_title": "FRITZ!Box-Topologie erkannt",
+    "fritzbox_derived_desc": "Diese Verbindung wurde automatisch anhand aktiver Clients aus dem FRITZ!Box TR-064-Protokoll abgeleitet.",
+    "omada_derived_title": "TP-Link Omada-Topologie erkannt",
+    "omada_derived_desc": "Diese Verbindung wurde automatisch anhand aktiver Clients aus der Omada SDN-Controller-API abgeleitet.",
+    "mikrotik_derived_title": "MikroTik-Topologie erkannt",
+    "mikrotik_derived_desc": "Diese Verbindung wurde automatisch aus DHCP-Leases, Bridge-Hosts und Wireless-Clients von RouterOS abgeleitet.",
+    "snmp_bridge_derived_title": "Switch-Port-Topologie erkannt",
+    "snmp_bridge_derived_desc": "Diese Verbindung wurde automatisch aus der FDB-Tabelle (Forwarding Database RFC 4188) des Switches abgeleitet.",
+    "opnsense_derived_title": "OPNsense-Topologie erkannt",
+    "opnsense_derived_desc": "Diese Verbindung wurde automatisch aus der ARP-Tabelle und den DHCP-Leases der OPNsense-Firewall abgeleitet.",
+    "pfsense_derived_title": "pfSense-Topologie erkannt",
+    "pfsense_derived_desc": "Diese Verbindung wurde automatisch aus der ARP-Tabelle und den DHCP-Leases der pfSense-Firewall abgeleitet.",
+    "asuswrt_derived_title": "ASUS Router-Topologie erkannt",
+    "asuswrt_derived_desc": "Diese Verbindung wurde automatisch anhand der mit dem ASUS-Router (ASUSWRT) verbundenen Clients abgeleitet.",
+    "netgear_derived_title": "Netgear Router-Topologie erkannt",
+    "netgear_derived_desc": "Diese Verbindung wurde automatisch anhand der am Netgear-Router oder Orbi-Mesh-System verbundenen Geräte abgeleitet."
   },
   "incident_banner": {
     "incident_open": "Vorfall eröffnet",
@@ -696,7 +735,16 @@
     "status_degraded": "Degradiert",
     "status_down": "Down",
     "tooltip_link": "Verbindung {{medium}} — Status: {{status}} ({{source}})",
-    "source_deduced": "abgeleitet"
+    "source_deduced": "abgeleitet",
+    "source_unifi": "Verbindung abgeleitet aus UniFi-Integration",
+    "source_fritzbox": "Verbindung aus der FRITZ!Box-Integration abgeleitet",
+    "source_omada": "Verbindung aus der TP-Link Omada-Integration abgeleitet",
+    "source_mikrotik": "Verbindung aus der MikroTik-Integration abgeleitet",
+    "source_snmp_bridge": "Verbindung aus der SNMP Switch Bridge-Integration abgeleitet",
+    "source_opnsense": "Verbindung aus der OPNsense-Integration abgeleitet",
+    "source_pfsense": "Verbindung aus der pfSense-Integration abgeleitet",
+    "source_asuswrt": "Verbindung aus der ASUS Router-Integration abgeleitet",
+    "source_netgear": "Verbindung aus der Netgear-Integration abgeleitet"
   },
   "maintenance": {
     "modal_title": "Geplante Wartungen & Neustarts",

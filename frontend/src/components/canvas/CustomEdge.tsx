@@ -242,6 +242,79 @@ export const CustomEdge = memo(({
             {medium === 'fiber' ? 'FIBRA' : medium === 'wifi' ? 'WI-FI' : medium}
           </span>
 
+          {edgeData.statusSource === 'unifi' && (
+            <span
+              className="px-1 py-0.2 rounded bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_unifi')}
+            >
+              UniFi
+            </span>
+          )}
+          {edgeData.statusSource === 'fritzbox' && (
+            <span
+              className="px-1 py-0.2 rounded bg-blue-600/20 text-blue-600 dark:text-blue-300 border border-blue-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_fritzbox')}
+            >
+              FRITZ!
+            </span>
+          )}
+          {edgeData.statusSource === 'omada' && (
+            <span
+              className="px-1 py-0.2 rounded bg-teal-500/20 text-teal-600 dark:text-teal-300 border border-teal-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_omada')}
+            >
+              Omada
+            </span>
+          )}
+          {edgeData.statusSource === 'mikrotik' && (
+            <span
+              className="px-1 py-0.2 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_mikrotik')}
+            >
+              MikroTik
+            </span>
+          )}
+          {edgeData.statusSource === 'snmp_bridge' && (
+            <span
+              className="px-1 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_snmp_bridge')}
+            >
+              Switch
+            </span>
+          )}
+          {edgeData.statusSource === 'opnsense' && (
+            <span
+              className="px-1 py-0.2 rounded bg-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_opnsense')}
+            >
+              OPNsense
+            </span>
+          )}
+          {edgeData.statusSource === 'pfsense' && (
+            <span
+              className="px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_pfsense')}
+            >
+              pfSense
+            </span>
+          )}
+          {edgeData.statusSource === 'asuswrt' && (
+            <span
+              className="px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_asuswrt')}
+            >
+              ASUS
+            </span>
+          )}
+          {edgeData.statusSource === 'netgear' && (
+            <span
+              className="px-1 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 text-[8px] font-bold tracking-tight"
+              title={t('custom_edge.source_netgear')}
+            >
+              Netgear
+            </span>
+          )}
+
           {effectiveStatus === 'ok' && (
             <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

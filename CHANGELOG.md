@@ -4,6 +4,28 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.2.1] - 2026-10-18
+
+### 🌐 Nuove Integrazioni di Rete & Correlazione Client Automatica
+- **8 Nuove Integrazioni Hardware & Software di Rete**: Aggiunto supporto nativo a:
+  - **AVM FRITZ!Box**: Protocollo TR-064 UPnP/SOAP per rilevare apparati LAN/Wi-Fi connessi.
+  - **TP-Link Omada SDN**: REST API v2 per controller Omada con mappatura porte switch e AP.
+  - **MikroTik RouterOS v7+**: REST API per lease DHCP, bridge host FDB e client wireless.
+  - **Switch Bridge FDB Universale**: Walk SNMP ASN.1 conforme a RFC 4188 / RFC 1493 per mappare le porte fisiche su switch Netgear, D-Link, Zyxel, Cisco, EdgeSwitch e generici.
+  - **OPNsense Firewall**: Diagnostica REST API per tabella ARP e lease DHCPv4.
+  - **pfSense Firewall**: Supporto a pfSense REST API, FauxAPI e tabelle diagnostiche.
+  - **ASUSWRT / ASUS Router**: Web hook `appGet.cgi` con estrazione client cablati e wireless con segnale RSSI.
+  - **Netgear / Orbi Mesh**: Comunicazione SOAP `GetAttachDevice2` per router Nighthawk e satelliti Mesh Orbi.
+- **Correlazione Topologica Intelligente dei Client**:
+  - L'aggiunta di un client alla topologia controlla automaticamente se esso compare nella lista client rilevata dalle integrazioni attive, collegandolo istantaneamente al nodo padre (con porta o SSID annotati).
+  - Badge visivo sul collegamento (canvas edge) con fonte (`status_source`) e tooltip esplicativo.
+- **Miglioramento Wizard Iniziale**:
+  - Esclusione predefinita dei client nella prima scansione di rete con avviso esplicativo per consigliare di censire prima i dispositivi infrastrutturali e relative integrazioni.
+- **Ottimizzazione Layout Vantage Point**:
+  - Riposizionato il badge del Vantage Point per prevenire sovrapposizioni visive in caso di integrazioni congiunte sullo stesso apparato.
+
+---
+
 ## [1.2.0] - 2026-10-18
 
 ### 🚀 Major Update: Integrazioni Hardware di Primo Livello & Gestione Avanzata

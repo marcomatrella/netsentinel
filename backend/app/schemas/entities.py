@@ -84,6 +84,7 @@ class DeviceIntegrationRead(NetSentinelBaseModel):
     enabled: bool = True
     last_run_at: datetime | None = None
     params: dict[str, Any] = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class DeviceRead(DeviceBase):

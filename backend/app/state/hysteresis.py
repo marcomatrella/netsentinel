@@ -128,7 +128,19 @@ def synthesize_device_status(
         # management APIs so integration/credential issues don't degrade network reachability.
         effective_checks = [
             c for c in check_statuses
-            if c.get("type") not in {"unifi", "adguard_home", "home_assistant"}
+            if c.get("type") not in {
+                "unifi",
+                "adguard_home",
+                "home_assistant",
+                "fritzbox",
+                "omada",
+                "mikrotik",
+                "snmp_bridge",
+                "opnsense",
+                "pfsense",
+                "asuswrt",
+                "netgear",
+            }
         ]
         if not effective_checks:
             effective_checks = ping_checks

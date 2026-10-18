@@ -70,6 +70,22 @@ import packageJson from '../package.json';
 import { useTranslation } from './i18n/I18nContext';
 import { translateDiagnosisTitle, translateIncidentSummary } from './utils/diagnosisI18n';
 import { sendWebPushNotification, getWebPushSettings } from './utils/webPush';
+import { findIntegrationParentForDevice } from './utils/unifiCorrelation';
+
+const getIntegrationLabel = (type: string): string => {
+  switch (type) {
+    case 'unifi': return 'UniFi';
+    case 'fritzbox': return 'FRITZ!Box';
+    case 'omada': return 'TP-Link Omada';
+    case 'mikrotik': return 'MikroTik';
+    case 'snmp_bridge': return 'Switch SNMP';
+    case 'opnsense': return 'OPNsense';
+    case 'pfsense': return 'pfSense';
+    case 'asuswrt': return 'ASUSWRT';
+    case 'netgear': return 'Netgear';
+    default: return type;
+  }
+};
 
 export const App: React.FC = () => {
   const { t } = useTranslation();
@@ -292,8 +308,51 @@ export const App: React.FC = () => {
   const handleAddDevice = (newDev: Device, position?: { x: number; y: number }) => {
     if (!topology) return;
     const currentNodes = topology.layout?.nodes || [];
-    const newLayoutNodes = position
-      ? [...currentNodes.filter((n: any) => n.id !== newDev.id), { id: newDev.id, x: position.x, y: position.y }]
+
+    // Check if device matches any network integration connected client
+    const match = findIntegrationParentForDevice(newDev, topology.devices);
+    let finalPosition = position;
+    let nextLinks = topology.links;
+
+    if (match) {
+      const parentDevice = match.parentDevice;
+      const matchedClient = match.matchedClient;
+      const integType = match.integrationType;
+      const integLabel = getIntegrationLabel(integType);
+      const newLink: Link = {
+        id: `link-${integType}-${parentDevice.id}-${newDev.id}`,
+        from_device_id: parentDevice.id,
+        to_device_id: newDev.id,
+        medium: matchedClient.is_wired ? 'ethernet' : 'wifi',
+        status: 'ok',
+        status_source: integType,
+        poe: false,
+        cable_notes: `Collegamento rilevato automaticamente dall'integrazione ${integLabel}`,
+        updated_at: new Date().toISOString(),
+      };
+      // Avoid duplicate link between the same pair
+      nextLinks = [
+        ...topology.links.filter(
+          (l) =>
+            !(
+              (l.from_device_id === parentDevice.id && l.to_device_id === newDev.id) ||
+              (l.from_device_id === newDev.id && l.to_device_id === parentDevice.id)
+            )
+        ),
+        newLink,
+      ];
+
+      // Auto-position near parent node if position wasn't manually specified
+      if (!finalPosition) {
+        const parentNode = currentNodes.find((n: any) => n.id === parentDevice.id);
+        if (parentNode && parentNode.x !== undefined && parentNode.y !== undefined) {
+          finalPosition = { x: parentNode.x + 30, y: parentNode.y + 130 };
+        }
+      }
+    }
+
+    const newLayoutNodes = finalPosition
+      ? [...currentNodes.filter((n: any) => n.id !== newDev.id), { id: newDev.id, x: finalPosition.x, y: finalPosition.y }]
       : currentNodes;
 
     const isNewDns = newDev.roles?.includes('dns_resolver');
@@ -312,11 +371,13 @@ export const App: React.FC = () => {
       ...topology,
       vantage_point_id: isNewVp ? newDev.id : topology.vantage_point_id,
       devices: [...cleanDevices, newDev],
+      links: nextLinks,
       layout: {
         ...(topology.layout || { id: 'default', edges: [], groups: [], updated_at: new Date().toISOString() }),
         nodes: newLayoutNodes,
       },
     });
+    setIsEditMode(true);
   };
 
   // Add multiple discovered devices from Auto-Discovery scan
@@ -352,28 +413,40 @@ export const App: React.FC = () => {
         if (autoLink) {
           let parentId: string | null = null;
           let medium: 'wifi' | 'ethernet' = 'ethernet';
+          let statusSource: string = 'deduced';
+          let cableNotes: string | undefined = undefined;
 
-          // Wireless / IoT / Clients prefer Access Point if available
-          const isWirelessOrIoT = ['smart_plug', 'sensor', 'client'].includes(dev.kind) || dev.roles?.includes('passive_tracking');
-          if (isWirelessOrIoT && accessPoint) {
-            parentId = accessPoint.id;
-            medium = 'wifi';
-          } else if (coreSwitch) {
-            parentId = coreSwitch.id;
-            medium = 'ethernet';
-          } else if (gateway && dev.id !== gateway.id) {
-            parentId = gateway.id;
-            medium = 'ethernet';
+          // Check network integrations first (UniFi, FRITZ!Box, Omada, MikroTik, Switch SNMP, OPNsense, etc.)!
+          const match = findIntegrationParentForDevice(dev, topology.devices);
+          if (match) {
+            parentId = match.parentDevice.id;
+            medium = match.matchedClient.is_wired ? 'ethernet' : 'wifi';
+            statusSource = match.integrationType;
+            cableNotes = `Collegamento rilevato automaticamente dall'integrazione ${getIntegrationLabel(statusSource)}`;
+          } else {
+            // Wireless / IoT / Clients prefer Access Point if available
+            const isWirelessOrIoT = ['smart_plug', 'sensor', 'client'].includes(dev.kind) || dev.roles?.includes('passive_tracking');
+            if (isWirelessOrIoT && accessPoint) {
+              parentId = accessPoint.id;
+              medium = 'wifi';
+            } else if (coreSwitch) {
+              parentId = coreSwitch.id;
+              medium = 'ethernet';
+            } else if (gateway && dev.id !== gateway.id) {
+              parentId = gateway.id;
+              medium = 'ethernet';
+            }
           }
 
           if (parentId && parentId !== dev.id) {
             newLinks.push({
-              id: `link-auto-${dev.id}-${parentId}`,
+              id: statusSource !== 'deduced' ? `link-${statusSource}-${parentId}-${dev.id}` : `link-auto-${dev.id}-${parentId}`,
               from_device_id: parentId,
               to_device_id: dev.id,
               medium,
               status: 'ok',
-              status_source: 'deduced',
+              status_source: statusSource,
+              cable_notes: cableNotes,
               poe: false,
               updated_at: new Date().toISOString(),
             });
@@ -816,7 +889,7 @@ export const App: React.FC = () => {
     <div className="flex flex-col h-[100dvh] max-h-[100dvh] w-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* Top Navbar (Hidden in Kiosk Mode) */}
       {!isKioskMode && (
-        <header className="h-14 border-b border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 backdrop-blur-md px-2.5 sm:px-4 flex items-center justify-between z-30 transition-all">
+        <header className="h-14 border-b border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 backdrop-blur-md px-2.5 sm:px-4 flex items-center justify-between z-40 transition-all">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20 shrink-0">
               <Shield className="w-4 h-4 sm:w-5 h-5" />
@@ -858,7 +931,7 @@ export const App: React.FC = () => {
             {/* 2 - Registro Eventi / Log (desktop) */}
             <button
               onClick={() => setIsEventLogsOpen(true)}
-              className="hidden sm:flex p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition items-center gap-1.5 border shadow-sm bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
+              className="hidden sm:flex p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition items-center gap-1.5 border shadow-sm bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-755 dark:text-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
               title={t('header.event_logs')}
             >
               <ScrollText className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
@@ -872,7 +945,7 @@ export const App: React.FC = () => {
 
             {/* 4 - Lingua (desktop) */}
             <div className="hidden sm:block">
-              <LanguageSwitcher />
+              <LanguageSwitcher onOpen={() => { setSelectedDevice(null); setSelectedLink(null); }} />
             </div>
 
             {/* Mobile-only "..." button grouping edit canvas, event logs, theme & language */}
@@ -880,10 +953,12 @@ export const App: React.FC = () => {
               isEditMode={isEditMode}
               onToggleEditMode={() => setIsEditMode(!isEditMode)}
               onOpenEventLogs={() => setIsEventLogsOpen(true)}
+              onOpen={() => { setSelectedDevice(null); setSelectedLink(null); }}
             />
 
             {/* 5 - Tasto per menu contestuale con tutte le voci */}
             <HeaderMenuDropdown
+              onOpen={() => { setSelectedDevice(null); setSelectedLink(null); }}
               onOpenInitialSetup={() => setIsInitialSetupOpen(true)}
               onOpenDiscovery={() => setIsDiscoveryOpen(true)}
               onOpenBackupRestore={() => setIsBackupRestoreOpen(true)}

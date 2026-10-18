@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "NetSentinel"
-    app_version: str = "1.2.0"
+    app_version: str = "1.2.1"
     app_env: str = "production"
     debug: bool = False
 

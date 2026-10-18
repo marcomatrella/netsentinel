@@ -322,7 +322,20 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
 
   if (!device) return null;
 
-  const INTEGRATION_TYPES = new Set(['unifi', 'adguard_home', 'home_assistant', 'synology_dsm']);
+  const INTEGRATION_TYPES = new Set([
+    'unifi',
+    'fritzbox',
+    'omada',
+    'mikrotik',
+    'snmp_bridge',
+    'opnsense',
+    'pfsense',
+    'asuswrt',
+    'netgear',
+    'adguard_home',
+    'home_assistant',
+    'synology_dsm',
+  ]);
   const networkChecks = checks.filter((c) => !INTEGRATION_TYPES.has(c.type));
   const integrationChecks = checks.filter((c) => INTEGRATION_TYPES.has(c.type));
 
@@ -1292,6 +1305,22 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                               <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
                                 {integ.type === 'unifi'
                                   ? 'UniFi Site Manager'
+                                  : integ.type === 'fritzbox'
+                                  ? 'AVM FRITZ!Box'
+                                  : integ.type === 'omada'
+                                  ? 'TP-Link Omada'
+                                  : integ.type === 'mikrotik'
+                                  ? 'MikroTik RouterOS'
+                                  : integ.type === 'snmp_bridge'
+                                  ? 'SNMP Switch Bridge'
+                                  : integ.type === 'opnsense'
+                                  ? 'OPNsense Firewall'
+                                  : integ.type === 'pfsense'
+                                  ? 'pfSense Firewall'
+                                  : integ.type === 'asuswrt'
+                                  ? 'ASUS Router'
+                                  : integ.type === 'netgear'
+                                  ? 'Netgear Router'
                                   : integ.type === 'adguard_home'
                                   ? 'AdGuard Home'
                                   : integ.type === 'home_assistant'
@@ -1707,17 +1736,32 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                               </>
                             )}
 
-                            {/* UniFi */}
-                            {chk.type === 'unifi' && (
+                            {/* Network Integrations (UniFi, FRITZ!Box, Omada, MikroTik, Switch, OPNsense, pfSense, ASUS, Netgear) */}
+                            {(chk.type === 'unifi' ||
+                              chk.type === 'fritzbox' ||
+                              chk.type === 'omada' ||
+                              chk.type === 'mikrotik' ||
+                              chk.type === 'snmp_bridge' ||
+                              chk.type === 'opnsense' ||
+                              chk.type === 'pfsense' ||
+                              chk.type === 'asuswrt' ||
+                              chk.type === 'netgear') && (
                               <>
                                 {details.model && (
                                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px]">
                                     {details.model}
                                   </span>
                                 )}
-                                {(details.num_sta !== undefined || details.client_count !== undefined || details.clients_count !== undefined) && (
+                                {(details.num_sta !== undefined ||
+                                  details.client_count !== undefined ||
+                                  details.clients_count !== undefined ||
+                                  details.connected_clients?.length !== undefined) && (
                                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] font-semibold">
-                                    {details.num_sta ?? details.client_count ?? details.clients_count} Client
+                                    {details.num_sta ??
+                                      details.client_count ??
+                                      details.clients_count ??
+                                      details.connected_clients?.length}{' '}
+                                    Client
                                   </span>
                                 )}
                                 {details.poe_power !== undefined && (

@@ -14,6 +14,7 @@ from app.db.models import (
     utcnow,
 )
 from app.db.session import get_db
+from app.scheduler.engine import scheduler
 from app.schemas.entities import (
     DeviceBatchDeleteRequest,
     DeviceCreate,
@@ -96,7 +97,20 @@ async def ensure_device_checks(
         dns_chk.enabled = False
 
 
-INTEGRATION_CHECK_TYPES = {"unifi", "adguard_home", "home_assistant", "synology_dsm"}
+INTEGRATION_CHECK_TYPES = {
+    "unifi",
+    "adguard_home",
+    "home_assistant",
+    "synology_dsm",
+    "fritzbox",
+    "omada",
+    "mikrotik",
+    "snmp_bridge",
+    "opnsense",
+    "pfsense",
+    "asuswrt",
+    "netgear",
+}
 
 
 def _to_device_read(device: Device, rtt_ms: float | None = None) -> DeviceRead:
@@ -130,6 +144,7 @@ def _to_device_read(device: Device, rtt_ms: float | None = None) -> DeviceRead:
                 for k, v in (json.loads(c.params_json) if c.params_json else {}).items()
                 if k not in ["password", "token", "api_key", "secret", "access_token"]
             },
+            details=scheduler.get_latest_check_details(c.id),
         )
         for c in (getattr(device, "checks", None) or [])
         if c.type in INTEGRATION_CHECK_TYPES

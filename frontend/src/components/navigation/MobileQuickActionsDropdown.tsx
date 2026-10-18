@@ -16,12 +16,14 @@ interface MobileQuickActionsDropdownProps {
   isEditMode: boolean;
   onToggleEditMode: () => void;
   onOpenEventLogs: () => void;
+  onOpen?: () => void;
 }
 
 export const MobileQuickActionsDropdown: React.FC<MobileQuickActionsDropdownProps> = ({
   isEditMode,
   onToggleEditMode,
   onOpenEventLogs,
+  onOpen,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -30,18 +32,23 @@ export const MobileQuickActionsDropdown: React.FC<MobileQuickActionsDropdownProp
 
   const isDark = theme === 'dark';
 
-  // Close on click outside
+  // Close on click outside (capture phase)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    function handleClickOutside(event: Event) {
+      const target = event.target as Node | null;
+      if (dropdownRef.current && target && !dropdownRef.current.contains(target)) {
         setIsOpen(false);
       }
     }
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('pointerdown', handleClickOutside, true);
+      document.addEventListener('mousedown', handleClickOutside, true);
+      document.addEventListener('touchstart', handleClickOutside, true);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside, true);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      document.removeEventListener('touchstart', handleClickOutside, true);
     };
   }, [isOpen]);
 
@@ -63,7 +70,13 @@ export const MobileQuickActionsDropdown: React.FC<MobileQuickActionsDropdownProp
       {/* Mobile trigger button "..." */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const nextState = !isOpen;
+          if (nextState && onOpen) {
+            onOpen();
+          }
+          setIsOpen(nextState);
+        }}
         className={`p-2 rounded-lg text-xs font-semibold transition flex items-center justify-center border shadow-sm ${
           isOpen
             ? 'bg-sky-600 text-white border-sky-400 shadow-sky-500/20'

@@ -51,6 +51,7 @@ class UniFiCollector(BaseCollector):
         try:
             async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout_seconds, follow_redirects=True) as client:
                 devices_data: list[dict[str, Any]] | None = None
+                clients_data: list[dict[str, Any]] | None = None
                 last_status_code: int | None = None
                 last_error_detail: str | None = None
 
@@ -97,6 +98,30 @@ class UniFiCollector(BaseCollector):
                                 last_error_detail = f"HTTP 404 Non Trovato: l'endpoint {surl} non esiste sul server."
                         except Exception as exc:
                             logger.debug("Tentativo endpoint API Key %s fallito: %s", surl, exc)
+                            continue
+
+                    # Retrieve clients list via API Key
+                    clients_candidate_urls = [
+                        f"{base_url}/proxy/network/integration/v1/sites/{site}/clients",
+                        f"{base_url}/proxy/network/integration/v1/clients",
+                        f"{base_url}/integration/v1/sites/{site}/clients",
+                        f"{base_url}/integration/v1/clients",
+                        f"{base_url}/proxy/network/api/s/{site}/stat/sta",
+                        f"{base_url}/api/s/{site}/stat/sta",
+                    ]
+                    for curl in clients_candidate_urls:
+                        try:
+                            cr = await client.get(curl, headers=headers)
+                            if cr.status_code == 200:
+                                c_parsed = cr.json()
+                                if isinstance(c_parsed, list):
+                                    clients_data = c_parsed
+                                elif isinstance(c_parsed, dict):
+                                    clients_data = c_parsed.get("data") or c_parsed.get("clients") or []
+                                if clients_data is not None:
+                                    break
+                        except Exception as c_exc:
+                            logger.debug("Tentativo recupero clients API Key %s fallito: %s", curl, c_exc)
                             continue
 
                     # Fallback for UniFi Site Manager API (api.ui.com) when devices list is empty
@@ -240,6 +265,28 @@ class UniFiCollector(BaseCollector):
                                 logger.debug("Tentativo recupero stat %s fallito: %s", surl, exc)
                                 continue
 
+                        # Retrieve clients list via session login
+                        legacy_clients_urls = [
+                            f"{base_url}/proxy/network/api/s/{site}/stat/sta",
+                            f"{base_url}/api/s/{site}/stat/sta",
+                            f"{base_url}/proxy/network/integration/v1/clients",
+                            f"{base_url}/integration/v1/clients",
+                        ]
+                        for curl in legacy_clients_urls:
+                            try:
+                                cr = await client.get(curl)
+                                if cr.status_code == 200:
+                                    c_parsed = cr.json()
+                                    if isinstance(c_parsed, list):
+                                        clients_data = c_parsed
+                                    elif isinstance(c_parsed, dict):
+                                        clients_data = c_parsed.get("data") or c_parsed.get("clients") or []
+                                    if clients_data is not None:
+                                        break
+                            except Exception as c_exc:
+                                logger.debug("Tentativo endpoint legacy clients %s fallito: %s", curl, c_exc)
+                                continue
+
                 # -------------------------------------------------------------
                 # 3. Handle device list failure
                 # -------------------------------------------------------------
@@ -284,6 +331,35 @@ class UniFiCollector(BaseCollector):
                         matched_device = dev
                         break
 
+                # Normalize and collect all active clients
+                all_clients: list[dict[str, Any]] = []
+                for c in (clients_data or []):
+                    c_mac = (c.get("macAddress") or c.get("mac") or "").lower().strip()
+                    if not c_mac:
+                        continue
+                    c_ip = (c.get("ipAddress") or c.get("ip") or "").strip()
+                    c_name = c.get("name") or c.get("hostname") or c.get("oui") or c_ip or c_mac
+                    c_hostname = c.get("hostname") or ""
+                    c_ap_mac = (c.get("ap_mac") or c.get("apMac") or c.get("uplinkDeviceMac") or "").lower().strip()
+                    c_sw_mac = (c.get("sw_mac") or c.get("swMac") or "").lower().strip()
+                    c_uplink = (c.get("uplink_mac") or c.get("uplinkDeviceMac") or "").lower().strip()
+                    is_wired = bool(c.get("is_wired", False) or str(c.get("type", "")).upper() == "WIRED")
+                    essid = c.get("essid") or c.get("network") or ""
+                    signal = c.get("signal") or c.get("rssi")
+
+                    all_clients.append({
+                        "mac": c_mac,
+                        "ip": c_ip,
+                        "name": c_name,
+                        "hostname": c_hostname,
+                        "is_wired": is_wired,
+                        "ap_mac": c_ap_mac or None,
+                        "sw_mac": c_sw_mac or None,
+                        "uplink_mac": c_uplink or None,
+                        "essid": essid or None,
+                        "signal": signal,
+                    })
+
                 if matched_device:
                     raw_state = matched_device.get("state")
                     if isinstance(raw_state, str):
@@ -302,6 +378,26 @@ class UniFiCollector(BaseCollector):
                     dev_name = matched_device.get("name") or matched_device.get("model") or "Apparato UniFi"
                     dev_mac = matched_device.get("macAddress") or matched_device.get("mac") or ""
                     dev_ip = matched_device.get("ipAddress") or matched_device.get("ip") or ""
+
+                    # Filter clients connected to this specific AP, switch, or router
+                    dev_mac_lower = dev_mac.lower().strip()
+                    dev_clients = [
+                        c for c in all_clients
+                        if (c.get("ap_mac") == dev_mac_lower
+                            or c.get("sw_mac") == dev_mac_lower
+                            or c.get("uplink_mac") == dev_mac_lower)
+                    ]
+                    dtype = (matched_device.get("type") or "").lower()
+                    is_gw_or_router = (
+                        dtype in ["ugw", "udm", "gateway"]
+                        or "router" in str(matched_device.get("model", "")).lower()
+                        or "dream" in str(matched_device.get("model", "")).lower()
+                    )
+                    if not dev_clients and is_gw_or_router and all_clients:
+                        dev_clients = all_clients
+
+                    connected_clients = dev_clients if dev_clients or not all_clients else all_clients
+                    effective_client_count = len(connected_clients) if clients_data is not None else num_sta
 
                     # Check switch port PoE if port_idx requested
                     port_status_info = None
@@ -329,13 +425,14 @@ class UniFiCollector(BaseCollector):
                         "state_code": state_code,
                         "is_connected": is_connected,
                         "uptime_seconds": uptime,
-                        "client_count": num_sta,
-                        "clients_count": num_sta,
-                        "num_sta": num_sta,
-                        "active_clients": num_sta,
+                        "client_count": effective_client_count,
+                        "clients_count": effective_client_count,
+                        "num_sta": effective_client_count,
+                        "active_clients": effective_client_count,
+                        "connected_clients": connected_clients,
                         "total_devices": tot_devs,
                         "devices_found": tot_devs,
-                        "wifi_devices": matched_device.get("wifi_devices", 1 if num_sta > 0 else 0),
+                        "wifi_devices": matched_device.get("wifi_devices", 1 if effective_client_count > 0 else 0),
                         "offline_devices": matched_device.get("offline_devices", 0),
                         "model": model,
                     }
@@ -343,7 +440,7 @@ class UniFiCollector(BaseCollector):
                         details["port"] = port_status_info
                         val = port_status_info["poe_power"]
                     else:
-                        val = float(num_sta)
+                        val = float(effective_client_count)
 
                     result.observations.append(
                         CollectorObservation(
@@ -371,7 +468,7 @@ class UniFiCollector(BaseCollector):
                             for d in devices_data[:4]
                         ]
                         tot_cnt = len(devices_data)
-                        tot_cli = sum(int(d.get("clientCount") or d.get("num_sta") or 0) for d in devices_data)
+                        tot_cli = len(all_clients) if clients_data is not None else sum(int(d.get("clientCount") or d.get("num_sta") or 0) for d in devices_data)
                         result.observations.append(
                             CollectorObservation(
                                 status="ok",
@@ -385,6 +482,7 @@ class UniFiCollector(BaseCollector):
                                     "clients_count": tot_cli,
                                     "num_sta": tot_cli,
                                     "active_clients": tot_cli,
+                                    "connected_clients": all_clients,
                                     "sample_devices": sample_names,
                                 },
                             )
@@ -396,7 +494,7 @@ class UniFiCollector(BaseCollector):
                             if (d.get("state") == 1 or str(d.get("state")).upper() in ["ONLINE", "CONNECTED"])
                         )
                         total_count = len(devices_data)
-                        total_clients = sum(int(d.get("clientCount") or d.get("num_sta") or 0) for d in devices_data)
+                        total_clients = len(all_clients) if clients_data is not None else sum(int(d.get("clientCount") or d.get("num_sta") or 0) for d in devices_data)
                         result.observations.append(
                             CollectorObservation(
                                 status="ok" if online_count == total_count else "warn",
@@ -410,6 +508,7 @@ class UniFiCollector(BaseCollector):
                                     "clients_count": total_clients,
                                     "num_sta": total_clients,
                                     "active_clients": total_clients,
+                                    "connected_clients": all_clients,
                                 },
                             )
                         )

@@ -2,23 +2,32 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check, Globe } from 'lucide-react';
 import { useTranslation, SupportedLanguage } from '../../i18n/I18nContext';
 
-export const LanguageSwitcher: React.FC = () => {
+interface LanguageSwitcherProps {
+  onOpen?: () => void;
+}
+
+export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ onOpen }) => {
   const { language, setLanguage, availableLanguages, currentLanguageMeta, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
+  // Close on outside click (capture phase)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    function handleClickOutside(event: Event) {
+      const target = event.target as Node | null;
+      if (dropdownRef.current && target && !dropdownRef.current.contains(target)) {
         setIsOpen(false);
       }
     }
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('pointerdown', handleClickOutside, true);
+      document.addEventListener('mousedown', handleClickOutside, true);
+      document.addEventListener('touchstart', handleClickOutside, true);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside, true);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      document.removeEventListener('touchstart', handleClickOutside, true);
     };
   }, [isOpen]);
 
@@ -45,7 +54,13 @@ export const LanguageSwitcher: React.FC = () => {
       {/* Trigger Button with Active Flag */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const nextState = !isOpen;
+          if (nextState && onOpen) {
+            onOpen();
+          }
+          setIsOpen(nextState);
+        }}
         className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 sm:gap-1.5 border shadow-sm ${
           isOpen
             ? 'bg-sky-600 text-white border-sky-400 shadow-sky-500/20'

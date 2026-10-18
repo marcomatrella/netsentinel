@@ -8,6 +8,7 @@ from app.collector.plugins import registry
 from app.crypto import decrypt_secret, encrypt_secret
 from app.db.models import Check, Device
 from app.db.session import get_db
+from app.scheduler.engine import scheduler
 from app.schemas.entities import CheckCreate, CheckRead, CheckTestPayload, CheckUpdate
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -168,6 +169,8 @@ async def execute_check_now(check_id: str, db: AsyncSession = Depends(get_db)) -
     if obs:
         chk.current_status = obs.status
         chk.last_run_at = datetime.utcnow()
+        if obs.details:
+            scheduler.set_latest_check_details(check_id, obs.details)
         await db.commit()
 
     return {

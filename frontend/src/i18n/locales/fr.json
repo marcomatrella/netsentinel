@@ -386,7 +386,11 @@
     "ping_checking": "Vérification joignabilité...",
     "ping_ok": "Joignable ({{rtt}} ms)",
     "subnet_label": "Sous-réseau",
-    "subnet_placeholder": "ex. 192.168.1.0/24"
+    "subnet_placeholder": "ex. 192.168.1.0/24",
+    "clients_excluded_notice_title": "Clients exclus de la sélection initiale",
+    "clients_excluded_notice_desc": "Il est recommandé de configurer d'abord l'infrastructure réseau principale (routeurs, commutateurs, points d'accès) et leurs intégrations (ex. UniFi). Ainsi, les clients ajoutés ultérieurement pourront être reliés automatiquement et précisément à leurs nœuds parents.",
+    "include_clients_anyway": "Inclure quand même ({{count}})",
+    "include_clients_anyway_tooltip": "Ajoute les appareils clients détectés à la sélection de topologie"
   },
   "device_detail": {
     "tab_overview": "Vue d'ensemble",
@@ -581,7 +585,15 @@
     "adguard_stat_protection": "État de la protection",
     "adguard_stat_queries": "Requêtes DNS (24h)",
     "adguard_stat_blocked": "Requêtes bloquées",
-    "adguard_stat_avg_time": "Temps de résolution moyen"
+    "adguard_stat_avg_time": "Temps de résolution moyen",
+    "unifi_connected_clients_title": "Clients connectés ({{count}})",
+    "unifi_connected_clients_subtitle": "Détectés en temps réel via UniFi",
+    "unifi_no_clients_connected": "Aucun client actif associé à cet appareil pour le moment",
+    "network_connected_clients_subtitle": "Détectés en temps réel via l'intégration réseau",
+    "snmp_bridge_help": "Lit la table FDB (Forwarding Database RFC 4188/1493) du commutateur pour associer automatiquement clients et ports physiques.",
+    "netgear_help": "Communique via SOAP (port 80 ou 5000) pour lire la table des appareils connectés depuis les routeurs Nighthawk ou les systèmes Mesh Orbi.",
+    "omada_site_label": "Nom du Site Omada (ex. Default) :",
+    "unifi_site_label": "Identifiant du Site (UniFi / Omada) :"
   },
   "device_color": {
     "title": "Personnaliser la couleur de l'appareil",
@@ -611,7 +623,34 @@
     "source_label": "Source de l'état :",
     "source_deduced": "Déduit de l'accessibilité des extrémités",
     "cable_notes": "Notes de câblage",
-    "btn_delete_link": "Supprimer cette liaison"
+    "btn_delete_link": "Supprimer cette liaison",
+    "source_unifi": "Intégration UniFi",
+    "unifi_derived_title": "Topologie UniFi détectée",
+    "unifi_derived_desc": "Cette liaison a été déduite automatiquement des clients actifs signalés par l'intégration du contrôleur UniFi.",
+    "source_fritzbox": "Intégration FRITZ!Box",
+    "source_omada": "Intégration TP-Link Omada",
+    "source_mikrotik": "Intégration MikroTik RouterOS",
+    "source_snmp_bridge": "Intégration Commutateur SNMP Bridge",
+    "source_opnsense": "Intégration Pare-feu OPNsense",
+    "source_pfsense": "Intégration Pare-feu pfSense",
+    "source_asuswrt": "Intégration Routeur ASUS",
+    "source_netgear": "Intégration Routeur Netgear",
+    "fritzbox_derived_title": "Topologie FRITZ!Box Détectée",
+    "fritzbox_derived_desc": "Cette relation a été automatiquement déduite des clients actifs détectés via le protocole TR-064 de la FRITZ!Box.",
+    "omada_derived_title": "Topologie TP-Link Omada Détectée",
+    "omada_derived_desc": "Cette relation a été automatiquement déduite des clients actifs détectés via l'API du contrôleur SDN Omada.",
+    "mikrotik_derived_title": "Topologie MikroTik Détectée",
+    "mikrotik_derived_desc": "Cette relation a été automatiquement déduite des baux DHCP, des hôtes de pont et des clients sans fil de RouterOS.",
+    "snmp_bridge_derived_title": "Topologie Port Commutateur Détectée",
+    "snmp_bridge_derived_desc": "Cette relation a été automatiquement déduite de la table FDB (Forwarding Database RFC 4188) du commutateur.",
+    "opnsense_derived_title": "Topologie OPNsense Détectée",
+    "opnsense_derived_desc": "Cette relation a été automatiquement déduite de la table ARP et des baux DHCP du pare-feu OPNsense.",
+    "pfsense_derived_title": "Topologie pfSense Détectée",
+    "pfsense_derived_desc": "Cette relation a été automatiquement déduite de la table ARP et des baux DHCP du pare-feu pfSense.",
+    "asuswrt_derived_title": "Topologie Routeur ASUS Détectée",
+    "asuswrt_derived_desc": "Cette relation a été automatiquement déduite des clients associés au routeur ASUS (ASUSWRT).",
+    "netgear_derived_title": "Topologie Routeur Netgear Détectée",
+    "netgear_derived_desc": "Cette relation a été automatiquement déduite des appareils connectés au routeur ou système Mesh Orbi de Netgear."
   },
   "incident_banner": {
     "incident_open": "Incident Ouvert",
@@ -696,7 +735,16 @@
     "status_degraded": "Dégradé",
     "status_down": "KO",
     "tooltip_link": "Lien {{medium}} — État : {{status}} ({{source}})",
-    "source_deduced": "déduit"
+    "source_deduced": "déduit",
+    "source_unifi": "Liaison dérivée de l'intégration UniFi",
+    "source_fritzbox": "Liaison dérivée de l'intégration FRITZ!Box",
+    "source_omada": "Liaison dérivée de l'intégration TP-Link Omada",
+    "source_mikrotik": "Liaison dérivée de l'intégration MikroTik",
+    "source_snmp_bridge": "Liaison dérivée de l'intégration Commutateur SNMP Bridge",
+    "source_opnsense": "Liaison dérivée de l'intégration OPNsense",
+    "source_pfsense": "Liaison dérivée de l'intégration pfSense",
+    "source_asuswrt": "Liaison dérivée de l'intégration Routeur ASUS",
+    "source_netgear": "Liaison dérivée de l'intégration Netgear"
   },
   "maintenance": {
     "modal_title": "Maintenances Programmées & Redémarrages",

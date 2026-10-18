@@ -41,14 +41,28 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
 
   const [url, setUrl] = useState<string>(
     existingIntegration?.params?.controller_url ||
+      existingIntegration?.params?.fritz_url ||
+      existingIntegration?.params?.opnsense_url ||
+      existingIntegration?.params?.pfsense_url ||
+      existingIntegration?.params?.asus_url ||
+      existingIntegration?.params?.netgear_url ||
       existingIntegration?.params?.adguard_url ||
       existingIntegration?.params?.ha_url ||
       ''
   );
   const [apiKey, setApiKey] = useState<string>(
     existingIntegration?.params?.api_key ||
+      existingIntegration?.params?.fauxapi_key ||
       existingIntegration?.params?.access_token ||
       ''
+  );
+  const [apiSecret, setApiSecret] = useState<string>(
+    existingIntegration?.params?.api_secret ||
+      existingIntegration?.params?.fauxapi_secret ||
+      ''
+  );
+  const [community, setCommunity] = useState<string>(
+    existingIntegration?.params?.community || 'public'
   );
   const [username, setUsername] = useState<string>(
     existingIntegration?.params?.username || ''
@@ -63,10 +77,22 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
     existingIntegration?.params?.entity_id || ''
   );
   const [port, setPort] = useState<string>(
-    String(existingIntegration?.params?.port || '5000')
+    String(
+      existingIntegration?.params?.port ||
+        (existingIntegration?.type === 'snmp_bridge'
+          ? '161'
+          : existingIntegration?.type === 'mikrotik'
+          ? '443'
+          : '5000')
+    )
   );
   const [useHttps, setUseHttps] = useState<boolean>(
-    Boolean(existingIntegration?.params?.verify_ssl || existingIntegration?.params?.https)
+    Boolean(
+      existingIntegration?.params?.verify_ssl ||
+        existingIntegration?.params?.https ||
+        existingIntegration?.params?.use_ssl ||
+        existingIntegration?.params?.use_https
+    )
   );
 
   const [mfaToken, setMfaToken] = useState<string>(
@@ -119,6 +145,65 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
           https: useHttps,
           username: username.trim() || undefined,
           password: password.trim() || undefined,
+        };
+      case 'fritzbox':
+        return {
+          fritz_url: url.trim() || `http://${ip}:49000`,
+          username: username.trim() || undefined,
+          password: password.trim() || undefined,
+        };
+      case 'omada':
+        return {
+          controller_url: url.trim() || `https://${ip}:8043`,
+          site: site.trim() || 'Default',
+          username: username.trim() || undefined,
+          password: password.trim() || undefined,
+          verify_ssl: useHttps,
+        };
+      case 'mikrotik':
+        return {
+          host: ip,
+          port: Number(port) || (useHttps ? 443 : 80),
+          username: username.trim() || undefined,
+          password: password.trim() || undefined,
+          use_ssl: useHttps,
+          verify_ssl: false,
+        };
+      case 'snmp_bridge':
+        return {
+          host: ip,
+          port: Number(port) || 161,
+          community: community.trim() || 'public',
+        };
+      case 'opnsense':
+        return {
+          opnsense_url: url.trim() || `https://${ip}`,
+          api_key: apiKey.trim() || undefined,
+          api_secret: apiSecret.trim() || undefined,
+          verify_ssl: useHttps,
+        };
+      case 'pfsense':
+        return {
+          pfsense_url: url.trim() || `https://${ip}`,
+          api_key: apiKey.trim() || undefined,
+          api_secret: apiSecret.trim() || undefined,
+          username: username.trim() || undefined,
+          password: password.trim() || undefined,
+          verify_ssl: useHttps,
+        };
+      case 'asuswrt':
+        return {
+          asus_url: url.trim() || `http://${ip}`,
+          username: username.trim() || undefined,
+          password: password.trim() || undefined,
+          use_https: useHttps,
+        };
+      case 'netgear':
+        return {
+          netgear_url: url.trim() || `http://${ip}`,
+          username: username.trim() || 'admin',
+          password: password.trim() || undefined,
+          use_soap: true,
         };
       default:
         return {};
@@ -173,6 +258,14 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
       const params = buildCurrentParams();
       let autoName = '';
       if (integrationType === 'unifi') autoName = 'UniFi Controller';
+      else if (integrationType === 'fritzbox') autoName = 'FRITZ!Box';
+      else if (integrationType === 'omada') autoName = 'TP-Link Omada';
+      else if (integrationType === 'mikrotik') autoName = 'MikroTik RouterOS';
+      else if (integrationType === 'snmp_bridge') autoName = 'SNMP Switch Bridge';
+      else if (integrationType === 'opnsense') autoName = 'OPNsense Firewall';
+      else if (integrationType === 'pfsense') autoName = 'pfSense Firewall';
+      else if (integrationType === 'asuswrt') autoName = 'ASUS Router';
+      else if (integrationType === 'netgear') autoName = 'Netgear Router';
       else if (integrationType === 'adguard_home') autoName = 'AdGuard Home';
       else if (integrationType === 'home_assistant') autoName = 'Home Assistant';
       else if (integrationType === 'synology_dsm') autoName = 'Synology DSM';
@@ -257,6 +350,14 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'unifi', name: 'Ubiquiti UniFi', desc: 'Controller / OS' },
+                  { id: 'fritzbox', name: 'AVM FRITZ!Box', desc: 'TR-064 / Router' },
+                  { id: 'omada', name: 'TP-Link Omada', desc: 'SDN Controller' },
+                  { id: 'mikrotik', name: 'MikroTik', desc: 'RouterOS v7+ REST' },
+                  { id: 'snmp_bridge', name: 'SNMP Switch', desc: 'Bridge MIB FDB' },
+                  { id: 'opnsense', name: 'OPNsense', desc: 'Firewall REST API' },
+                  { id: 'pfsense', name: 'pfSense', desc: 'Firewall API' },
+                  { id: 'asuswrt', name: 'ASUSWRT', desc: 'ASUS Router' },
+                  { id: 'netgear', name: 'Netgear', desc: 'Nighthawk / Orbi' },
                   { id: 'adguard_home', name: 'AdGuard Home', desc: 'DNS & Blocker' },
                   { id: 'home_assistant', name: 'Home Assistant', desc: 'Smart Home Hub' },
                   { id: 'synology_dsm', name: 'Synology DSM', desc: 'Storage NAS' },
@@ -668,6 +769,460 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                 </div>
               </div>
             )}
+
+            {integrationType === 'fritzbox' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t('device_detail.check_url_label')} (TR-064)
+                  </label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      setTestResult(null);
+                    }}
+                    placeholder={`http://${ip}:49000`}
+                    className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Porta standard 49000 (HTTP) o 49443 (HTTPS)
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_username_label')} (opzionale)
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="fritz_user"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_password_label')}
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {integrationType === 'omada' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t('device_detail.check_url_label')} (Omada SDN Controller)
+                  </label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      setTestResult(null);
+                    }}
+                    placeholder={`https://${ip}:8043`}
+                    className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Porta standard controller Omada SDN: 8043 (HTTPS)
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.omada_site_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={site}
+                      onChange={(e) => setSite(e.target.value)}
+                      placeholder="Default"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div className="flex items-center pt-5">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={useHttps}
+                        onChange={(e) => setUseHttps(e.target.checked)}
+                        className="rounded text-sky-500 focus:ring-0"
+                      />
+                      <span>Verifica certificato SSL</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_username_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="admin"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_password_label')}
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {integrationType === 'mikrotik' && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_port_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={port}
+                      onChange={(e) => setPort(e.target.value)}
+                      placeholder={useHttps ? '443' : '80'}
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div className="flex items-center pt-5">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={useHttps}
+                        onChange={(e) => {
+                          setUseHttps(e.target.checked);
+                          if (e.target.checked && port === '80') setPort('443');
+                          if (!e.target.checked && port === '443') setPort('80');
+                        }}
+                        className="rounded text-sky-500 focus:ring-0"
+                      />
+                      <span>HTTPS / SSL (v7+ REST)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_username_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="admin"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_password_label')}
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {integrationType === 'snmp_bridge' && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_port_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={port}
+                      onChange={(e) => setPort(e.target.value)}
+                      placeholder="161"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Community String
+                    </label>
+                    <input
+                      type="text"
+                      value={community}
+                      onChange={(e) => setCommunity(e.target.value)}
+                      placeholder="public"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Legge la tabella FDB (Forwarding Database RFC 4188/1493) dello switch per mappare automaticamente client e porte fisiche.
+                </p>
+              </div>
+            )}
+
+            {integrationType === 'opnsense' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t('device_detail.check_url_label')} (OPNsense Web GUI)
+                  </label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      setTestResult(null);
+                    }}
+                    placeholder={`https://${ip}`}
+                    className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      API Key
+                    </label>
+                    <input
+                      type="text"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="key_..."
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      API Secret
+                    </label>
+                    <input
+                      type="password"
+                      value={apiSecret}
+                      onChange={(e) => setApiSecret(e.target.value)}
+                      placeholder="secret_..."
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={useHttps}
+                      onChange={(e) => setUseHttps(e.target.checked)}
+                      className="rounded text-sky-500 focus:ring-0"
+                    />
+                    <span>Verifica certificato SSL (disattivare se self-signed)</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {integrationType === 'pfsense' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t('device_detail.check_url_label')} (pfSense Web GUI)
+                  </label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      setTestResult(null);
+                    }}
+                    placeholder={`https://${ip}`}
+                    className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      API Key / Username
+                    </label>
+                    <input
+                      type="text"
+                      value={apiKey || username}
+                      onChange={(e) => {
+                        setApiKey(e.target.value);
+                        setUsername(e.target.value);
+                      }}
+                      placeholder="admin o api_key"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      API Secret / Password
+                    </label>
+                    <input
+                      type="password"
+                      value={apiSecret || password}
+                      onChange={(e) => {
+                        setApiSecret(e.target.value);
+                        setPassword(e.target.value);
+                      }}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={useHttps}
+                      onChange={(e) => setUseHttps(e.target.checked)}
+                      className="rounded text-sky-500 focus:ring-0"
+                    />
+                    <span>Verifica certificato SSL (disattivare se self-signed)</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {integrationType === 'asuswrt' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t('device_detail.check_url_label')} (ASUS Router)
+                  </label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      setTestResult(null);
+                    }}
+                    placeholder={`http://${ip}`}
+                    className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_username_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="admin"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_password_label')}
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={useHttps}
+                      onChange={(e) => setUseHttps(e.target.checked)}
+                      className="rounded text-sky-500 focus:ring-0"
+                    />
+                    <span>Connessione HTTPS (SSL)</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {integrationType === 'netgear' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t('device_detail.check_url_label')} (Netgear Router / Orbi)
+                  </label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      setTestResult(null);
+                    }}
+                    placeholder={`http://${ip}`}
+                    className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_username_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="admin"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_password_label')}
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Comunica tramite SOAP (porta 80 o 5000) per leggere la tabella dei dispositivi connessi da router Nighthawk o sistemi Mesh Orbi.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Test Connection Button & Result Box */}
@@ -710,11 +1265,17 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                       {testResult.details.endpoint && (
                         <div>Endpoint: {testResult.details.endpoint}</div>
                       )}
-                      {testResult.details.devices_found !== undefined && (
-                        <div>Dispositivi nel controller: {testResult.details.devices_found}</div>
+                      {(testResult.details.devices_found !== undefined || testResult.details.total_devices !== undefined) && (
+                        <div>Dispositivi controller: {testResult.details.devices_found ?? testResult.details.total_devices}</div>
+                      )}
+                      {(testResult.details.client_count !== undefined || testResult.details.clients_count !== undefined || testResult.details.connected_clients?.length !== undefined) && (
+                        <div>Client rilevati: {testResult.details.client_count ?? testResult.details.clients_count ?? testResult.details.connected_clients?.length}</div>
                       )}
                       {testResult.details.model && (
                         <div>Modello: {testResult.details.model} ({testResult.details.status || 'OK'})</div>
+                      )}
+                      {testResult.details.version && (
+                        <div>Versione: {testResult.details.version}</div>
                       )}
                     </div>
                   )}

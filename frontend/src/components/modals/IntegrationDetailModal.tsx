@@ -8,6 +8,7 @@ import {
   Users,
   Zap,
   Network,
+  Wifi,
   Shield,
   ShieldAlert,
   Globe,
@@ -166,7 +167,17 @@ export const IntegrationDetailModal: React.FC<IntegrationDetailModalProps> = ({
           )}
 
           {/* UniFi Specific Telemetry Cards */}
-          {integration.type === 'unifi' && (
+          {([
+            'unifi',
+            'fritzbox',
+            'omada',
+            'mikrotik',
+            'snmp_bridge',
+            'opnsense',
+            'pfsense',
+            'asuswrt',
+            'netgear',
+          ].includes(integration.type) || Boolean(details.connected_clients)) && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center gap-3">
@@ -228,6 +239,96 @@ export const IntegrationDetailModal: React.FC<IntegrationDetailModalProps> = ({
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Connected Clients Section */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-sky-500" />
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {t('device_detail.unifi_connected_clients_title', {
+                        count: (details.connected_clients || []).length,
+                      })}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">
+                    {integration.type === 'unifi'
+                      ? t('device_detail.unifi_connected_clients_subtitle')
+                      : t('device_detail.network_connected_clients_subtitle')}
+                  </span>
+                </div>
+
+                {details.connected_clients && details.connected_clients.length > 0 ? (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {details.connected_clients.map((cli: any, idx: number) => {
+                      const isWired = cli.is_wired;
+                      return (
+                        <div
+                          key={cli.mac || idx}
+                          className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-750 text-[11px]"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className={`p-1.5 rounded-md ${
+                                isWired
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                  : 'bg-cyan-500/10 text-cyan-500'
+                              }`}
+                            >
+                              {isWired ? <Network className="w-3.5 h-3.5" /> : <Wifi className="w-3.5 h-3.5" />}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
+                                {cli.name || cli.hostname || cli.ip || cli.mac}
+                              </span>
+                              <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 flex-wrap">
+                                <span>{cli.mac}</span>
+                                {cli.port && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-amber-500 font-sans font-medium">{cli.port}</span>
+                                  </>
+                                )}
+                                {cli.interface && !cli.port && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-slate-400 font-sans">{cli.interface}</span>
+                                  </>
+                                )}
+                                {cli.essid && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-cyan-500 font-sans">{cli.essid}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="font-mono text-sky-600 dark:text-sky-400 font-semibold block">
+                              {cli.ip || '—'}
+                            </span>
+                            {cli.signal !== undefined && cli.signal !== null ? (
+                              <span className="text-[9px] text-slate-400 font-mono block">
+                                {cli.signal} dBm
+                              </span>
+                            ) : cli.link_speed ? (
+                              <span className="text-[9px] text-slate-400 font-mono block">
+                                {cli.link_speed}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-3 text-center bg-white/50 dark:bg-slate-900/40 rounded-lg border border-dashed border-slate-200 dark:border-slate-750 text-slate-400 text-[11px]">
+                    {t('device_detail.unifi_no_clients_connected')}
+                  </div>
+                )}
               </div>
 
               {details.message && (

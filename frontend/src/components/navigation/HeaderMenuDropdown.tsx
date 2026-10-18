@@ -27,6 +27,7 @@ interface HeaderMenuDropdownProps {
   // Deprecated/optional props to maintain backward compatibility
   onOpenWizard?: () => void;
   onOpenLogs?: () => void;
+  onOpen?: () => void;
 }
 
 export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
@@ -39,23 +40,29 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
   onOpenMaintenance,
   onOpenKiosk,
   onRefresh,
+  onOpen,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
 
-  // Close on outside click
+  // Close on outside click (capture phase ensures ReactFlow/canvas events cannot stop propagation)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    function handleClickOutside(event: Event) {
+      const target = event.target as Node | null;
+      if (menuRef.current && target && !menuRef.current.contains(target)) {
         setIsOpen(false);
       }
     }
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('pointerdown', handleClickOutside, true);
+      document.addEventListener('mousedown', handleClickOutside, true);
+      document.addEventListener('touchstart', handleClickOutside, true);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside, true);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      document.removeEventListener('touchstart', handleClickOutside, true);
     };
   }, [isOpen]);
 
@@ -81,7 +88,13 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
     <div className="relative" ref={menuRef}>
       {/* Trigger Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const nextState = !isOpen;
+          if (nextState && onOpen) {
+            onOpen();
+          }
+          setIsOpen(nextState);
+        }}
         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border shadow-sm cursor-pointer ${
           isOpen
             ? 'bg-sky-600 text-white border-sky-400 shadow-sky-500/20'

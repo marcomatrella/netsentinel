@@ -19,6 +19,14 @@ async def test_all_m4_collectors_registered():
         "http",
         "dns",
         "unifi",
+        "fritzbox",
+        "omada",
+        "mikrotik",
+        "snmp_bridge",
+        "opnsense",
+        "pfsense",
+        "asuswrt",
+        "netgear",
         "synology_dsm",
         "nut",
         "adguard_home",
@@ -374,3 +382,509 @@ def test_acceptance_ap_offline_case_d_controller_desync():
     alt = diag.alternative_hypotheses[0]
     assert "missing_evidence" in alt
     assert len(alt["missing_evidence"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_unifi_collector_client_detection(monkeypatch):
+    """Verify UniFi collector extracts connected clients for the target device."""
+    from app.collector.plugins.unifi import UniFiCollector
+
+    collector = UniFiCollector()
+
+    class MockResponse:
+        def __init__(self, url: str):
+            self.url = url
+            self.status_code = 200
+
+        def json(self):
+            if "clients" in str(self.url) or "stat/sta" in str(self.url):
+                return {
+                    "data": [
+                        {
+                            "mac": "11:22:33:44:55:66",
+                            "ip": "192.168.1.150",
+                            "name": "iPhone di Marco",
+                            "is_wired": False,
+                            "ap_mac": "aa:bb:cc:dd:ee:01",
+                            "essid": "Home-WiFi",
+                            "signal": -55,
+                        },
+                        {
+                            "mac": "aa:11:22:33:44:55",
+                            "ip": "192.168.1.151",
+                            "name": "Altro Client",
+                            "is_wired": False,
+                            "ap_mac": "99:88:77:66:55:44",
+                            "essid": "Home-WiFi",
+                            "signal": -70,
+                        },
+                    ]
+                }
+            return {
+                "data": [
+                    {
+                        "mac": "aa:bb:cc:dd:ee:01",
+                        "name": "UniFi AP U6 Pro",
+                        "state": 1,
+                        "uptime": 7200,
+                        "model": "U6-Pro",
+                        "type": "uap",
+                    }
+                ]
+            }
+
+    class MockClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def get(self, url, *args, **kwargs):
+            return MockResponse(url)
+
+    monkeypatch.setattr("httpx.AsyncClient", lambda **kwargs: MockClient())
+
+    result = await collector.collect(
+        target_address="192.168.1.1",
+        params={
+            "api_key": "test_api_key_123",
+            "site": "default",
+            "mac": "aa:bb:cc:dd:ee:01",
+        },
+    )
+
+    assert len(result.observations) > 0
+    obs = result.observations[0]
+    assert obs.status == "ok"
+    assert "connected_clients" in obs.details
+    # Should only match client connected to aa:bb:cc:dd:ee:01
+    matched = obs.details["connected_clients"]
+    assert len(matched) == 1
+    assert matched[0]["mac"] == "11:22:33:44:55:66"
+    assert matched[0]["ip"] == "192.168.1.150"
+    assert matched[0]["name"] == "iPhone di Marco"
+    assert obs.details["clients_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_unifi_deduced_dependency_reason():
+    """Verify that links derived from UniFi integration produce a deduction reason noting UniFi."""
+    from app.db.models import Link
+    from app.topology.deduction import deduce_dependencies_from_topology
+
+    ap_dev = Device(
+        id="dev-ap",
+        name="Access Point Salotto",
+        kind="access_point",
+        status="ok",
+        criticality=3,
+        addresses_json='{"ip": "192.168.1.2"}',
+        tags_json="[]",
+        roles_json='["access_point"]',
+    )
+    client_dev = Device(
+        id="dev-client",
+        name="Smartphone Utente",
+        kind="client",
+        status="ok",
+        criticality=1,
+        addresses_json='{"ip": "192.168.1.150"}',
+        tags_json="[]",
+        roles_json='["passive_tracking"]',
+    )
+
+    unifi_link = Link(
+        id="link-unifi-ap-client",
+        from_device_id="dev-ap",
+        to_device_id="dev-client",
+        medium="wifi",
+        status="ok",
+        status_source="unifi",
+    )
+
+    deps = deduce_dependencies_from_topology(
+        devices=[ap_dev, client_dev],
+        links=[unifi_link],
+    )
+
+    unifi_dep = next((d for d in deps if d.dependent_id == "dev-client" and d.provider_id == "dev-ap"), None)
+    assert unifi_dep is not None
+    assert "rilevato da integrazione UniFi" in unifi_dep.reason
+
+
+@pytest.mark.asyncio
+async def test_fritzbox_collector_client_detection(monkeypatch):
+    """Verify FRITZ!Box collector extracts connected clients and WAN info via TR-064."""
+    from app.collector.plugins.fritzbox import FritzBoxCollector
+
+    collector = FritzBoxCollector()
+
+    class MockResponse:
+        def __init__(self, url: str):
+            self.url = str(url)
+            self.status_code = 200
+
+        @property
+        def text(self):
+            if "hosts" in self.url:
+                return (
+                    '<?xml version="1.0"?>'
+                    '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">'
+                    '<s:Body>'
+                    '<u:X_AVM-DE_GetHostListResponse xmlns:u="urn:dslforum-org:service:Hosts:1">'
+                    '<NewX_AVM-DE_HostList>'
+                    '&lt;List&gt;'
+                    '&lt;Item&gt;'
+                    '&lt;Index&gt;1&lt;/Index&gt;'
+                    '&lt;IPAddress&gt;192.168.178.25&lt;/IPAddress&gt;'
+                    '&lt;MACAddress&gt;AA:BB:CC:DD:EE:11&lt;/MACAddress&gt;'
+                    '&lt;HostName&gt;Smart-TV-Salotto&lt;/HostName&gt;'
+                    '&lt;InterfaceType&gt;Ethernet&lt;/InterfaceType&gt;'
+                    '&lt;Active&gt;1&lt;/Active&gt;'
+                    '&lt;/Item&gt;'
+                    '&lt;Item&gt;'
+                    '&lt;Index&gt;2&lt;/Index&gt;'
+                    '&lt;IPAddress&gt;192.168.178.50&lt;/IPAddress&gt;'
+                    '&lt;MACAddress&gt;AA:BB:CC:DD:EE:22&lt;/MACAddress&gt;'
+                    '&lt;HostName&gt;iPhone-Marco&lt;/HostName&gt;'
+                    '&lt;InterfaceType&gt;802.11&lt;/InterfaceType&gt;'
+                    '&lt;Active&gt;1&lt;/Active&gt;'
+                    '&lt;X_AVM-DE_Speed&gt;866&lt;/X_AVM-DE_Speed&gt;'
+                    '&lt;/Item&gt;'
+                    '&lt;/List&gt;'
+                    '</NewX_AVM-DE_HostList>'
+                    '</u:X_AVM-DE_GetHostListResponse>'
+                    '</s:Body>'
+                    '</s:Envelope>'
+                )
+            elif "deviceinfo" in self.url:
+                return (
+                    '<?xml version="1.0"?>'
+                    '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">'
+                    '<s:Body>'
+                    '<u:GetInfoResponse xmlns:u="urn:dslforum-org:service:DeviceInfo:1">'
+                    '<NewModelName>7590 AX</NewModelName>'
+                    '<NewUpTime>86400</NewUpTime>'
+                    '</u:GetInfoResponse>'
+                    '</s:Body>'
+                    '</s:Envelope>'
+                )
+            elif "wanipconnection" in self.url:
+                return (
+                    '<?xml version="1.0"?>'
+                    '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">'
+                    '<s:Body>'
+                    '<u:GetInfoResponse xmlns:u="urn:dslforum-org:service:WANIPConnection:1">'
+                    '<NewExternalIPAddress>93.45.67.89</NewExternalIPAddress>'
+                    '<NewConnectionStatus>Connected</NewConnectionStatus>'
+                    '<NewUptime>86400</NewUptime>'
+                    '</u:GetInfoResponse>'
+                    '</s:Body>'
+                    '</s:Envelope>'
+                )
+            return "<ok/>"
+
+    class MockClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def post(self, url, *args, **kwargs):
+            return MockResponse(url)
+
+    monkeypatch.setattr("httpx.AsyncClient", lambda **kwargs: MockClient())
+
+    result = await collector.collect(
+        target_address="192.168.178.1",
+        params={"username": "admin", "password": "secretpassword"},
+    )
+
+    assert len(result.observations) > 0
+    obs = result.observations[0]
+    assert obs.status == "ok"
+    assert "FRITZ!Box 7590 AX" in obs.details["model"]
+    assert obs.details["clients_count"] == 2
+    clients = obs.details["connected_clients"]
+    assert any(c["name"] == "Smart-TV-Salotto" and c["is_wired"] is True for c in clients)
+    assert any(c["name"] == "iPhone-Marco" and c["is_wired"] is False for c in clients)
+    assert obs.details["wan"]["external_ip"] == "93.45.67.89"
+
+
+@pytest.mark.asyncio
+async def test_omada_collector_client_detection(monkeypatch):
+    """Verify TP-Link Omada collector extracts connected clients and filters per AP."""
+    from app.collector.plugins.omada import OmadaCollector
+
+    collector = OmadaCollector()
+
+    class MockResponse:
+        def __init__(self, url: str):
+            self.url = str(url)
+            self.status_code = 200
+
+        def json(self):
+            if "login" in self.url:
+                return {"errorCode": 0, "result": {"token": "omada_token_xyz"}}
+            elif "clients" in self.url:
+                return {
+                    "errorCode": 0,
+                    "result": {
+                        "data": [
+                            {
+                                "mac": "11:22:33:44:55:66",
+                                "ip": "192.168.0.100",
+                                "name": "Tablet",
+                                "wireless": True,
+                                "apMac": "aa:bb:cc:dd:ee:ff",
+                                "ssid": "Omada-WiFi",
+                                "rssi": -50,
+                            },
+                            {
+                                "mac": "aa:11:22:33:44:55",
+                                "ip": "192.168.0.101",
+                                "name": "Desktop PC",
+                                "wireless": False,
+                                "switchMac": "11:22:33:44:55:aa",
+                                "port": 3,
+                            },
+                        ]
+                    },
+                }
+            elif "devices" in self.url:
+                return {
+                    "errorCode": 0,
+                    "result": {
+                        "data": [
+                            {"mac": "aa:bb:cc:dd:ee:ff", "model": "EAP660 HD", "type": "ap"},
+                            {"mac": "11:22:33:44:55:aa", "model": "SG2210P", "type": "switch"},
+                        ]
+                    },
+                }
+            return {}
+
+    class MockClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def post(self, url, *args, **kwargs):
+            return MockResponse(url)
+
+        async def get(self, url, *args, **kwargs):
+            return MockResponse(url)
+
+    monkeypatch.setattr("httpx.AsyncClient", lambda **kwargs: MockClient())
+
+    result = await collector.collect(
+        target_address="192.168.0.2",
+        params={
+            "username": "admin",
+            "password": "password",
+            "mac": "aa:bb:cc:dd:ee:ff",
+        },
+    )
+
+    assert len(result.observations) > 0
+    obs = result.observations[0]
+    assert obs.status == "ok"
+    # Should only match wireless client connected to EAP660 HD
+    assert obs.details["clients_count"] == 1
+    assert obs.details["connected_clients"][0]["mac"] == "11:22:33:44:55:66"
+    assert obs.details["connected_clients"][0]["is_wired"] is False
+
+
+@pytest.mark.asyncio
+async def test_omada_collector_auth_failure(monkeypatch):
+    """Verify TP-Link Omada collector marks status='crit' when login fails or host is not Omada."""
+    from app.collector.plugins.omada import OmadaCollector
+
+    collector = OmadaCollector()
+
+    class MockFailingClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def post(self, url, *args, **kwargs):
+            class Resp:
+                status_code = 401
+                def json(self):
+                    return {"errorCode": -1001, "msg": "Invalid credentials"}
+            return Resp()
+
+        async def get(self, url, *args, **kwargs):
+            class Resp:
+                status_code = 404
+                def json(self):
+                    return {}
+            return Resp()
+
+    monkeypatch.setattr("httpx.AsyncClient", lambda **kwargs: MockFailingClient())
+
+    result = await collector.collect(
+        target_address="192.168.1.1",
+        params={
+            "username": "admin",
+            "password": "wrongpassword",
+        },
+    )
+
+    assert len(result.observations) > 0
+    obs = result.observations[0]
+    assert obs.status == "crit"
+    assert "fallita" in obs.details["error"]
+
+
+@pytest.mark.asyncio
+async def test_mikrotik_collector_client_detection(monkeypatch):
+    """Verify MikroTik collector parses system info and active clients."""
+    from app.collector.plugins.mikrotik import MikroTikCollector
+
+    collector = MikroTikCollector()
+
+    class MockResponse:
+        def __init__(self, url: str):
+            self.url = str(url)
+            self.status_code = 200
+
+        def json(self):
+            if "system/resource" in self.url:
+                return [{"board-name": "RB5009UG+S+IN", "version": "7.15", "cpu-load": 4, "uptime": "15d"}]
+            elif "dhcp-server/lease" in self.url:
+                return [
+                    {"address": "192.168.88.20", "mac-address": "aa:bb:cc:11:22:33", "host-name": "Workstation", "status": "bound"},
+                    {"address": "192.168.88.21", "mac-address": "aa:bb:cc:11:22:44", "host-name": "HomePod", "status": "bound"},
+                ]
+            elif "bridge/host" in self.url:
+                return [
+                    {"mac-address": "aa:bb:cc:11:22:33", "on-interface": "ether2", "local": False},
+                ]
+            return []
+
+    class MockClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def get(self, url, *args, **kwargs):
+            return MockResponse(url)
+
+    monkeypatch.setattr("httpx.AsyncClient", lambda **kwargs: MockClient())
+
+    result = await collector.collect(
+        target_address="192.168.88.1",
+        params={"username": "admin", "password": "testpassword"},
+    )
+
+    assert len(result.observations) > 0
+    obs = result.observations[0]
+    assert obs.status == "ok"
+    assert obs.details["model"] == "RB5009UG+S+IN"
+    assert obs.details["clients_count"] >= 2
+    assert any(c["mac"] == "aa:bb:cc:11:22:33" and c["port"] == "ether2" for c in obs.details["connected_clients"])
+
+
+@pytest.mark.asyncio
+async def test_opnsense_collector_client_detection(monkeypatch):
+    """Verify OPNsense collector parses ARP and DHCP tables."""
+    from app.collector.plugins.opnsense import OpnsenseCollector
+
+    collector = OpnsenseCollector()
+
+    class MockResponse:
+        def __init__(self, url: str):
+            self.url = str(url)
+            self.status_code = 200
+
+        def json(self):
+            if "getArpTable" in self.url:
+                return [
+                    {"ip": "192.168.1.10", "mac": "00:11:22:33:44:55", "hostname": "printer.local", "intf_description": "LAN"},
+                    {"ip": "192.168.1.20", "mac": "00:11:22:33:44:66", "hostname": "nas.local", "intf_description": "LAN"},
+                ]
+            elif "searchLease" in self.url:
+                return {"rows": []}
+            elif "gateway/status" in self.url:
+                return {"items": [{"name": "WAN_GW", "status": "online"}]}
+            return {}
+
+    class MockClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def get(self, url, *args, **kwargs):
+            return MockResponse(url)
+
+        async def post(self, url, *args, **kwargs):
+            return MockResponse(url)
+
+    monkeypatch.setattr("httpx.AsyncClient", lambda **kwargs: MockClient())
+
+    result = await collector.collect(
+        target_address="192.168.1.1",
+        params={"api_key": "k", "api_secret": "s"},
+    )
+
+    assert len(result.observations) > 0
+    obs = result.observations[0]
+    assert obs.status == "ok"
+    assert obs.details["clients_count"] == 2
+    assert obs.details["connected_clients"][0]["mac"] == "00:11:22:33:44:55"
+    assert obs.details["connected_clients"][0]["name"] == "printer.local"
+
+
+@pytest.mark.asyncio
+async def test_all_integration_sources_in_deduction():
+    """Verify that all supported integration sources generate appropriate deduction reasons."""
+    from app.db.models import Link
+    from app.topology.deduction import deduce_dependencies_from_topology
+
+    router = Device(
+        id="dev-rtr",
+        name="Router Principale",
+        kind="router",
+        status="ok",
+        criticality=5,
+        addresses_json='{"ip": "192.168.1.1"}',
+        tags_json="[]",
+        roles_json='["gateway"]',
+    )
+    client = Device(
+        id="dev-cli",
+        name="Client PC",
+        kind="client",
+        status="ok",
+        criticality=1,
+        addresses_json='{"ip": "192.168.1.50"}',
+        tags_json="[]",
+        roles_json='["passive_tracking"]',
+    )
+
+    sources = ["fritzbox", "omada", "mikrotik", "snmp_bridge", "opnsense", "pfsense", "asuswrt", "netgear"]
+    for src in sources:
+        test_link = Link(
+            id=f"link-{src}",
+            from_device_id="dev-rtr",
+            to_device_id="dev-cli",
+            medium="ethernet",
+            status="ok",
+            status_source=src,
+        )
+        deps = deduce_dependencies_from_topology(devices=[router, client], links=[test_link])
+        l2_dep = next((d for d in deps if d.dependent_id == "dev-cli" and d.provider_id == "dev-rtr" and d.kind == "l2_path"), None)
+        assert l2_dep is not None, f"Dependency missing for source {src}"
+        assert "rilevato da integrazione" in l2_dep.reason, f"Reason for {src} does not acknowledge integration: {l2_dep.reason}"
+
+

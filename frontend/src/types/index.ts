@@ -59,12 +59,26 @@ export interface DeviceInterface {
 
 export interface DeviceIntegration {
   id: string;
-  type: 'unifi' | 'adguard_home' | 'home_assistant' | 'synology_dsm' | string;
+  type:
+    | 'unifi'
+    | 'fritzbox'
+    | 'omada'
+    | 'mikrotik'
+    | 'snmp_bridge'
+    | 'opnsense'
+    | 'pfsense'
+    | 'asuswrt'
+    | 'netgear'
+    | 'adguard_home'
+    | 'home_assistant'
+    | 'synology_dsm'
+    | string;
   name: string;
   status: string;
   enabled: boolean;
   last_run_at?: string;
   params?: Record<string, any>;
+  details?: Record<string, any>;
 }
 
 export interface Device {

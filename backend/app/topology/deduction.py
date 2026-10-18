@@ -29,6 +29,19 @@ DEVICE_HIERARCHY_RANK: dict[str, int] = {
 }
 
 
+INTEGRATION_SOURCE_LABELS = {
+    "unifi": "UniFi",
+    "fritzbox": "FRITZ!Box",
+    "omada": "TP-Link Omada",
+    "mikrotik": "MikroTik",
+    "snmp_bridge": "Switch SNMP",
+    "opnsense": "OPNsense",
+    "pfsense": "pfSense",
+    "asuswrt": "ASUSWRT",
+    "netgear": "Netgear",
+}
+
+
 def _get_device_rank(dev: Device) -> int:
     """Return structural hierarchy rank for a device (lower number = closer to upstream root)."""
     roles = json.loads(dev.roles_json) if dev.roles_json else []
@@ -108,7 +121,12 @@ def deduce_dependencies_from_topology(
                     dep_dev, prov_dev = dst_dev, src_dev
 
             dep_id = f"dep-l2-{dep_dev.id}-{prov_dev.id}"
-            reason = f"Dedotta perché '{dep_dev.name}' è collegato via Ethernet a '{prov_dev.name}' lungo il percorso verso il Gateway/Core."
+            status_source = getattr(link, "status_source", None)
+            if status_source in INTEGRATION_SOURCE_LABELS:
+                src_lbl = INTEGRATION_SOURCE_LABELS[status_source]
+                reason = f"Dedotta perché '{dep_dev.name}' è collegato a '{prov_dev.name}' (rilevato da integrazione {src_lbl})."
+            else:
+                reason = f"Dedotta perché '{dep_dev.name}' è collegato via Ethernet a '{prov_dev.name}' lungo il percorso verso il Gateway/Core."
             deduced_list.append(DependencyCreate(
                 id=dep_id,
                 dependent_id=dep_dev.id,
@@ -200,7 +218,12 @@ def deduce_dependencies_from_topology(
                 dep_dev, prov_dev = dst_dev, src_dev
 
             dep_id = f"dep-wifi-{dep_dev.id}-{prov_dev.id}"
-            reason = f"Dedotta perché '{dep_dev.name}' è connesso via Wi-Fi a '{prov_dev.name}'."
+            status_source = getattr(link, "status_source", None)
+            if status_source in INTEGRATION_SOURCE_LABELS:
+                src_lbl = INTEGRATION_SOURCE_LABELS[status_source]
+                reason = f"Dedotta perché '{dep_dev.name}' è connesso a '{prov_dev.name}' (rilevato da integrazione {src_lbl})."
+            else:
+                reason = f"Dedotta perché '{dep_dev.name}' è connesso via Wi-Fi a '{prov_dev.name}'."
             deduced_list.append(DependencyCreate(
                 id=dep_id,
                 dependent_id=dep_dev.id,

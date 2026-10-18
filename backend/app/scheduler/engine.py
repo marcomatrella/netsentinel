@@ -21,6 +21,22 @@ from sqlalchemy import delete, select, text
 logger = logging.getLogger("netsentinel.scheduler")
 
 
+INTEGRATION_CHECK_TYPES = {
+    "unifi",
+    "adguard_home",
+    "home_assistant",
+    "synology_dsm",
+    "fritzbox",
+    "omada",
+    "mikrotik",
+    "snmp_bridge",
+    "opnsense",
+    "pfsense",
+    "asuswrt",
+    "netgear",
+}
+
+
 class SchedulerEngine:
     """Internal asyncio-based job scheduler for network checks."""
 
@@ -56,9 +72,19 @@ class SchedulerEngine:
         self._settling_delay: float = 5.0
         self._max_settling_window: float = 10.0
 
+        self._latest_check_details: dict[str, dict[str, Any]] = {}
+
     def get_latest_rtts(self) -> dict[str, float]:
         """Return in-memory map of device_id -> latest RTT in ms."""
         return dict(self._latest_rtts)
+
+    def get_latest_check_details(self, check_id: str) -> dict[str, Any]:
+        """Return latest in-memory observation details for a given check_id."""
+        return dict(self._latest_check_details.get(check_id, {}))
+
+    def set_latest_check_details(self, check_id: str, details: dict[str, Any]) -> None:
+        """Store latest observation details for a given check_id in memory."""
+        self._latest_check_details[check_id] = details
 
     def subscribe_events(self, callback: Callable[[dict[str, Any]], None]) -> None:
         """Subscribe to real-time events and state updates."""
@@ -144,6 +170,22 @@ class SchedulerEngine:
         if self.is_running:
             return
         self.is_running = True
+
+        # Preload latest check details from DB observations
+        try:
+            async with AsyncSessionLocal() as session:
+                obs_res = await session.execute(
+                    select(Observation).order_by(Observation.id.desc()).limit(150)
+                )
+                for o in reversed(obs_res.scalars().all()):
+                    if o.details_json and o.check_id not in self._latest_check_details:
+                        try:
+                            self._latest_check_details[o.check_id] = json.loads(o.details_json)
+                        except Exception:
+                            pass
+        except Exception as e:
+            logger.debug("Preload dettagli osservazioni saltato: %s", e)
+
         self._task = asyncio.create_task(self._scheduler_loop(), name="netsentinel-scheduler")
         self._flush_task = asyncio.create_task(self._batch_flush_loop(), name="netsentinel-flush")
         self._retention_task = asyncio.create_task(self._retention_loop(), name="netsentinel-retention")
@@ -177,7 +219,7 @@ class SchedulerEngine:
                     stmt = select(Check).where(
                         Check.enabled.is_(True),
                         (
-                            (Check.next_run_at.is_(None) & ~Check.type.in_(["unifi", "adguard_home", "home_assistant", "synology_dsm"]))
+                            (Check.next_run_at.is_(None) & ~Check.type.in_(INTEGRATION_CHECK_TYPES))
                             | (Check.next_run_at.is_not(None) & (Check.next_run_at <= now))
                         ),
                     ).limit(50)
@@ -187,7 +229,7 @@ class SchedulerEngine:
                     # Schedule each check
                     due_to_run = []
                     for chk in due_checks:
-                        if chk.type in {"unifi", "adguard_home", "home_assistant", "synology_dsm"}:
+                        if chk.type in INTEGRATION_CHECK_TYPES:
                             try:
                                 pj = json.loads(chk.params_json) if chk.params_json else {}
                                 if pj.get("auth_suspended") or pj.get("mfa_required"):
@@ -284,6 +326,9 @@ class SchedulerEngine:
             return
 
         # Update in-memory fast cache for live SSE streaming and topology
+        if obs.details:
+            self._latest_check_details[chk.id] = obs.details
+
         if obs.status == "ok" and obs.value is not None:
             try:
                 self._latest_rtts[chk.device_id] = round(float(obs.value), 1)
@@ -311,7 +356,7 @@ class SchedulerEngine:
             or obs.details.get("last_http_code") in (401, 403, 429)
             or "Ubic2faTokenRequired" in str(obs.details.get("error", ""))
         )
-        if is_auth_or_mfa and chk.type in {"unifi", "adguard_home", "home_assistant", "synology_dsm"}:
+        if is_auth_or_mfa and chk.type in INTEGRATION_CHECK_TYPES:
             async with AsyncSessionLocal() as session:
                 c = await session.get(Check, chk.id)
                 if c:

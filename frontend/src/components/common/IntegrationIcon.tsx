@@ -199,6 +199,206 @@ export const IntegrationIcon: React.FC<IntegrationIconProps> = ({
         </svg>
       );
 
+    case 'fritzbox':
+      if (withBackground) {
+        return (
+          <div
+            className={`flex items-center justify-center rounded-lg bg-[#004990] text-white shadow-sm shrink-0 ${className}`}
+            style={{ width: numSize + 8, height: numSize + 8 }}
+            title="AVM FRITZ!Box"
+          >
+            <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="9" width="20" height="11" rx="2" />
+              <path d="M5 9V5a2 2 0 0 1 2-2" />
+              <path d="M12 9V3" />
+              <circle cx="7" cy="14.5" r="1.5" fill="#E30613" stroke="none" />
+              <circle cx="12" cy="14.5" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="17" cy="14.5" r="1.5" fill="currentColor" stroke="none" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#004990" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`}>
+          <title>AVM FRITZ!Box</title>
+          <rect x="2" y="9" width="20" height="11" rx="2" />
+          <path d="M5 9V5a2 2 0 0 1 2-2" />
+          <path d="M12 9V3" />
+          <circle cx="7" cy="14.5" r="1.5" fill="#E30613" stroke="none" />
+          <circle cx="12" cy="14.5" r="1.5" fill="#004990" stroke="none" />
+        </svg>
+      );
+
+    case 'omada':
+      if (withBackground) {
+        return (
+          <div
+            className={`flex items-center justify-center rounded-lg bg-[#00A4A6] text-white shadow-sm shrink-0 ${className}`}
+            style={{ width: numSize + 8, height: numSize + 8 }}
+            title="TP-Link Omada"
+          >
+            <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="8" cy="9" r="5" />
+              <circle cx="16" cy="15" r="5" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#00A4A6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`}>
+          <title>TP-Link Omada</title>
+          <circle cx="8" cy="9" r="5" />
+          <circle cx="16" cy="15" r="5" />
+          <circle cx="12" cy="12" r="2" fill="#00A4A6" />
+        </svg>
+      );
+
+    case 'mikrotik':
+      if (withBackground) {
+        return (
+          <div
+            className={`flex items-center justify-center rounded-lg bg-[#002D62] text-white shadow-sm shrink-0 ${className}`}
+            style={{ width: numSize + 8, height: numSize + 8 }}
+            title="MikroTik RouterOS"
+          >
+            <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 19V5l8 7 8-7v14" />
+              <line x1="4" y1="19" x2="20" y2="19" stroke="#E41F26" strokeWidth="2.5" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#E41F26" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`}>
+          <title>MikroTik RouterOS</title>
+          <path d="M4 19V5l8 7 8-7v14" stroke="#002D62" />
+          <line x1="4" y1="19" x2="20" y2="19" stroke="#E41F26" strokeWidth="2.5" />
+        </svg>
+      );
+
+    case 'snmp_bridge':
+      if (withBackground) {
+        return (
+          <div
+            className={`flex items-center justify-center rounded-lg bg-[#7C3AED] text-white shadow-sm shrink-0 ${className}`}
+            style={{ width: numSize + 8, height: numSize + 8 }}
+            title="Switch Gestito SNMP"
+          >
+            <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <rect x="5" y="10" width="3" height="4" rx="0.5" fill="currentColor" />
+              <rect x="10.5" y="10" width="3" height="4" rx="0.5" fill="currentColor" />
+              <rect x="16" y="10" width="3" height="4" rx="0.5" fill="currentColor" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`}>
+          <title>Switch Gestito SNMP</title>
+          <rect x="2" y="6" width="20" height="12" rx="2" />
+          <rect x="5" y="10" width="3" height="4" rx="0.5" fill="#7C3AED" />
+          <rect x="10.5" y="10" width="3" height="4" rx="0.5" fill="#7C3AED" />
+          <rect x="16" y="10" width="3" height="4" rx="0.5" fill="#7C3AED" />
+        </svg>
+      );
+
+    case 'opnsense':
+      if (withBackground) {
+        return (
+          <div
+            className={`flex items-center justify-center rounded-lg bg-[#D9534F] text-white shadow-sm shrink-0 ${className}`}
+            style={{ width: numSize + 8, height: numSize + 8 }}
+            title="OPNsense"
+          >
+            <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <circle cx="12" cy="11" r="2.5" fill="currentColor" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#D9534F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`}>
+          <title>OPNsense</title>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <circle cx="12" cy="11" r="2.5" fill="#D9534F" />
+        </svg>
+      );
+
+    case 'pfsense':
+      if (withBackground) {
+        return (
+          <div
+            className={`flex items-center justify-center rounded-lg bg-[#1E395B] text-white shadow-sm shrink-0 ${className}`}
+            style={{ width: numSize + 8, height: numSize + 8 }}
+            title="pfSense"
+          >
+            <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M9 12h6M12 9v6" strokeWidth="2.2" stroke="#38BDF8" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#1E395B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`}>
+          <title>pfSense</title>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M9 12h6M12 9v6" strokeWidth="2.2" stroke="#38BDF8" />
+        </svg>
+      );
+
+    case 'asuswrt':
+      if (withBackground) {
+        return (
+          <div
+            className={`flex items-center justify-center rounded-lg bg-[#00539B] text-white shadow-sm shrink-0 ${className}`}
+            style={{ width: numSize + 8, height: numSize + 8 }}
+            title="ASUS Router"
+          >
+            <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="12" width="18" height="8" rx="2" />
+              <line x1="6" y1="12" x2="4" y2="4" strokeWidth="2.2" />
+              <line x1="18" y1="12" x2="20" y2="4" strokeWidth="2.2" />
+              <circle cx="8" cy="16" r="1" fill="currentColor" />
+              <circle cx="12" cy="16" r="1" fill="currentColor" />
+              <circle cx="16" cy="16" r="1" fill="currentColor" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#00539B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`}>
+          <title>ASUS Router</title>
+          <rect x="3" y="12" width="18" height="8" rx="2" />
+          <line x1="6" y1="12" x2="4" y2="4" strokeWidth="2.2" />
+          <line x1="18" y1="12" x2="20" y2="4" strokeWidth="2.2" />
+        </svg>
+      );
+
+    case 'netgear':
+      if (withBackground) {
+        return (
+          <div
+            className={`flex items-center justify-center rounded-lg bg-[#27272A] text-white shadow-sm shrink-0 ${className}`}
+            style={{ width: numSize + 8, height: numSize + 8 }}
+            title="Netgear Router"
+          >
+            <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 19V5l14 14V5" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <svg width={numSize} height={numSize} viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${className}`}>
+          <title>Netgear Router</title>
+          <path d="M5 19V5l14 14V5" />
+        </svg>
+      );
+
     default:
       if (withBackground) {
         return (

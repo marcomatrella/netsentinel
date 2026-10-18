@@ -1,6 +1,6 @@
 name: "NetSentinel"
 description: "Topology-aware network monitoring and Root Cause Analysis for LAN and HomeLab"
-version: "1.2.0"
+version: "1.2.1"
 slug: "netsentinel"
 url: "https://github.com/marcomatrella/netsentinel"
 init: false

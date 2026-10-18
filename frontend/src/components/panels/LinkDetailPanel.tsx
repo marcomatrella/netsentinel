@@ -2,6 +2,7 @@ import React from 'react';
 import { X, ArrowRight, Zap, Wifi, Sparkles, Globe, Network, Cpu } from 'lucide-react';
 import { Link, Device, LinkMedium } from '../../types';
 import { useTranslation } from '../../i18n/I18nContext';
+import { IntegrationIcon } from '../common/IntegrationIcon';
 
 interface LinkDetailPanelProps {
   link: Link | null;
@@ -159,9 +160,31 @@ export const LinkDetailPanel: React.FC<LinkDetailPanelProps> = ({
 
           <div className="flex justify-between">
             <span className="text-slate-500 dark:text-slate-400">{t('link_detail.source_label')}</span>
-            <span className="text-slate-600 dark:text-slate-300 italic">{link.status_source || t('link_detail.source_deduced')}</span>
+            <span className="text-slate-600 dark:text-slate-300 italic">
+              {link.status_source && link.status_source !== 'deduced' && link.status_source !== 'manual'
+                ? t(`link_detail.source_${link.status_source}`, { defaultValue: link.status_source })
+                : link.status_source || t('link_detail.source_deduced')}
+            </span>
           </div>
         </div>
+
+        {link.status_source && link.status_source !== 'deduced' && link.status_source !== 'manual' && (
+          <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/80 text-sky-800 dark:text-sky-300 flex items-start gap-2.5">
+            <IntegrationIcon type={link.status_source} size={18} withBackground />
+            <div>
+              <span className="font-semibold block text-xs">
+                {t(`link_detail.${link.status_source}_derived_title`, {
+                  defaultValue: `${t('link_detail.unifi_derived_title')} (${link.status_source})`,
+                })}
+              </span>
+              <p className="text-[11px] text-sky-600 dark:text-sky-400 mt-0.5 leading-snug">
+                {t(`link_detail.${link.status_source}_derived_desc`, {
+                  defaultValue: t('link_detail.unifi_derived_desc'),
+                })}
+              </p>
+            </div>
+          </div>
+        )}
 
         {link.cable_notes && (
           <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200 dark:border-slate-700/50">

@@ -389,6 +389,13 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     }
   };
 
+  const onPaneClick = () => {
+    if (interactionMode === 'pan') {
+      if (onSelectDevice) onSelectDevice(null);
+      if (onSelectLink) onSelectLink(null);
+    }
+  };
+
   // Sync multi-selection box changes from ReactFlow
   const handleSelectionChange: OnSelectionChangeFunc = useCallback(
     ({ nodes: selectedNodes }) => {
@@ -637,6 +644,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         onConnect={isEditMode ? onConnect : undefined}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView

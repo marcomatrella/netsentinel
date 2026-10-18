@@ -87,6 +87,8 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   const [reachabilityMap, setReachabilityMap] = useState<
     Record<string, { reachable: boolean; checking: boolean; rtt_ms?: number | null }>
   >({});
+  const [excludedClientsCount, setExcludedClientsCount] = useState<number>(0);
+  const [rawScannedClients, setRawScannedClients] = useState<any[]>([]);
 
   // Add device form state
   const [newKind, setNewKind] = useState<DeviceKind>('switch');
@@ -137,17 +139,22 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       const data = await scanNetwork(targetSubnet ? targetSubnet.trim() : undefined);
       if (data.subnet) setScanSubnet(data.subnet);
       if (data.devices && data.devices.length > 0) {
-        const scannedDevs: Device[] = data.devices.map((d) => {
+        const rawDevs = data.devices;
+        const detectedClients = rawDevs.filter((d) => d.kind === 'client');
+        setExcludedClientsCount(detectedClients.length);
+        setRawScannedClients(detectedClients);
+
+        // Exclude CLIENT devices by default per requirement
+        const infrastructureDevices = rawDevs.filter((d) => d.kind !== 'client');
+
+        const scannedDevs: Device[] = infrastructureDevices.map((d) => {
           const roles = [...d.roles];
-          if (d.kind === 'client' && !roles.includes('passive_tracking')) {
-            roles.push('passive_tracking');
-          }
           return {
             id: d.id,
             name: d.name,
             kind: d.kind as DeviceKind,
             location: d.location || 'LAN',
-            criticality: d.kind === 'router' || d.is_gateway ? 5 : d.kind === 'switch' ? 4 : d.kind === 'client' ? 1 : 3,
+            criticality: d.kind === 'router' || d.is_gateway ? 5 : d.kind === 'switch' ? 4 : 3,
             addresses: { ip: d.ip, mac: d.mac },
             tags: [],
             roles,
@@ -158,9 +165,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
         });
         setDevices(scannedDevs);
 
-        // Pre-fill reachability from scan results
+        // Pre-fill reachability from scan results for infrastructure devices
         const rMap: Record<string, { reachable: boolean; checking: boolean; rtt_ms?: number | null }> = {};
-        data.devices.forEach((d) => {
+        infrastructureDevices.forEach((d) => {
           rMap[d.id] = { reachable: d.reachable, checking: false, rtt_ms: d.rtt_ms };
         });
         setReachabilityMap(rMap);
@@ -242,6 +249,47 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     } finally {
       setLoadingTemplates(false);
     }
+  };
+
+  // Include detected clients if user explicitly decides to do so
+  const handleIncludeExcludedClients = () => {
+    if (rawScannedClients.length === 0) return;
+    const additionalDevs: Device[] = rawScannedClients.map((d) => {
+      const roles = [...d.roles];
+      if (!roles.includes('passive_tracking')) {
+        roles.push('passive_tracking');
+      }
+      return {
+        id: d.id,
+        name: d.name,
+        kind: 'client',
+        location: d.location || 'LAN',
+        criticality: 1,
+        addresses: { ip: d.ip, mac: d.mac },
+        tags: [],
+        roles,
+        status: d.reachable ? 'ok' : 'unknown',
+        status_since: new Date().toISOString(),
+        interfaces: [],
+      };
+    });
+
+    setDevices((prev) => {
+      const existingIds = new Set(prev.map((dev) => dev.id));
+      const filtered = additionalDevs.filter((dev) => !existingIds.has(dev.id));
+      return [...prev, ...filtered];
+    });
+
+    setReachabilityMap((prev) => {
+      const next = { ...prev };
+      rawScannedClients.forEach((d) => {
+        next[d.id] = { reachable: d.reachable, checking: false, rtt_ms: d.rtt_ms };
+      });
+      return next;
+    });
+
+    setExcludedClientsCount(0);
+    setRawScannedClients([]);
   };
 
   if (!isOpen) return null;
@@ -1107,6 +1155,33 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                       </div>
                     ) : (
                       <>
+                        {/* Informative notice on client exclusion */}
+                        <div className="mb-3 p-3 bg-gradient-to-r from-sky-950/40 to-slate-900 border border-sky-500/30 rounded-xl text-xs space-y-1.5">
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex items-start gap-2 min-w-0">
+                              <Sparkles className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <span className="font-semibold text-sky-200 block text-[11px]">
+                                  {t('wizard.clients_excluded_notice_title')}
+                                </span>
+                                <p className="text-[11px] text-slate-300 leading-relaxed mt-0.5">
+                                  {t('wizard.clients_excluded_notice_desc')}
+                                </p>
+                              </div>
+                            </div>
+                            {excludedClientsCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={handleIncludeExcludedClients}
+                                className="shrink-0 px-2.5 py-1 bg-sky-600/30 hover:bg-sky-600/50 text-sky-300 border border-sky-500/40 rounded-lg text-[10px] font-medium transition cursor-pointer"
+                                title={t('wizard.include_clients_anyway_tooltip')}
+                              >
+                                {t('wizard.include_clients_anyway', { count: excludedClientsCount })}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="flex items-center gap-1.5 mb-2.5">
                           <button
                             type="button"
