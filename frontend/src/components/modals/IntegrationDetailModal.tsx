@@ -178,7 +178,7 @@ export const IntegrationDetailModal: React.FC<IntegrationDetailModalProps> = ({
                       {t('device_detail.unifi_stat_clients')}
                     </span>
                     <span className="text-sm font-bold text-slate-800 dark:text-slate-100 font-mono">
-                      {details.clients_count ?? details.num_sta ?? details.active_clients ?? '—'}
+                      {details.clients_count ?? details.client_count ?? details.num_sta ?? details.active_clients ?? (observation?.value !== undefined && observation?.value !== null ? observation.value : '0')}
                     </span>
                   </div>
                 </div>
@@ -224,7 +224,7 @@ export const IntegrationDetailModal: React.FC<IntegrationDetailModalProps> = ({
                       {t('device_detail.unifi_stat_total_devices')}
                     </span>
                     <span className="text-sm font-bold text-slate-800 dark:text-slate-100 font-mono">
-                      {details.devices_found ?? details.total_devices ?? '—'}
+                      {details.devices_found ?? details.total_devices ?? (details.is_connected ? 1 : '—')}
                     </span>
                   </div>
                 </div>

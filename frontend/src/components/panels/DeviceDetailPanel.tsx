@@ -143,7 +143,7 @@ const buildCheckToastDescription = (chk: Check, res: any, t: TFunc): string => {
       return details.error || t('device_detail.toast_nut_fail');
     }
     case 'unifi': {
-      const clients = details.num_sta ?? details.clients_count ?? details.active_clients ?? '—';
+      const clients = details.num_sta ?? details.clients_count ?? details.client_count ?? details.active_clients ?? (res?.value !== undefined && res?.value !== null ? res.value : '—');
       const poe = details.poe_power ?? details.total_poe_power ?? '0';
       const model = details.model ?? 'UniFi';
       if (res?.status === 'ok') {
@@ -1715,9 +1715,9 @@ export const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({
                                     {details.model}
                                   </span>
                                 )}
-                                {details.num_sta !== undefined && (
+                                {(details.num_sta !== undefined || details.client_count !== undefined || details.clients_count !== undefined) && (
                                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] font-semibold">
-                                    {details.num_sta} Client
+                                    {details.num_sta ?? details.client_count ?? details.clients_count} Client
                                   </span>
                                 )}
                                 {details.poe_power !== undefined && (

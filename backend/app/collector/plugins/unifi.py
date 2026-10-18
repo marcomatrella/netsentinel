@@ -321,6 +321,7 @@ class UniFiCollector(BaseCollector):
                     if is_upgrading:
                         obs_status = "warn"
 
+                    tot_devs = matched_device.get("total_devices") or (1 if is_connected else 0)
                     details: dict[str, Any] = {
                         "name": dev_name,
                         "mac": dev_mac,
@@ -329,6 +330,13 @@ class UniFiCollector(BaseCollector):
                         "is_connected": is_connected,
                         "uptime_seconds": uptime,
                         "client_count": num_sta,
+                        "clients_count": num_sta,
+                        "num_sta": num_sta,
+                        "active_clients": num_sta,
+                        "total_devices": tot_devs,
+                        "devices_found": tot_devs,
+                        "wifi_devices": matched_device.get("wifi_devices", 1 if num_sta > 0 else 0),
+                        "offline_devices": matched_device.get("offline_devices", 0),
                         "model": model,
                     }
                     if port_status_info:
@@ -362,14 +370,21 @@ class UniFiCollector(BaseCollector):
                             f"{d.get('name') or d.get('model')} ({d.get('ipAddress') or d.get('ip')})"
                             for d in devices_data[:4]
                         ]
+                        tot_cnt = len(devices_data)
+                        tot_cli = sum(int(d.get("clientCount") or d.get("num_sta") or 0) for d in devices_data)
                         result.observations.append(
                             CollectorObservation(
                                 status="ok",
-                                value=float(len(devices_data)),
+                                value=float(tot_cnt),
                                 details={
                                     "controller": base_url,
                                     "warning": f"Apparato target (IP: {target_address or 'N/D'}, MAC: {target_mac or 'N/D'}) non presente nella lista apparati adottati da UniFi.",
-                                    "total_devices": len(devices_data),
+                                    "total_devices": tot_cnt,
+                                    "devices_found": tot_cnt,
+                                    "client_count": tot_cli,
+                                    "clients_count": tot_cli,
+                                    "num_sta": tot_cli,
+                                    "active_clients": tot_cli,
                                     "sample_devices": sample_names,
                                 },
                             )
@@ -381,6 +396,7 @@ class UniFiCollector(BaseCollector):
                             if (d.get("state") == 1 or str(d.get("state")).upper() in ["ONLINE", "CONNECTED"])
                         )
                         total_count = len(devices_data)
+                        total_clients = sum(int(d.get("clientCount") or d.get("num_sta") or 0) for d in devices_data)
                         result.observations.append(
                             CollectorObservation(
                                 status="ok" if online_count == total_count else "warn",
@@ -388,7 +404,12 @@ class UniFiCollector(BaseCollector):
                                 details={
                                     "controller": base_url,
                                     "total_devices": total_count,
+                                    "devices_found": total_count,
                                     "online_devices": online_count,
+                                    "client_count": total_clients,
+                                    "clients_count": total_clients,
+                                    "num_sta": total_clients,
+                                    "active_clients": total_clients,
                                 },
                             )
                         )
