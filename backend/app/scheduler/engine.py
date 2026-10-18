@@ -185,17 +185,29 @@ class SchedulerEngine:
                     due_checks = res.scalars().all()
 
                     # Schedule each check
+                    due_to_run = []
                     for chk in due_checks:
+                        if chk.type in {"unifi", "adguard_home", "home_assistant", "synology_dsm"}:
+                            try:
+                                pj = json.loads(chk.params_json) if chk.params_json else {}
+                                if pj.get("auth_suspended") or pj.get("mfa_required"):
+                                    chk.enabled = False
+                                    chk.next_run_at = None
+                                    continue
+                            except Exception:
+                                pass
+
                         # Schedule next run time immediately with jitter (+/- 10%)
                         jitter = random.uniform(0.9, 1.1)
                         next_interval = max(5, int(chk.interval_seconds * jitter))
                         chk.next_run_at = now + timedelta(seconds=next_interval)
+                        due_to_run.append(chk.id)
 
                     await session.commit()
 
                     # Launch execution tasks protected by concurrency semaphore
-                    for chk in due_checks:
-                        asyncio.create_task(self._execute_check_safe(chk.id))
+                    for chk_id in due_to_run:
+                        asyncio.create_task(self._execute_check_safe(chk_id))
 
                     # Periodically check active incidents against topology every 15s to auto-resolve stale incidents
                     if (now - last_corr_pass).total_seconds() >= 15:
@@ -303,6 +315,7 @@ class SchedulerEngine:
             async with AsyncSessionLocal() as session:
                 c = await session.get(Check, chk.id)
                 if c:
+                    c.enabled = False
                     c.next_run_at = None
                     try:
                         pj = json.loads(c.params_json) if c.params_json else {}
@@ -315,7 +328,7 @@ class SchedulerEngine:
                     await session.commit()
             logger.warning(
                 "⚠️ [SCHEDULER] Check integrazione '%s' (%s) fallito per autenticazione/MFA: "
-                "esecuzione periodica automatica SOSPESA per prevenire lockout o email multiple dal vendor. "
+                "disabilitato (enabled=False) ed esecuzione periodica automatica SOSPESA per prevenire lockout o email multiple dal vendor. "
                 "Il retry avverrà solo su test o salvataggio da parte dell'utente.",
                 chk.name,
                 chk.id,
