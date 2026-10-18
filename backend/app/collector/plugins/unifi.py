@@ -75,7 +75,6 @@ class UniFiCollector(BaseCollector):
                         # UniFi Cloud / Site Manager API v1 (unifi.ui.com API key)
                         f"{base_url}/v1/devices",
                         "https://api.ui.com/v1/devices",
-                        "https://api.ui.com/v1/hosts",
                     ]
 
                     for surl in candidate_urls:
@@ -87,8 +86,9 @@ class UniFiCollector(BaseCollector):
                                 if isinstance(parsed, list):
                                     devices_data = parsed
                                 elif isinstance(parsed, dict):
-                                    devices_data = parsed.get("data") or parsed.get("devices") or parsed.get("hosts") or []
-                                break
+                                    devices_data = parsed.get("data") or parsed.get("devices") or []
+                                if devices_data:
+                                    break
                             elif r.status_code == 401:
                                 last_error_detail = "HTTP 401 Non Autorizzato: API Key non valida o non abilitata per UniFi Network."
                             elif r.status_code == 403:
@@ -98,6 +98,56 @@ class UniFiCollector(BaseCollector):
                         except Exception as exc:
                             logger.debug("Tentativo endpoint API Key %s fallito: %s", surl, exc)
                             continue
+
+                    # Fallback for UniFi Site Manager API (api.ui.com) when devices list is empty
+                    # (Software network-servers aggregate metrics under /v1/sites)
+                    if not devices_data:
+                        try:
+                            r_sites = await client.get("https://api.ui.com/v1/sites", headers=headers)
+                            if r_sites.status_code == 200:
+                                s_data = r_sites.json().get("data", [])
+                                connected_host_ids = set()
+                                try:
+                                    r_hosts = await client.get("https://api.ui.com/v1/hosts", headers=headers)
+                                    if r_hosts.status_code == 200:
+                                        connected_host_ids = {
+                                            h["id"] for h in r_hosts.json().get("data", [])
+                                            if h.get("reportedState", {}).get("state") == "connected"
+                                        }
+                                except Exception:
+                                    pass
+
+                                active_sites = [
+                                    s for s in s_data
+                                    if (not connected_host_ids or s.get("hostId") in connected_host_ids)
+                                    and s.get("statistics", {}).get("counts", {}).get("totalDevice", 0) > 0
+                                ] or s_data
+                                for s in active_sites:
+                                    st = s.get("statistics", {}).get("counts", {})
+                                    tot = st.get("totalDevice", 0)
+                                    if tot > 0:
+                                        site_name = s.get("meta", {}).get("name") or "default"
+                                        site_desc = s.get("meta", {}).get("desc") or site_name
+                                        wifi_devs = st.get("wifiDevice", 0)
+                                        clients = st.get("wifiClient", 0)
+                                        offline = st.get("offlineDevice", 0)
+                                        dev_entry = {
+                                            "name": f"UniFi AP ({site_desc})" if wifi_devs > 0 else f"UniFi ({site_desc})",
+                                            "model": "UniFi Access Point" if wifi_devs > 0 else "UniFi Hardware",
+                                            "ipAddress": target_address or "",
+                                            "macAddress": target_mac or "",
+                                            "state": "ONLINE" if offline == 0 else "OFFLINE",
+                                            "clientCount": clients,
+                                            "num_sta": clients,
+                                            "total_devices": tot,
+                                            "wifi_devices": wifi_devs,
+                                            "offline_devices": offline,
+                                        }
+                                        if devices_data is None:
+                                            devices_data = []
+                                        devices_data.append(dev_entry)
+                        except Exception as exc:
+                            logger.debug("Tentativo fallback api.ui.com/v1/sites: %s", exc)
 
                 # -------------------------------------------------------------
                 # 2. Legacy / Session Login with Username & Password
