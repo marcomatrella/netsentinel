@@ -7,15 +7,26 @@ Validates:
 4. Downstream devices inherit maintenance from upstream router.
 """
 
+import json
 from datetime import datetime
 
 import pytest
 from app.correlation.engine import correlation_engine
 from app.correlation.incident_manager import incident_manager
-from app.db.models import Dependency, Device, Incident, Link, ScheduledMaintenanceWindow
+from app.db.models import (
+    Dependency,
+    Device,
+    Event,
+    Incident,
+    Link,
+    NotificationChannel,
+    NotificationLog,
+    ScheduledMaintenanceWindow,
+)
 from app.db.session import AsyncSessionLocal, init_db
 from app.notification.manager import notification_manager
 from app.state.maintenance import maintenance_tracker
+from sqlalchemy import select
 
 
 @pytest.mark.asyncio
@@ -175,10 +186,6 @@ async def test_nightly_router_reboot_without_maintenance_clean_aggregation_and_w
     4. No premature root_cause_shift WARN events are spammed.
     5. When router recovers, WAN status returns to True and a single consolidated resolution report is sent.
     """
-    import json
-    from app.db.models import Event, NotificationChannel, NotificationLog
-    from sqlalchemy import select
-
     await init_db()
     maintenance_tracker.set_maintenance(enabled=False)
     notification_manager.last_incident_email_ts.clear()
@@ -268,4 +275,4 @@ async def test_nightly_router_reboot_without_maintenance_clean_aggregation_and_w
         d_res = await verify_session.execute(drained_stmt)
         d_logs = d_res.scalars().all()
         assert len(d_logs) >= 1
-        assert any(l.status == "sent" for l in d_logs)
+        assert any(log_entry.status == "sent" for log_entry in d_logs)

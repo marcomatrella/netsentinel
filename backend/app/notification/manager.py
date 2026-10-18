@@ -335,7 +335,7 @@ class NotificationManager:
 
     async def drain_pending_wan_queue(self) -> int:
         """Drain queued notifications once WAN connection is restored.
-        
+
         If an incident occurred and resolved during the blackout (e.g. router reboot),
         NetSentinel consolidates it into a single final resolution report rather than
         spamming stale opening alerts.

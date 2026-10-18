@@ -200,7 +200,7 @@ class UniFiCollector(BaseCollector):
                             error_msg = "HTTP 401 Non Autorizzato: controlla API Key o credenziali UniFi."
                             auth_failed = True
                         elif last_status_code == 404:
-                            error_msg = f"HTTP 404 Non Trovato: verifica l'URL del controller e il Site ID (usa 'default')."
+                            error_msg = "HTTP 404 Non Trovato: verifica l'URL del controller e il Site ID (usa 'default')."
                         elif last_status_code == 403:
                             error_msg = "HTTP 403 Accesso Negato: permessi insufficienti per leggere la lista apparati."
                             auth_failed = True
