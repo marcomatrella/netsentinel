@@ -60,17 +60,22 @@ class UniFiCollector(BaseCollector):
                 if api_key:
                     headers = {
                         "X-API-KEY": api_key,
+                        "X-API-Key": api_key,
                         "Accept": "application/json",
                     }
                     candidate_urls = [
                         # Official UniFi OS Integration API v1
-                        f"{base_url}/proxy/network/integration/v1/devices",
-                        f"{base_url}/integration/v1/devices",
                         f"{base_url}/proxy/network/integration/v1/sites/{site}/devices",
+                        f"{base_url}/proxy/network/integration/v1/devices",
                         f"{base_url}/integration/v1/sites/{site}/devices",
+                        f"{base_url}/integration/v1/devices",
                         # Fallback for proxies that pass headers to legacy paths
                         f"{base_url}/proxy/network/api/s/{site}/stat/device",
                         f"{base_url}/api/s/{site}/stat/device",
+                        # UniFi Cloud / Site Manager API v1 (unifi.ui.com API key)
+                        f"{base_url}/v1/devices",
+                        "https://api.ui.com/v1/devices",
+                        "https://api.ui.com/v1/hosts",
                     ]
 
                     for surl in candidate_urls:
@@ -82,7 +87,7 @@ class UniFiCollector(BaseCollector):
                                 if isinstance(parsed, list):
                                     devices_data = parsed
                                 elif isinstance(parsed, dict):
-                                    devices_data = parsed.get("data") or parsed.get("devices") or []
+                                    devices_data = parsed.get("data") or parsed.get("devices") or parsed.get("hosts") or []
                                 break
                             elif r.status_code == 401:
                                 last_error_detail = "HTTP 401 Non Autorizzato: API Key non valida o non abilitata per UniFi Network."

@@ -370,102 +370,73 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                   </p>
                 </div>
 
-                {unifiMode === 'os' ? (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        {t('device_detail.check_unifi_api_key_label')}
-                      </label>
-                      <input
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => {
-                          setApiKey(e.target.value);
-                          setTestResult(null);
-                        }}
-                        placeholder="UniFi OS API Key"
-                        className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                      />
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        {t('device_detail.unifi_api_key_hint')}
-                      </p>
-                    </div>
-
-                    <div className="relative flex py-1 items-center">
-                      <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-                      <span className="flex-shrink mx-2 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                        {t('device_detail.or_credentials')}
-                      </span>
-                      <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                          {t('device_detail.check_username_label')}
-                        </label>
-                        <input
-                          type="text"
-                          value={username}
-                          onChange={(e) => {
-                            setUsername(e.target.value);
-                            setTestResult(null);
-                          }}
-                          placeholder="Local Admin / Email"
-                          className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                          {t('device_detail.check_password_label')}
-                        </label>
-                        <input
-                          type="password"
-                          value={password}
-                          onChange={(e) => {
-                            setPassword(e.target.value);
-                            setTestResult(null);
-                          }}
-                          placeholder="••••••••"
-                          className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                        />
-                      </div>
-                    </div>
+                {/* 1. API Key Box (Prominent & Recommended) */}
+                <div className="p-3 bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      {t('device_detail.check_unifi_api_key_label')}
+                    </label>
+                    <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium">
+                      {t('device_detail.unifi_api_key_recommended')}
+                    </span>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        {t('device_detail.check_username_label')}
-                      </label>
-                      <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => {
-                          setUsername(e.target.value);
-                          setTestResult(null);
-                        }}
-                        placeholder="Local Admin"
-                        className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        {t('device_detail.check_password_label')}
-                      </label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => {
-                          setPassword(e.target.value);
-                          setTestResult(null);
-                        }}
-                        placeholder="••••••••"
-                        className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
-                      />
-                    </div>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => {
+                      setApiKey(e.target.value);
+                      setTestResult(null);
+                    }}
+                    placeholder="UniFi API Key"
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+                  />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">
+                    {t('device_detail.unifi_api_key_hint')}
+                  </p>
+                </div>
+
+                {/* Divider between API Key and Credentials */}
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+                  <span className="flex-shrink mx-2 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    {t('device_detail.or_credentials')}
+                  </span>
+                  <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+                </div>
+
+                {/* 2. Username & Password Fields */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_username_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        setTestResult(null);
+                      }}
+                      placeholder="Local Admin / Email"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
                   </div>
-                )}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t('device_detail.check_password_label')}
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setTestResult(null);
+                      }}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
 
                 {(isMfaRequired || Boolean(mfaToken) || testResult?.details?.mfa_required) && (
                   <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2 animate-fade-in">
